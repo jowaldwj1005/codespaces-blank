@@ -1,35 +1,65 @@
-import { useState } from 'react'
-import reactLogo from './assets/react.svg'
-import viteLogo from '/vite.svg'
-import './App.css'
+import { useState } from 'react';
+import { DataverseExplorer } from './components/DataverseExplorer';
+import { ConnectorTester } from './components/ConnectorTester';
+import { DebugPanel } from './components/DebugPanel';
+
+type Tab = 'dataverse' | 'connectors' | 'debug';
 
 function App() {
-  const [count, setCount] = useState(0)
+  const [activeTab, setActiveTab] = useState<Tab>('dataverse');
 
   return (
-    <>
-      <div>
-        <a href="https://vite.dev" target="_blank">
-          <img src={viteLogo} className="logo" alt="Vite logo" />
-        </a>
-        <a href="https://react.dev" target="_blank">
-          <img src={reactLogo} className="logo react" alt="React logo" />
-        </a>
-      </div>
-      <h1>Vite + React</h1>
-      <div className="card">
-        <button onClick={() => setCount((count) => count + 1)}>
-          count is {count}
-        </button>
-        <p>
-          Edit <code>src/App.tsx</code> and save to test HMR
+    <div style={{ fontFamily: 'system-ui, -apple-system, sans-serif', padding: 16, maxWidth: 1200, margin: '0 auto' }}>
+      <header style={{ marginBottom: 16, borderBottom: '2px solid #6366f1', paddingBottom: 8 }}>
+        <h1 style={{ margin: 0, fontSize: 20, color: '#1e1b4b' }}>
+          Playbook Agent — MVP Debug Console
+        </h1>
+        <p style={{ margin: '4px 0 0', color: '#666', fontSize: 13 }}>
+          Dataverse CRUD + Connector testing with full debug tracing
         </p>
-      </div>
-      <p className="read-the-docs">
-        Click on the Vite and React logos to learn more
-      </p>
-    </>
-  )
+      </header>
+
+      {/* Tab bar */}
+      <nav style={{ display: 'flex', gap: 4, marginBottom: 16 }}>
+        {(
+          [
+            { id: 'dataverse', label: 'Dataverse Explorer' },
+            { id: 'connectors', label: 'Connector Tester' },
+            { id: 'debug', label: 'Debug Log' },
+          ] as const
+        ).map((tab) => (
+          <button
+            key={tab.id}
+            onClick={() => setActiveTab(tab.id)}
+            style={{
+              padding: '8px 16px',
+              border: 'none',
+              borderBottom: activeTab === tab.id ? '2px solid #6366f1' : '2px solid transparent',
+              background: activeTab === tab.id ? '#eef2ff' : 'transparent',
+              color: activeTab === tab.id ? '#4338ca' : '#555',
+              cursor: 'pointer',
+              fontWeight: activeTab === tab.id ? 600 : 400,
+              fontSize: 14,
+              borderRadius: '4px 4px 0 0',
+            }}
+          >
+            {tab.label}
+          </button>
+        ))}
+      </nav>
+
+      {/* Tab content */}
+      <main style={{ padding: 12, border: '1px solid #e5e7eb', borderRadius: 4, background: '#fff', minHeight: 400 }}>
+        {activeTab === 'dataverse' && <DataverseExplorer />}
+        {activeTab === 'connectors' && <ConnectorTester />}
+        {activeTab === 'debug' && <DebugPanel />}
+      </main>
+
+      <footer style={{ marginTop: 12, textAlign: 'center', color: '#999', fontSize: 11 }}>
+        All operations traced via Debug Event Bus — switch to Debug Log tab to inspect requests/responses
+      </footer>
+    </div>
+  );
 }
 
-export default App
+export default App;
