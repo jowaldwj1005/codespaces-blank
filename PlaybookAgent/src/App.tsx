@@ -3,6 +3,8 @@ import { DataverseExplorer } from './components/DataverseExplorer';
 import { ConnectorTester } from './components/ConnectorTester';
 import { DebugPanel } from './components/DebugPanel';
 
+const APP_VERSION = '0.2.0';
+
 type Tab = 'dataverse' | 'connectors' | 'debug';
 
 function App() {
@@ -10,13 +12,18 @@ function App() {
 
   return (
     <div style={{ fontFamily: 'system-ui, -apple-system, sans-serif', padding: 16, maxWidth: 1200, margin: '0 auto' }}>
-      <header style={{ marginBottom: 16, borderBottom: '2px solid #6366f1', paddingBottom: 8 }}>
-        <h1 style={{ margin: 0, fontSize: 20, color: '#1e1b4b' }}>
-          Playbook Agent — MVP Debug Console
-        </h1>
-        <p style={{ margin: '4px 0 0', color: '#666', fontSize: 13 }}>
-          Dataverse CRUD + Connector testing with full debug tracing
-        </p>
+      <header style={{ marginBottom: 16, borderBottom: '2px solid #6366f1', paddingBottom: 8, display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+        <div>
+          <h1 style={{ margin: 0, fontSize: 20, color: '#1e1b4b' }}>
+            Playbook Agent — MVP Debug Console
+          </h1>
+          <p style={{ margin: '4px 0 0', color: '#666', fontSize: 13 }}>
+            Dataverse CRUD + Connector testing with full debug tracing
+          </p>
+        </div>
+        <span style={{ fontSize: 11, color: '#6366f1', background: '#eef2ff', padding: '2px 8px', borderRadius: 4, fontWeight: 600 }}>
+          v{APP_VERSION}
+        </span>
       </header>
 
       {/* Tab bar */}

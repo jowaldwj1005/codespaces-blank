@@ -13,9 +13,26 @@ export function DataverseExplorer() {
   const [topN, setTopN] = useState(5);
   const [filterStr, setFilterStr] = useState('');
   const [recordId, setRecordId] = useState('');
-  const { data, loading, error, fetchTable, fetchRecord, fetchMetadata } = useDataverse();
+  const {
+    data, loading, error, lastAction,
+    fetchTable, fetchRecord, fetchMetadata,
+    doCreateTeam, doUpdateTeam, doDeleteRecord,
+  } = useDataverse();
+
+  // ─── CRUD form state ───
+  const [showCreateTeam, setShowCreateTeam] = useState(false);
+  const [teamName, setTeamName] = useState('');
+  const [teamDesc, setTeamDesc] = useState('');
+  const [buId, setBuId] = useState('');
+  const [adminId, setAdminId] = useState('');
+  const [updateTeamId, setUpdateTeamId] = useState('');
+  const [updateField, setUpdateField] = useState('name');
+  const [updateValue, setUpdateValue] = useState('');
+  const [deleteId, setDeleteId] = useState('');
+  const [crudMessage, setCrudMessage] = useState<string | null>(null);
 
   const handleFetchAll = () => {
+    setCrudMessage(null);
     fetchTable(selectedTable, {
       top: topN,
       ...(filterStr ? { filter: filterStr } : {}),
@@ -24,12 +41,49 @@ export function DataverseExplorer() {
 
   const handleFetchById = () => {
     if (recordId.trim()) {
+      setCrudMessage(null);
       fetchRecord(selectedTable, recordId.trim());
     }
   };
 
   const handleFetchMeta = () => {
+    setCrudMessage(null);
     fetchMetadata(selectedTable);
+  };
+
+  const handleCreateTeam = async () => {
+    if (!teamName.trim() || !buId.trim() || !adminId.trim()) return;
+    setCrudMessage(null);
+    const result = await doCreateTeam({
+      name: teamName.trim(),
+      description: teamDesc.trim() || undefined,
+      businessUnitId: buId.trim(),
+      administratorId: adminId.trim(),
+    });
+    if (result) {
+      setCrudMessage(`Team created: ${(result as unknown as Record<string, unknown>).name ?? 'OK'}`);
+      setTeamName('');
+      setTeamDesc('');
+    }
+  };
+
+  const handleUpdateTeam = async () => {
+    if (!updateTeamId.trim() || !updateValue.trim()) return;
+    setCrudMessage(null);
+    const result = await doUpdateTeam(updateTeamId.trim(), { [updateField]: updateValue.trim() });
+    if (result) {
+      setCrudMessage(`Team updated: ${updateField} = "${updateValue}"`);
+    }
+  };
+
+  const handleDelete = async () => {
+    if (!deleteId.trim()) return;
+    setCrudMessage(null);
+    const ok = await doDeleteRecord(selectedTable, deleteId.trim());
+    if (ok) {
+      setCrudMessage(`Record deleted: ${deleteId}`);
+      setDeleteId('');
+    }
   };
 
   return (
@@ -76,7 +130,7 @@ export function DataverseExplorer() {
         </label>
       </div>
 
-      {/* Actions */}
+      {/* Read Actions */}
       <div style={{ display: 'flex', gap: 8, marginBottom: 12, flexWrap: 'wrap' }}>
         <button onClick={handleFetchAll} disabled={loading}>
           List Records
@@ -99,12 +153,68 @@ export function DataverseExplorer() {
         </button>
       </div>
 
+      {/* CRUD Section */}
+      <div style={{ borderTop: '1px solid #e5e7eb', paddingTop: 12, marginTop: 8, marginBottom: 12 }}>
+        <div style={{ display: 'flex', gap: 8, marginBottom: 8 }}>
+          <button
+            onClick={() => setShowCreateTeam(!showCreateTeam)}
+            style={{ background: '#10b981', color: '#fff', border: 'none' }}
+          >
+            {showCreateTeam ? 'Hide Create Form' : 'Create Team'}
+          </button>
+        </div>
+
+        {/* Create Team Form */}
+        {showCreateTeam && (
+          <div style={{ padding: 8, border: '1px solid #d1fae5', borderRadius: 4, background: '#f0fdf4', marginBottom: 8 }}>
+            <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', marginBottom: 8 }}>
+              <input type="text" value={teamName} onChange={(e) => setTeamName(e.target.value)} placeholder="Team Name *" style={{ width: 180 }} />
+              <input type="text" value={teamDesc} onChange={(e) => setTeamDesc(e.target.value)} placeholder="Description" style={{ width: 200 }} />
+              <input type="text" value={buId} onChange={(e) => setBuId(e.target.value)} placeholder="Business Unit ID *" style={{ width: 260 }} />
+              <input type="text" value={adminId} onChange={(e) => setAdminId(e.target.value)} placeholder="Administrator User ID *" style={{ width: 260 }} />
+            </div>
+            <button onClick={handleCreateTeam} disabled={loading || !teamName.trim() || !buId.trim() || !adminId.trim()}>
+              Create
+            </button>
+          </div>
+        )}
+
+        {/* Update Team */}
+        <div style={{ display: 'flex', gap: 8, alignItems: 'center', marginBottom: 8, flexWrap: 'wrap' }}>
+          <strong style={{ fontSize: 12 }}>Update Team:</strong>
+          <input type="text" value={updateTeamId} onChange={(e) => setUpdateTeamId(e.target.value)} placeholder="Team ID" style={{ width: 260 }} />
+          <select value={updateField} onChange={(e) => setUpdateField(e.target.value)}>
+            <option value="name">name</option>
+            <option value="description">description</option>
+            <option value="emailaddress">emailaddress</option>
+          </select>
+          <input type="text" value={updateValue} onChange={(e) => setUpdateValue(e.target.value)} placeholder="New Value" style={{ width: 180 }} />
+          <button onClick={handleUpdateTeam} disabled={loading || !updateTeamId.trim() || !updateValue.trim()}
+            style={{ background: '#f59e0b', color: '#fff', border: 'none' }}>
+            Update
+          </button>
+        </div>
+
+        {/* Delete Record */}
+        <div style={{ display: 'flex', gap: 8, alignItems: 'center', flexWrap: 'wrap' }}>
+          <strong style={{ fontSize: 12 }}>Delete ({selectedTable}):</strong>
+          <input type="text" value={deleteId} onChange={(e) => setDeleteId(e.target.value)} placeholder="Record ID to delete" style={{ width: 260 }} />
+          <button onClick={handleDelete} disabled={loading || !deleteId.trim()}
+            style={{ background: '#ef4444', color: '#fff', border: 'none' }}>
+            Delete
+          </button>
+        </div>
+      </div>
+
+      {/* CRUD Feedback */}
+      {crudMessage ? <div style={{ color: '#10b981', marginBottom: 8, fontWeight: 500 }}>{crudMessage}</div> : null}
+
       {/* Status */}
-      {loading && <div style={{ color: '#f59e0b' }}>Loading...</div>}
-      {error && <div style={{ color: '#ef4444' }}>Error: {error}</div>}
+      {loading && <div style={{ color: '#f59e0b' }}>Loading... {lastAction ? `(${lastAction})` : ''}</div>}
+      {error ? <div style={{ color: '#ef4444' }}>Error: {error}</div> : null}
 
       {/* Results */}
-      {data && (
+      {data != null ? (
         <div>
           <div style={{ marginBottom: 4, color: '#666' }}>
             {data.length} record(s) returned
@@ -142,7 +252,7 @@ export function DataverseExplorer() {
             ))}
           </div>
         </div>
-      )}
+      ) : null}
     </div>
   );
 }

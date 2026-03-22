@@ -1,14 +1,17 @@
 import { useState } from 'react';
 import { useConnectors } from '../hooks/useConnectors';
+import { OPENAI_DEFAULTS } from '../services/connectors';
 
 type ConnectorType = 'openai' | 'docint' | 'sap';
 
 export function ConnectorTester() {
   const [connector, setConnector] = useState<ConnectorType>('openai');
-  const { result, loading, error, callOpenAI, callDocIntelligence, callSapOData } = useConnectors();
+  const { result, loading, error, pollingStatus, callOpenAI, callDocIntelligence, callSapOData } = useConnectors();
 
   // ─── OpenAI defaults ───
   const [chatMessage, setChatMessage] = useState('Hello, who are you?');
+  const [maxTokens, setMaxTokens] = useState<number>(OPENAI_DEFAULTS.max_completion_tokens);
+  const [temperature, setTemperature] = useState<number>(OPENAI_DEFAULTS.temperature);
 
   // ─── Doc Intelligence defaults ───
   const [docUrl, setDocUrl] = useState('');
@@ -25,8 +28,8 @@ export function ConnectorTester() {
             { role: 'system', content: 'You are a helpful assistant.' },
             { role: 'user', content: chatMessage },
           ],
-          temperature: 0.7,
-          max_tokens: 200,
+          temperature,
+          max_completion_tokens: maxTokens,
         });
         break;
       case 'docint':
@@ -77,7 +80,7 @@ export function ConnectorTester() {
 
       {/* Connector-specific inputs */}
       {connector === 'openai' && (
-        <div style={{ marginBottom: 12 }}>
+        <div style={{ marginBottom: 12, display: 'flex', flexDirection: 'column', gap: 8 }}>
           <label>
             Message:{' '}
             <input
@@ -87,6 +90,31 @@ export function ConnectorTester() {
               style={{ width: 400 }}
             />
           </label>
+          <div style={{ display: 'flex', gap: 12 }}>
+            <label>
+              max_completion_tokens:{' '}
+              <input
+                type="number"
+                value={maxTokens}
+                onChange={(e) => setMaxTokens(Number(e.target.value) || 200)}
+                style={{ width: 80 }}
+                min={1}
+                max={16000}
+              />
+            </label>
+            <label>
+              temperature:{' '}
+              <input
+                type="number"
+                value={temperature}
+                onChange={(e) => setTemperature(Number(e.target.value))}
+                style={{ width: 60 }}
+                min={0}
+                max={2}
+                step={0.1}
+              />
+            </label>
+          </div>
         </div>
       )}
 
@@ -102,6 +130,9 @@ export function ConnectorTester() {
               style={{ width: 400 }}
             />
           </label>
+          <div style={{ fontSize: 11, color: '#666', marginTop: 4 }}>
+            Submits document, then polls for result automatically (up to 60s).
+          </div>
         </div>
       )}
 
@@ -134,13 +165,39 @@ export function ConnectorTester() {
         {loading ? 'Calling...' : 'Test Connector'}
       </button>
 
-      {/* Status */}
-      {error && <div style={{ color: '#ef4444', marginBottom: 8 }}>Error: {error}</div>}
+      {/* Polling status */}
+      {pollingStatus ? (
+        <div style={{ color: '#6366f1', marginBottom: 8 }}>{pollingStatus}</div>
+      ) : null}
 
-      {/* Result */}
+      {/* Status */}
+      {error ? <div style={{ color: '#ef4444', marginBottom: 8 }}>Error: {error}</div> : null}
+
+      {/* Extracted content (Doc Intelligence) */}
+      {connector === 'docint' && result != null && typeof result === 'object' && 'content' in (result as Record<string, unknown>) ? (
+        <div style={{ marginBottom: 8 }}>
+          <strong>Extracted Text:</strong>
+          <pre
+            style={{
+              marginTop: 4,
+              padding: 8,
+              background: '#f0fdf4',
+              borderRadius: 4,
+              fontSize: 12,
+              overflow: 'auto',
+              maxHeight: 300,
+              whiteSpace: 'pre-wrap',
+            }}
+          >
+            {(result as Record<string, unknown>).content as string ?? '(no content extracted)'}
+          </pre>
+        </div>
+      ) : null}
+
+      {/* Raw Result */}
       {result != null ? (
-        <details open style={{ marginTop: 8 }}>
-          <summary style={{ cursor: 'pointer', fontWeight: 500 }}>Response</summary>
+        <details style={{ marginTop: 8 }}>
+          <summary style={{ cursor: 'pointer', fontWeight: 500 }}>Full Response</summary>
           <pre
             style={{
               marginTop: 4,
