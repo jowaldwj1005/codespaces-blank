@@ -4,6 +4,14 @@ import { OPENAI_DEFAULTS } from '../services/connectors';
 
 type ConnectorType = 'openai' | 'docint' | 'sap';
 
+interface DocIntResult {
+  operationId?: string | null;
+  status?: string;
+  content?: string | null;
+  analyzeResult?: unknown;
+  raw?: unknown;
+}
+
 export function ConnectorTester() {
   const [connector, setConnector] = useState<ConnectorType>('openai');
   const { result, loading, error, pollingStatus, callOpenAI, callDocIntelligence, callSapOData } = useConnectors();
@@ -47,6 +55,12 @@ export function ConnectorTester() {
         break;
     }
   };
+
+  // Type-narrow the doc intelligence result
+  const docResult: DocIntResult | null =
+    connector === 'docint' && result != null && typeof result === 'object'
+      ? (result as DocIntResult)
+      : null;
 
   return (
     <div>
@@ -131,7 +145,7 @@ export function ConnectorTester() {
             />
           </label>
           <div style={{ fontSize: 11, color: '#666', marginTop: 4 }}>
-            Submits document, then polls for result automatically (up to 60s).
+            Features: ocrHighResolution | Output: markdown | Auto-polls until complete (up to 60s).
           </div>
         </div>
       )}
@@ -173,40 +187,91 @@ export function ConnectorTester() {
       {/* Status */}
       {error ? <div style={{ color: '#ef4444', marginBottom: 8 }}>Error: {error}</div> : null}
 
-      {/* Extracted content (Doc Intelligence) */}
-      {connector === 'docint' && result != null && typeof result === 'object' && 'content' in (result as Record<string, unknown>) ? (
-        <div style={{ marginBottom: 8 }}>
-          <strong>Extracted Text:</strong>
-          <pre
-            style={{
-              marginTop: 4,
-              padding: 8,
-              background: '#f0fdf4',
-              borderRadius: 4,
-              fontSize: 12,
-              overflow: 'auto',
-              maxHeight: 300,
-              whiteSpace: 'pre-wrap',
-            }}
-          >
-            {(result as Record<string, unknown>).content as string ?? '(no content extracted)'}
-          </pre>
+      {/* ─── Doc Intelligence: rendered content ─── */}
+      {docResult != null ? (
+        <div>
+          {/* Status badge */}
+          <div style={{ marginBottom: 8, display: 'flex', gap: 8, alignItems: 'center' }}>
+            <span style={{
+              padding: '2px 8px', borderRadius: 4, fontSize: 11, fontWeight: 600,
+              background: docResult.status === 'succeeded' ? '#d1fae5' : docResult.status === 'failed' ? '#fef2f2' : '#fef3c7',
+              color: docResult.status === 'succeeded' ? '#065f46' : docResult.status === 'failed' ? '#991b1b' : '#92400e',
+            }}>
+              {docResult.status ?? 'unknown'}
+            </span>
+            {docResult.operationId ? (
+              <span style={{ fontSize: 11, color: '#888' }}>ID: {docResult.operationId}</span>
+            ) : null}
+          </div>
+
+          {/* Rendered markdown content */}
+          {docResult.content ? (
+            <div style={{ marginBottom: 8 }}>
+              <strong>Extracted Content (rendered):</strong>
+              <div
+                style={{
+                  marginTop: 4,
+                  padding: 12,
+                  background: '#fff',
+                  border: '1px solid #e5e7eb',
+                  borderRadius: 4,
+                  maxHeight: 400,
+                  overflow: 'auto',
+                  fontSize: 13,
+                  lineHeight: 1.6,
+                }}
+                dangerouslySetInnerHTML={{ __html: markdownToHtml(docResult.content) }}
+              />
+            </div>
+          ) : null}
+
+          {/* Raw content string */}
+          {docResult.content ? (
+            <details style={{ marginBottom: 8 }}>
+              <summary style={{ cursor: 'pointer', fontWeight: 500 }}>Raw Content (text)</summary>
+              <pre style={{
+                marginTop: 4, padding: 8, background: '#f0fdf4', borderRadius: 4,
+                fontSize: 11, overflow: 'auto', maxHeight: 300, whiteSpace: 'pre-wrap',
+              }}>
+                {docResult.content}
+              </pre>
+            </details>
+          ) : null}
+
+          {/* Full analyzeResult */}
+          {docResult.analyzeResult != null ? (
+            <details style={{ marginBottom: 8 }}>
+              <summary style={{ cursor: 'pointer', fontWeight: 500 }}>analyzeResult (full)</summary>
+              <pre style={{
+                marginTop: 4, padding: 8, background: '#f9fafb', borderRadius: 4,
+                fontSize: 11, overflow: 'auto', maxHeight: 300,
+              }}>
+                {JSON.stringify(docResult.analyzeResult, null, 2)}
+              </pre>
+            </details>
+          ) : null}
+
+          {/* Raw response */}
+          <details>
+            <summary style={{ cursor: 'pointer', fontWeight: 500, color: '#888' }}>Raw SDK Response</summary>
+            <pre style={{
+              marginTop: 4, padding: 8, background: '#f9fafb', borderRadius: 4,
+              fontSize: 11, overflow: 'auto', maxHeight: 300,
+            }}>
+              {JSON.stringify(docResult.raw, null, 2)}
+            </pre>
+          </details>
         </div>
       ) : null}
 
-      {/* Raw Result */}
-      {result != null ? (
-        <details style={{ marginTop: 8 }}>
-          <summary style={{ cursor: 'pointer', fontWeight: 500 }}>Full Response</summary>
+      {/* ─── Non-DocInt: generic result ─── */}
+      {connector !== 'docint' && result != null ? (
+        <details open style={{ marginTop: 8 }}>
+          <summary style={{ cursor: 'pointer', fontWeight: 500 }}>Response</summary>
           <pre
             style={{
-              marginTop: 4,
-              padding: 8,
-              background: '#f9fafb',
-              borderRadius: 4,
-              fontSize: 11,
-              overflow: 'auto',
-              maxHeight: 400,
+              marginTop: 4, padding: 8, background: '#f9fafb', borderRadius: 4,
+              fontSize: 11, overflow: 'auto', maxHeight: 400,
             }}
           >
             {JSON.stringify(result, null, 2)}
@@ -215,4 +280,37 @@ export function ConnectorTester() {
       ) : null}
     </div>
   );
+}
+
+/**
+ * Minimal markdown-to-HTML converter for Doc Intelligence output.
+ * Handles: headings, tables (passthrough), paragraphs, bold, newlines.
+ * Doc Intelligence returns actual <table> HTML in its markdown output.
+ */
+function markdownToHtml(md: string): string {
+  return md
+    .split('\n')
+    .map((line) => {
+      // Headings
+      if (line.startsWith('# ')) return `<h2>${esc(line.slice(2))}</h2>`;
+      if (line.startsWith('## ')) return `<h3>${esc(line.slice(3))}</h3>`;
+      if (line.startsWith('### ')) return `<h4>${esc(line.slice(4))}</h4>`;
+      // HTML table tags — pass through as-is
+      if (/^<\/?t[rdh]/.test(line.trim()) || /^<\/?table/.test(line.trim())) return line;
+      // Empty line
+      if (line.trim() === '') return '<br/>';
+      // HTML comments (page footers etc) — pass through
+      if (line.trim().startsWith('<!--')) return `<div style="color:#999;font-size:11px">${esc(line)}</div>`;
+      // Regular paragraph
+      return `<p style="margin:2px 0">${esc(line)}</p>`;
+    })
+    .join('\n');
+}
+
+function esc(s: string): string {
+  return s
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>');
 }

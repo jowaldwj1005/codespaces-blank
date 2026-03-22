@@ -142,28 +142,38 @@ export interface AnalyzeDocumentResult {
     pages?: unknown[];
     tables?: unknown[];
     paragraphs?: unknown[];
+    figures?: unknown[];
   };
 }
 
 const DOC_INTEL_POLL_INTERVAL_MS = 2000;
 const DOC_INTEL_MAX_POLLS = 30; // 60s max
 
+/** Central defaults for Document Intelligence. */
+export const DOC_INTEL_DEFAULTS = {
+  apiVersion: '2024-11-30',
+  outputContentFormat: 'markdown',
+  features: 'ocrHighResolution',
+} as const;
+
 export const azureDocIntelligence = {
   /** Submit document for analysis - returns raw response with Operation-Location */
   analyzeDocument: (
     body: AnalyzeDocumentRequest,
-    apiVersion = '2024-11-30',
-    outputContentFormat = 'markdown'
+    apiVersion = DOC_INTEL_DEFAULTS.apiVersion,
+    outputContentFormat = DOC_INTEL_DEFAULTS.outputContentFormat,
+    features = DOC_INTEL_DEFAULTS.features,
   ) =>
     tracedOperation<void>(
       'AzureDocIntelligence.AnalyzeDocument',
       'connector',
-      { apiVersion, body, outputContentFormat },
+      { apiVersion, body, outputContentFormat, features },
       () =>
         CustCon_AzureDocIntService.AnalyzeDocument(
           apiVersion,
           body as Record<string, unknown>,
-          outputContentFormat
+          outputContentFormat,
+          features,
         )
     ).then((result: IOperationResult<void>) => {
       const normalized = normalizeConnectorResponse(result);
@@ -172,7 +182,7 @@ export const azureDocIntelligence = {
     }),
 
   /** Poll for analysis result by ID */
-  getAnalyzeResult: (resultId: string, apiVersion = '2024-11-30') =>
+  getAnalyzeResult: (resultId: string, apiVersion = DOC_INTEL_DEFAULTS.apiVersion) =>
     tracedOperation<void>(
       'AzureDocIntelligence.GetAnalyzeResult',
       'connector',
@@ -186,12 +196,14 @@ export const azureDocIntelligence = {
 
   /**
    * Full flow: submit document, poll until done, return extracted content.
+   * Uses ocrHighResolution + markdown output by default.
    * Emits debug events for each step.
    */
   analyzeAndWait: async (
     body: AnalyzeDocumentRequest,
-    apiVersion = '2024-11-30',
-    outputContentFormat = 'markdown'
+    apiVersion = DOC_INTEL_DEFAULTS.apiVersion,
+    outputContentFormat = DOC_INTEL_DEFAULTS.outputContentFormat,
+    features = DOC_INTEL_DEFAULTS.features,
   ): Promise<{
     operationId: string | null;
     status: string;
@@ -200,7 +212,7 @@ export const azureDocIntelligence = {
     raw: unknown;
   }> => {
     // Step 1: Submit
-    const submitResult = await azureDocIntelligence.analyzeDocument(body, apiVersion, outputContentFormat);
+    const submitResult = await azureDocIntelligence.analyzeDocument(body, apiVersion, outputContentFormat, features);
     const operationId = submitResult.operationId;
 
     if (!operationId) {

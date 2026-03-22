@@ -1,6 +1,7 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useDataverse } from '../hooks/useDataverse';
 import type { DataverseTable } from '../hooks/useDataverse';
+import { useCurrentUser } from '../hooks/useCurrentUser';
 
 const AVAILABLE_TABLES: { value: DataverseTable; label: string }[] = [
   { value: 'systemusers', label: 'System Users' },
@@ -19,12 +20,25 @@ export function DataverseExplorer() {
     doCreateTeam, doUpdateTeam, doDeleteRecord,
   } = useDataverse();
 
+  // ─── Current user for defaults ───
+  const { currentUser } = useCurrentUser();
+
   // ─── CRUD form state ───
   const [showCreateTeam, setShowCreateTeam] = useState(false);
   const [teamName, setTeamName] = useState('');
   const [teamDesc, setTeamDesc] = useState('');
   const [buId, setBuId] = useState('');
   const [adminId, setAdminId] = useState('');
+
+  // Auto-fill BU and Admin from current user when loaded
+  useEffect(() => {
+    if (currentUser) {
+      if (!buId) setBuId(currentUser.businessunitid);
+      if (!adminId) setAdminId(currentUser.systemuserid);
+    }
+    // Only run when currentUser first loads, not on every buId/adminId change
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [currentUser]);
   const [updateTeamId, setUpdateTeamId] = useState('');
   const [updateField, setUpdateField] = useState('name');
   const [updateValue, setUpdateValue] = useState('');
@@ -170,8 +184,14 @@ export function DataverseExplorer() {
             <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', marginBottom: 8 }}>
               <input type="text" value={teamName} onChange={(e) => setTeamName(e.target.value)} placeholder="Team Name *" style={{ width: 180 }} />
               <input type="text" value={teamDesc} onChange={(e) => setTeamDesc(e.target.value)} placeholder="Description" style={{ width: 200 }} />
-              <input type="text" value={buId} onChange={(e) => setBuId(e.target.value)} placeholder="Business Unit ID *" style={{ width: 260 }} />
-              <input type="text" value={adminId} onChange={(e) => setAdminId(e.target.value)} placeholder="Administrator User ID *" style={{ width: 260 }} />
+              <input type="text" value={buId} onChange={(e) => setBuId(e.target.value)}
+                placeholder={currentUser ? `BU: ${currentUser.businessunitid}` : 'Business Unit ID *'}
+                title={currentUser ? `Auto-filled from ${currentUser.fullname}` : ''}
+                style={{ width: 260 }} />
+              <input type="text" value={adminId} onChange={(e) => setAdminId(e.target.value)}
+                placeholder={currentUser ? `Admin: ${currentUser.fullname}` : 'Administrator User ID *'}
+                title={currentUser ? `Auto-filled: ${currentUser.systemuserid}` : ''}
+                style={{ width: 260 }} />
             </div>
             <button onClick={handleCreateTeam} disabled={loading || !teamName.trim() || !buId.trim() || !adminId.trim()}>
               Create
