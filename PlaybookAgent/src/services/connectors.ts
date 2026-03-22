@@ -277,8 +277,15 @@ export interface SapODataRequest {
   headers?: Record<string, string>;
 }
 
+/** Central defaults for SAP OData connector (Power Automate proxy flow). */
+export const SAP_ODATA_DEFAULTS = {
+  apiVersion: '1',
+  sp: '/triggers/manual/run',
+  sv: '1.0',
+} as const;
+
 export const sapOData = {
-  execute: (request: SapODataRequest, apiVersion = '2024-10-01', sp = '/triggers/manual/paths/invoke', sv = '1.0') =>
+  execute: (request: SapODataRequest, apiVersion = SAP_ODATA_DEFAULTS.apiVersion, sp = SAP_ODATA_DEFAULTS.sp, sv = SAP_ODATA_DEFAULTS.sv) =>
     tracedOperation<Record<string, unknown>>(
       `SAP.OData.${request.method} ${request.relativePath}`,
       'connector',

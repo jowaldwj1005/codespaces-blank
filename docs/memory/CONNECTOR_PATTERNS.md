@@ -57,10 +57,14 @@ The `extractOperationId()` helper checks all known locations.
 **Operation:** `ExecuteSapODataRequest`
 
 ### Key Parameters
-- `api_version`: `'2024-10-01'` (NOT `2024-01-01` — that returns "version not supported")
-- `sp`: `'/triggers/manual/paths/invoke'`
+- `api_version`: `'1'` (just the number — NOT a date-based version string)
+- `sp`: `'/triggers/manual/run'` (NOT `/triggers/manual/paths/invoke` — that returns AuthorizationFailed 401)
 - `sv`: `'1.0'`
 - `body`: `{ method, relativePath, queryString?, body?, headers? }`
+
+### Error: AuthorizationFailed on `/triggers/manual/paths/invoke`
+Using the wrong `sp` path returns 401: `You do not have permissions to perform action 'run' on scope '/triggers/manual/paths/'`.
+The correct path for the Power Automate proxy flow trigger is `/triggers/manual/run`.
 
 ### Request Structure
 ```typescript
