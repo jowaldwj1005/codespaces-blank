@@ -1,0 +1,24 @@
+{
+  "raw": {
+    "success": false,
+    "error": {
+      "message": "{\"error\":{\"code\":\"AuthorizationFailed\",\"message\":\"You do not have permissions to perform action 'run' on scope '/triggers/manual/paths/'. Verify you are making the request with the appropriate HTTP method. See http://aka.ms/logic-trigger for details.\"}}",
+      "status": 401,
+      "requestId": "41755366-9e0d-4cac-9fd3-d88927224a74"
+    }
+  },
+  "normalized": {
+    "success": false,
+    "error": {
+      "mess
+
+wenn ich den custom connector teste gebe ich ein:
+api-version *
+1
+sp *
+/triggers/manual/run
+sv *
+1.0
+Raw Body egal oder json Object
+ich weiß nicht was du da machst
+hab ich in der connection die sig hinterlegt?
