@@ -111,3 +111,39 @@ But the Dataverse OData API **rejects PascalCase** with error:
 'administratorid@odata.bind': lookupBind('systemusers', id)
 ```
 Cast through `unknown` to bypass the typed interface when needed.
+
+### System Entities vs Custom Entities (jw_ prefix)
+
+**System entities** (teams, systemusers, businessunits):
+- PAC CLI generates PascalCase lookup keys in TypeScript interfaces (`BusinessUnitId@odata.bind`)
+- OData API requires **lowercase** (`businessunitid@odata.bind`)
+- Must cast through `unknown` to bypass typed interface
+
+**Custom entities** (jw_ prefix):
+- Expected to use lowercase throughout (both interface and API)
+- Verify after first `pac code add` for a jw_ entity — if PAC CLI generates PascalCase, apply same lowercase + cast pattern
+- Lookup field names follow pattern: `jw_<targetentity>id` (e.g., `jw_agentid`, `jw_caseid`)
+
+### Current User Resolution
+
+**DO NOT** use `systemusers.getAll({ top: 1 })` — returns an arbitrary user, not the logged-in user.
+
+**Correct pattern:**
+```typescript
+import { getContext } from '@microsoft/power-apps/app';
+
+const ctx = await getContext();
+const objectId = ctx.user.objectId; // Azure AD Object ID
+
+systemusers.getAll({
+  filter: `azureactivedirectoryobjectid eq '${objectId}'`,
+  select: ['systemuserid', 'fullname', '_businessunitid_value'],
+  top: 1,
+});
+```
+
+`getContext()` returns `IContext` with:
+- `user.objectId` — Azure AD Object ID (use to filter systemusers)
+- `user.fullName` — Display name
+- `user.tenantId` — Tenant ID
+- `user.userPrincipalName` — UPN (email-like)
