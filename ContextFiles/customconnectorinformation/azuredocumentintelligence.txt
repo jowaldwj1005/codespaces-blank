@@ -1,0 +1,141 @@
+action name: AnalyzeDocument
+query params to use:
+api-version: 2024-11-30
+outputContentFormat: markdown
+features: ocrHighResolution
+samples body (you use base64Source instead)
+{"urlSource":"https://cdn.vertex42.com/ExcelTemplates/Images/excel-invoice-template.png"}
+
+This custom connector has C# Code for the AnalyzeDocument Action that takes some header elements and outputs them in the reponse body so the app code can access it.
+
+sample response:
+headers:
+{
+  "content-length": "1011",
+  "content-type": "application/json; charset=utf-8",
+  "date": "Mon, 09 Mar 2026 16:40:35 GMT",
+  "request-context": "appId=cid-v1:0c37065f-4d7c-47cf-af06-96cd9a75949d",
+  "x-ms-function-status": "OK"
+}
+body:
+{
+  "statusCode": 202,
+  "operationLocation": "https://it-msft-dach-docint-johannestests.cognitiveservices.azure.com/documentintelligence/documentModels/prebuilt-layout/analyzeResults/71ca551b-9291-4f26-b1e8-6aba7bc75531?api-version=2024-11-30",
+  "resultId": "71ca551b-9291-4f26-b1e8-6aba7bc75531",
+  "apimRequestId": "71ca551b-9291-4f26-b1e8-6aba7bc75531",
+  "date": "Mon, 09 Mar 2026 16:40:34 GMT",
+  "contentLength": "0"
+}
+
+actionname GetAnalyseResult
+api version:2024-11-30
+resultId (sample):9816e48b-4744-4964-8757-b75a336b59fe
+response headers:
+{
+  "apim-request-id": "957796ea-1512-4676-8811-bdfe68856bfc",
+  "content-length": "40727",
+  "content-type": "application/json; charset=utf-8",
+  "date": "Sun, 08 Mar 2026 18:55:13 GMT",
+  "strict-transport-security": "max-age=31536000; includeSubDomains; preload",
+  "x-content-type-options": "nosniff",
+  "x-envoy-upstream-service-time": "42",
+  "x-ms-apihub-cached-response": "true",
+  "x-ms-apihub-obo": "false",
+  "x-ms-au-caller-id": "fae96bfb-3264-4a5a-89d9-70e87ee2d7b0",
+  "x-ms-au-creator-id": "fae96bfb-3264-4a5a-89d9-70e87ee2d7b0",
+  "x-ms-dlp-ef": "-|-/-|-|-|-",
+  "x-ms-dlp-gu": "-|-",
+  "x-ms-dlp-re": "-|-",
+  "x-ms-environment-id": "012af916-f79c-ec76-b699-8b810241c010",
+  "x-ms-mip-sl": "-|-|-|-",
+  "x-ms-region": "Sweden Central",
+  "x-ms-tenant-id": "4f04511e-f83b-4951-b7f7-80d0ea8a9a88"
+}
+response body (trunkated - you can research code to parse all polygons etc.):
+{
+  "status": "succeeded",
+  "createdDateTime": "2026-03-08T18:54:21Z",
+  "lastUpdatedDateTime": "2026-03-08T18:54:22Z",
+  "analyzeResult": {
+    "apiVersion": "2024-11-30",
+    "modelId": "prebuilt-layout",
+    "stringIndexType": "textElements",
+    "content": "Company Name\n\n[Street Address]\n[City, ST ZIP]\nPhone: [000-000-0000]\nFax: [000-000-0000]\nWebsite: somedomain.com\n\n\n# INVOICE\n\n\n<table>\n<tr>\n<td>DATE</td>\n<td>12/9/2019</td>\n</tr>\n<tr>\n<td>INVOICE #</td>\n<td>[123456]</td>\n</tr>\n<tr>\n<td>CUSTOMER ID</td>\n<td>[123]</td>\n</tr>\n<tr>\n<td>DUE DATE</td>\n<td>1/8/2020</td>\n</tr>\n</table>\n\n\nBILL TO\n\n[Name]\n[Company Name]\n[Street Address]\n[City, ST ZIP]\n[Phone]\n\n\n<table>\n<tr>\n<th>DESCRIPTION</th>\n<th>TAXED</th>\n<th>AMOUNT</th>\n</tr>\n<tr>\n<td>[Service Fee]</td>\n<td></td>\n<td>230.00</td>\n</tr>\n<tr>\n<td>[Labor: 5 hours at $75/hr]</td>\n<td></td>\n<td>375.00</td>\n</tr>\n<tr>\n<td>[Parts]</td>\n<td>☒</td>\n<td>345.00</td>\n</tr>\n<tr>\n<td></td>\n<td></td>\n<td></td>\n</tr>\n<tr>\n<td></td>\n<td></td>\n<td></td>\n</tr>\n<tr>\n<td></td>\n<td></td>\n<td></td>\n</tr>\n<tr>\n<td></td>\n<td></td>\n<td></td>\n</tr>\n<tr>\n<td></td>\n<td></td>\n<td></td>\n</tr>\n<tr>\n<td></td>\n<td></td>\n<td></td>\n</tr>\n<tr>\n<td></td>\n<td></td>\n<td></td>\n</tr>\n<tr>\n<td></td>\n<td></td>\n<td></td>\n</tr>\n<tr>\n<td></td>\n<td></td>\n<td></td>\n</tr>\n<tr>\n<td></td>\n<td></td>\n<td></td>\n</tr>\n<tr>\n<td></td>\n<td></td>\n<td></td>\n</tr>\n<tr>\n<td></td>\n<td></td>\n<td></td>\n</tr>\n</table>\n\n\nOTHER COMMENTS\n\n1\\. Total payment due in 30 days\n2\\. Please include the invoice number on your check\n\n\n<table>\n<tr>\n<td>Subtotal</td>\n<td>950.00</td>\n</tr>\n<tr>\n<td>Taxable</td>\n<td>345.00</td>\n</tr>\n<tr>\n<td>Tax rate</td>\n<td>6.250%</td>\n</tr>\n<tr>\n<td>Tax due</td>\n<td>21.56</td>\n</tr>\n<tr>\n<td>Other</td>\n<td></td>\n</tr>\n<tr>\n<td>TOTAL</td>\n<td>$ 971.56</td>\n</tr>\n</table>\n\n\nMake all checks payable to\n[Your Company Name]\n\nIf you have any questions about this invoice, please contact\n[Name, Phone #, E-mail]\nThank You For Your Business!\n\n<!-- PageFooter=\"https://www.vertex42.com/ExcelTemplates/excel-invoice-template.html Invoice Template @ 2010-2019 by Vertex42.com\" -->\n",
+    "pages": [
+      {
+        "pageNumber": 1,
+        "angle": 0.016597649082541466,
+        "width": 694,
+        "height": 898,
+        "unit": "pixel",
+        "words": [
+          {
+            "content": "Company",
+            "polygon": [
+              59,
+
+
+swagger:
+swagger: '2.0'
+info:
+  title: DocumentIntelligenceConnector
+  version: '1.0'
+host: it-msft-dach-docint-johannestests.cognitiveservices.azure.com
+basePath: /documentintelligence
+schemes:
+  - https
+consumes:
+  - application/json
+produces:
+  - application/json
+paths:
+  /documentModels/prebuilt-layout:analyze:
+    post:
+      summary: Analyze document
+      operationId: AnalyzeDocument
+      parameters:
+        - name: api-version
+          in: query
+          required: true
+          type: string
+          default: '2024-11-30'
+        - name: outputContentFormat
+          in: query
+          required: false
+          type: string
+        - name: features
+          in: query
+          required: false
+          type: string
+        - name: body
+          in: body
+          required: true
+          schema:
+            type: object
+      responses:
+        '202':
+          description: Accepted
+  /documentModels/prebuilt-layout/analyzeResults/{resultId}:
+    get:
+      summary: Get analyze result
+      operationId: GetAnalyzeResult
+      parameters:
+        - name: api-version
+          in: query
+          required: true
+          type: string
+          default: '2024-11-30'
+        - name: resultId
+          in: path
+          required: true
+          type: string
+      responses:
+        '200':
+          description: Success
+securityDefinitions:
+  api_key:
+    type: apiKey
+    in: header
+    name: Ocp-Apim-Subscription-Key
+security:
+  - api_key: []

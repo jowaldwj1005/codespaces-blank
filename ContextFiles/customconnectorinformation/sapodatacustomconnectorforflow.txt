@@ -1,0 +1,99 @@
+payload instructions:
+Write the code in a way that everything is sent in the body of the request. Behind the custom connector is a cloud flow. 
+I will parse your inputs into the equivalent sap odata connector. For a GET request the request body could look like this:
+{
+  "method": "GET",
+  "relativePath": "A_SalesOrder('123')",
+  "queryString": "$select=SalesOrder&$top=1",
+  "body": null,
+  "headers": {
+    "Accept": "application/json"
+  }
+}
+
+Swagger:
+swagger: '2.0'
+info:
+  title: SAP OData Proxy Flow
+  description: Proxy any SAP OData request through a Power Automate cloud flow
+  version: '1.0'
+host: 012af916f79cec76b6998b810241c0.10.environment.api.powerplatform.com
+basePath: >-
+  /powerautomate/automations/direct/workflows/ad6a89bd6c7b4387a54e5811ff5e6649/triggers/manual/paths/invoke
+schemes:
+  - https
+consumes:
+  - application/json
+produces:
+  - application/json
+paths:
+  /:
+    post:
+      summary: Execute SAP OData request
+      operationId: ExecuteSapODataRequest
+      parameters:
+        - name: api-version
+          in: query
+          required: true
+          type: string
+          default: '1'
+          x-ms-visibility: internal
+        - name: sp
+          in: query
+          required: true
+          type: string
+          default: /triggers/manual/run
+          x-ms-visibility: internal
+        - name: sv
+          in: query
+          required: true
+          type: string
+          default: '1.0'
+          x-ms-visibility: internal
+        - name: body
+          in: body
+          required: true
+          schema:
+            type: object
+            required:
+              - method
+              - relativePath
+            properties:
+              method:
+                type: string
+                description: HTTP method to use against SAP
+                enum:
+                  - GET
+                  - POST
+                  - PATCH
+                  - DELETE
+              relativePath:
+                type: string
+                description: Relative SAP OData path, e.g. A_SalesOrder('123')
+              queryString:
+                type: string
+                description: >-
+                  Optional raw query string without ?, e.g.
+                  $select=SalesOrder&$top=10
+              body:
+                type: object
+                description: Optional request body for POST or PATCH
+              headers:
+                type: object
+                description: Optional additional headers
+      responses:
+        '200':
+          description: Successful response
+          schema:
+            type: object
+        default:
+          description: Error response
+          schema:
+            type: object
+securityDefinitions:
+  api_key:
+    type: apiKey
+    in: query
+    name: sig
+security:
+  - api_key: []

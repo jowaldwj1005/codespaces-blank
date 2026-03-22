@@ -1,0 +1,208 @@
+{
+  "name": "shared_cr-5fcustcon-5fazuredocint-5fe435f80a6d4c3504",
+  "id": "/providers/Microsoft.PowerApps/apis/shared_cr-5fcustcon-5fazuredocint-5fe435f80a6d4c3504",
+  "type": "Microsoft.PowerApps/apis",
+  "properties": {
+    "xrmConnectorId": "172aa1d1-374b-4b60-ad0c-8e1151109425",
+    "displayName": "CustCon_AzureDocInt",
+    "iconUri": "https://defaulticons.powerapps.com/defaulticons/api-dedicated.png",
+    "iconBrandColor": "#007ee5",
+    "contact": {},
+    "license": {},
+    "apiEnvironment": "Shared",
+    "isCustomApi": true,
+    "blobUrisAreProxied": false,
+    "connectionParameters": {
+      "api_key": {
+        "type": "securestring",
+        "uiDefinition": {
+          "displayName": "Ocp-Apim-Subscription-Key",
+          "description": "The Ocp-Apim-Subscription-Key for this api",
+          "tooltip": "Provide your Ocp-Apim-Subscription-Key",
+          "constraints": {
+            "tabIndex": 2,
+            "clearText": false,
+            "required": "true"
+          }
+        }
+      }
+    },
+    "swagger": {
+      "swagger": "2.0",
+      "info": {
+        "title": "DocumentIntelligenceConnector",
+        "version": "1.0"
+      },
+      "host": "usa002-004.azure-apihub.net",
+      "basePath": "/apim/cr-5fcustcon-5fazuredocint-5fe435f80a6d4c3504",
+      "schemes": [
+        "https",
+        "http"
+      ],
+      "consumes": [
+        "application/json"
+      ],
+      "produces": [
+        "application/json"
+      ],
+      "paths": {
+        "/{connectionId}/documentModels/prebuilt-layout:analyze": {
+          "post": {
+            "summary": "Analyze document",
+            "operationId": "AnalyzeDocument",
+            "parameters": [
+              {
+                "name": "connectionId",
+                "in": "path",
+                "required": true,
+                "x-ms-visibility": "internal",
+                "type": "string"
+              },
+              {
+                "name": "api-version",
+                "in": "query",
+                "required": true,
+                "type": "string",
+                "default": "2024-11-30"
+              },
+              {
+                "name": "outputContentFormat",
+                "in": "query",
+                "required": false,
+                "type": "string"
+              },
+              {
+                "name": "features",
+                "in": "query",
+                "required": false,
+                "type": "string"
+              },
+              {
+                "name": "body",
+                "in": "body",
+                "required": true,
+                "schema": {
+                  "type": "object"
+                }
+              }
+            ],
+            "responses": {
+              "202": {
+                "description": "Accepted"
+              }
+            }
+          }
+        },
+        "/{connectionId}/documentModels/prebuilt-layout/analyzeResults/{resultId}": {
+          "get": {
+            "summary": "Get analyze result",
+            "operationId": "GetAnalyzeResult",
+            "parameters": [
+              {
+                "name": "connectionId",
+                "in": "path",
+                "required": true,
+                "x-ms-visibility": "internal",
+                "type": "string"
+              },
+              {
+                "name": "api-version",
+                "in": "query",
+                "required": true,
+                "type": "string",
+                "default": "2024-11-30"
+              },
+              {
+                "name": "resultId",
+                "in": "path",
+                "required": true,
+                "type": "string"
+              }
+            ],
+            "responses": {
+              "200": {
+                "description": "Success"
+              }
+            }
+          }
+        }
+      },
+      "securityDefinitions": {
+        "api_key": {
+          "type": "apiKey",
+          "in": "header",
+          "name": "Ocp-Apim-Subscription-Key"
+        }
+      },
+      "security": [
+        {
+          "api_key": []
+        }
+      ]
+    },
+    "runtimeUrls": [
+      "https://012af916-f79c-ec76-b699-8b810241c010.18.custom.usa002.azure-apihub.net/apim/cr-5fcustcon-5fazuredocint-5fe435f80a6d4c3504",
+      "http://012af916-f79c-ec76-b699-8b810241c010.18.custom.usa002.azure-apihub.net/apim/cr-5fcustcon-5fazuredocint-5fe435f80a6d4c3504"
+    ],
+    "primaryRuntimeUrl": "https://012af916-f79c-ec76-b699-8b810241c010.18.custom.usa002.azure-apihub.net/apim/cr-5fcustcon-5fazuredocint-5fe435f80a6d4c3504",
+    "doNotUseApiHubNetRuntimeUrl": "https://012af916-f79c-ec76-b699-8b810241c010.18.custom.usa002.azure-apihub.net/apim/cr-5fcustcon-5fazuredocint-5fe435f80a6d4c3504",
+    "metadata": {
+      "source": "powerapps-user-defined",
+      "brandColor": "#007ee5",
+      "contact": {},
+      "license": {},
+      "publisherUrl": null,
+      "serviceUrl": null,
+      "documentationUrl": null,
+      "environmentName": "012af916-f79c-ec76-b699-8b810241c010",
+      "xrmConnectorId": "172aa1d1-374b-4b60-ad0c-8e1151109425",
+      "almMode": "Solution",
+      "parameters": {},
+      "useNewApimVersion": "True",
+      "createdBy": "{\"id\":\"fae96bfb-3264-4a5a-89d9-70e87ee2d7b0\",\"displayName\":\"Johannes Walder\",\"type\":\"User\",\"tenantId\":\"4f04511e-f83b-4951-b7f7-80d0ea8a9a88\",\"userPrincipalName\":\"Johannes.Walder@itdigital.cloud\"}",
+      "modifiedBy": "{\"id\":\"fae96bfb-3264-4a5a-89d9-70e87ee2d7b0\",\"displayName\":\"Johannes Walder\",\"type\":\"User\",\"tenantId\":\"4f04511e-f83b-4951-b7f7-80d0ea8a9a88\",\"userPrincipalName\":\"Johannes.Walder@itdigital.cloud\"}",
+      "allowSharing": false,
+      "rateLimit": 0
+    },
+    "capabilities": [],
+    "description": "Azure Document Intelligence minimal connector",
+    "apiDefinitions": {
+      "originalSwaggerUrl": "https://usa002004wus3ext.blob.core.windows.net/api-swagger-files/unitedstates-002/cr-5fcustcon-5fazuredocint-5fe435f80a6d4c3504.json_original?skoid=e6898b49-53e1-4e33-bbf3-f68cbec72336&sktid=33e01921-4d64-4f8c-a055-5bdaffd5e33d&skt=2026-03-22T17%3A11%3A06Z&ske=2026-03-23T17%3A11%3A06Z&sks=b&skv=2025-01-05&sv=2025-01-05&spr=https&se=2026-03-22T18%3A32%3A18Z&sr=b&sp=r&sig=MR1ENJj5bUu7DUk9dGYxn72s5emDqRQmR17bkLr%2FENE%3D",
+      "modifiedSwaggerUrl": "https://usa002004wus3ext.blob.core.windows.net/api-swagger-files/unitedstates-002/cr-5fcustcon-5fazuredocint-5fe435f80a6d4c3504.json?skoid=e6898b49-53e1-4e33-bbf3-f68cbec72336&sktid=33e01921-4d64-4f8c-a055-5bdaffd5e33d&skt=2026-03-22T17%3A11%3A06Z&ske=2026-03-23T17%3A11%3A06Z&sks=b&skv=2025-01-05&sv=2025-01-05&spr=https&se=2026-03-22T18%3A32%3A18Z&sr=b&sp=r&sig=VBQrCwjUNgoRym3YJu%2FvAVcIai9bNclpPfxzImp3uME%3D"
+    },
+    "policyTemplateInstances": [],
+    "backendService": {
+      "serviceUrl": "https://it-msft-dach-docint-johannestests.cognitiveservices.azure.com/documentintelligence"
+    },
+    "createdBy": {
+      "id": "fae96bfb-3264-4a5a-89d9-70e87ee2d7b0",
+      "displayName": "Johannes Walder",
+      "type": "User",
+      "tenantId": "4f04511e-f83b-4951-b7f7-80d0ea8a9a88",
+      "userPrincipalName": "Johannes.Walder@itdigital.cloud"
+    },
+    "modifiedBy": {
+      "id": "fae96bfb-3264-4a5a-89d9-70e87ee2d7b0",
+      "displayName": "Johannes Walder",
+      "type": "User",
+      "tenantId": "4f04511e-f83b-4951-b7f7-80d0ea8a9a88",
+      "userPrincipalName": "Johannes.Walder@itdigital.cloud"
+    },
+    "createdTime": "2026-03-08T18:31:12.9753783Z",
+    "changedTime": "2026-03-09T17:05:52.51532Z",
+    "environment": {
+      "id": "/providers/Microsoft.PowerApps/environments/012af916-f79c-ec76-b699-8b810241c010",
+      "name": "012af916-f79c-ec76-b699-8b810241c010"
+    },
+    "tier": "Standard",
+    "publisher": "Johannes Walder",
+    "almMode": "Solution",
+    "scriptDefinitionUrl": "https://usa002004wus3ext.blob.core.windows.net/api-swagger-files/unitedstates-002/cr-5fcustcon-5fazuredocint-5fe435f80a6d4c3504-script.json?skoid=e6898b49-53e1-4e33-bbf3-f68cbec72336&sktid=33e01921-4d64-4f8c-a055-5bdaffd5e33d&skt=2026-03-22T17%3A11%3A06Z&ske=2026-03-23T17%3A11%3A06Z&sks=b&skv=2025-01-05&sv=2025-01-05&spr=https&se=2026-03-22T18%3A32%3A18Z&sr=b&sp=r&sig=JcCsW3tcgwfahTWrj6lpsv9G7pu3ES8Rs5HkT8xuI2Q%3D",
+    "scriptOperations": [
+      "AnalyzeDocument"
+    ],
+    "parameters": {},
+    "rateLimit": 0,
+    "apiVersion": "None"
+  }
+}

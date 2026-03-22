@@ -1,0 +1,152 @@
+use this api version:
+2025-01-01-preview
+
+sample body:
+{
+  "messages": [
+    { "role": "system", "content": "You are helpful. You echo back" },
+    { "role": "user", "content": "Hello." }
+  ],
+  "temperature": 0.7,
+  "tools": [
+    {
+      "type": "function",
+      "function": {
+        "name": "echo_tool",
+        "description": "Returns the input text so the caller can display it.",
+        "parameters": {
+          "type": "object",
+          "properties": {
+            "text": {
+              "type": "string",
+              "description": "Text to return"
+            }
+          },
+          "required": ["text"]
+        }
+      }
+    }
+  ],
+  "tool_choice": "auto"
+}
+
+sample response body:
+{
+  "choices": [
+    {
+      "content_filter_results": {},
+      "finish_reason": "tool_calls",
+      "index": 0,
+      "logprobs": null,
+      "message": {
+        "annotations": [],
+        "content": null,
+        "refusal": null,
+        "role": "assistant",
+        "tool_calls": [
+          {
+            "function": {
+              "arguments": "{\"text\":\"Hello.\"}",
+              "name": "echo_tool"
+            },
+            "id": "call_raqnSqHYCipWRhgF7XHrdi7D",
+            "type": "function"
+          }
+        ]
+      }
+    }
+  ],
+  "created": 1772994384,
+  "id": "chatcmpl-DHD7YDR3lwg9gIQGlx1YICSPrXtpH",
+  "model": "gpt-5.2-2025-12-11",
+  "object": "chat.completion",
+  "prompt_filter_results": [
+    {
+      "prompt_index": 0,
+      "content_filter_results": {
+        "hate": {
+          "filtered": false,
+          "severity": "safe"
+        },
+        "jailbreak": {
+          "detected": false,
+          "filtered": false
+        },
+        "self_harm": {
+          "filtered": false,
+          "severity": "safe"
+        },
+        "sexual": {
+          "filtered": false,
+          "severity": "safe"
+        },
+        "violence": {
+          "filtered": false,
+          "severity": "safe"
+        }
+      }
+    }
+  ],
+  "system_fingerprint": null,
+  "usage": {
+    "completion_tokens": 19,
+    "completion_tokens_details": {
+      "accepted_prediction_tokens": 0,
+      "audio_tokens": 0,
+      "reasoning_tokens": 0,
+      "rejected_prediction_tokens": 0
+    },
+    "prompt_tokens": 147,
+    "prompt_tokens_details": {
+      "audio_tokens": 0,
+      "cached_tokens": 0
+    },
+    "total_tokens": 166
+  }
+}
+
+
+
+swagger:
+swagger: '2.0'
+info:
+  title: Default title
+  description: ''
+  version: '1.0'
+host: proj-experiment-aifoundry-msdach.cognitiveservices.azure.com
+basePath: /openai/deployments/gpt-5.2/chat/completions
+schemes:
+  - https
+consumes: []
+produces: []
+paths:
+  /:
+    post:
+      responses:
+        default:
+          description: default
+          schema: {}
+      summary: chat-completion
+      operationId: chat-completion
+      parameters:
+        - name: api-version
+          in: query
+          required: true
+          type: string
+        - name: body
+          in: body
+          required: false
+          schema:
+            type: object
+            properties: {}
+definitions: {}
+parameters: {}
+responses: {}
+security:
+  - api_key: []
+tags: []
+securityDefinitions:
+  api_key:
+    type: apiKey
+    in: header
+    name: api-key

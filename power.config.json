@@ -1,0 +1,13 @@
+{
+  "appId": "",
+  "appDisplayName": "Playbook Agent",
+  "description": null,
+  "environmentId": "012af916-f79c-ec76-b699-8b810241c010",
+  "buildPath": "./dist",
+  "buildEntryPoint": "index.html",
+  "logoPath": "Default",
+  "localAppUrl": "http://localhost:3000/",
+  "region": "prod",
+  "connectionReferences": {},
+  "databaseReferences": {}
+}
