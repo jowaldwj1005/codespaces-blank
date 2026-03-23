@@ -23,35 +23,32 @@ When a Custom Connector is added, the CLI generates a proxy client based on the 
 * **USAGE:** Import the generated object/class and call its methods directly.  
   *(Example: If the CLI generated a DocIntelConnector, you will use await DocIntelConnector.AnalyzeDocument(payload)).*
 
-## **5.3 Bridging the Vercel AI SDK to Custom Connectors**
+## **5.3 Custom Agent Loop (replaces Vercel AI SDK)**
 
-The Vercel AI SDK useChat hook expects an API endpoint. Since we are a Single Page Application (SPA) without a Node.js backend, you must override the fetch property of useChat to route the LLM request through the generated Custom Connector for Azure OpenAI.
+**Decision (v0.4.0):** We do NOT use the Vercel AI SDK. The Azure OpenAI Custom Connector returns full JSON responses (no SSE streaming), making Vercel's `useChat` hook unnecessary overhead. Instead, we use a **custom agent loop** (`src/services/agentLoop.ts`) that gives us full control over:
+
+- Tool call interception and HitL approval
+- Sub-agent delegation with real-time UI updates
+- Token tracking per API call
+- Maximum debuggability via debugEventBus
 
 **Implementation Pattern:**
 
-import { useChat } from '@ai-sdk/react';  
-// IMPORT the exact generated connector after inspecting the generated folder:  
-import { AzureOpenAIConnector } from '../generated/connectors/AzureOpenAI'; 
+```typescript
+import { azureOpenAI } from '../services/connectors';
 
-export function useAgentChat() {  
-  return useChat({  
-    api: 'ignored',   
-    fetch: async (url, options) => {  
-      const payload = JSON.parse(options.body as string);  
-        
-      // Route the chat history to the Custom Connector  
-      const response = await AzureOpenAIConnector.ChatCompletions({  
-        body: payload  
-      });  
-        
-      // You must parse the connector's response and return a mock Web API Response   
-      // so the Vercel SDK can process the stream or JSON correctly.  
-      return new Response(JSON.stringify(response.data), {  
-         headers: { 'Content-Type': 'application/json' }  
-      });  
-    }  
-  });  
-}
+// The agent loop calls azureOpenAI.chatCompletion() directly:
+const { normalized } = await azureOpenAI.chatCompletion({
+  messages: [...systemPrompt, ...history, userMessage],
+  tools: agentToolDefinitions,
+  tool_choice: agent.modelConfig.tool_choice ?? 'auto',
+});
+
+// Parse response → if tool_calls → execute via toolExecutor → loop
+// If no tool_calls → done, return assistant message
+```
+
+See `src/services/agentLoop.ts` for the full implementation.
 
 ## **5.4 Dataverse WebAPI via SDK**
 

@@ -19,8 +19,9 @@ Detailed learnings and patterns are split into focused docs to keep context wind
 | `ContextFiles/CLAUDE.md` | Original Gemini-suggested AI dev instructions |
 | `ContextFiles/Data Model Blueprint.md` | Full jw_ entity schema (strict source of truth) |
 | `ContextFiles/Architecture Core.md` | SemanticRenderer, decoupled workspaces, meta-app concept |
+| `ContextFiles/Architecture Decisions.md` | ADRs: Custom Agent Loop, Sub-Agents, Visuals, Token Tracking |
 | `ContextFiles/Agentic Workflows.md` | HitL architecture, Smart Context, Dataverse MCP |
-| `ContextFiles/PAC CLI & Connectors.md` | Connector bridge patterns, Vercel AI SDK integration |
+| `ContextFiles/PAC CLI & Connectors.md` | Connector bridge patterns, Custom Agent Loop architecture |
 | `ContextFiles/learningsfromprioragent/` | Bootstrap checklist + connection management playbook |
 
 **Read `docs/memory/` first** — it has the distilled, actionable patterns. Read `ContextFiles/` for deep architectural context.
@@ -80,7 +81,7 @@ cd PlaybookAgent && npm run lint   # ESLint
 
 1. Finalize jw_ data model in Dataverse (create entities via PAC CLI)
 2. Plan SemanticRenderer architecture for dynamic UI
-3. Evaluate agentic frameworks (Vercel AI SDK, custom middleware)
+3. Implement Custom Agent Loop (decided: no Vercel AI SDK — SPA has no SSE)
 4. Design HitL approval flow with ToolExecution records
 5. Layout features: Chat workspace, Case dashboard, Artifact viewer, Debug panel
 6. Decide on RAG/CheatSheet indexing strategy

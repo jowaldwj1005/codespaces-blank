@@ -72,7 +72,7 @@
     }
   },
   {
-    "description": "Lookup: jw_artifact → jw_case",
+    "description": "Lookup: jw_artifact → jw_case (optional — visuals/artifacts can exist without case)",
     "uri": "api/data/v9.2/RelationshipDefinitions",
     "method": "POST",
     "headers": { "Content-Type": "application/json", "MSCRM.SolutionUniqueName": "YourSolutionName" },
@@ -85,7 +85,7 @@
         "@odata.type": "Microsoft.Dynamics.CRM.LookupAttributeMetadata",
         "SchemaName": "jw_caseid",
         "DisplayName": { "@odata.type": "Microsoft.Dynamics.CRM.Label", "LocalizedLabels": [{ "Label": "Case", "LanguageCode": 1033 }] },
-        "RequiredLevel": { "Value": "ApplicationRequired" }
+        "RequiredLevel": { "Value": "None" }
       }
     }
   },
@@ -140,6 +140,24 @@
         "SchemaName": "jw_agentid",
         "DisplayName": { "@odata.type": "Microsoft.Dynamics.CRM.Label", "LocalizedLabels": [{ "Label": "Agent", "LanguageCode": 1033 }] },
         "RequiredLevel": { "Value": "ApplicationRequired" }
+      }
+    }
+  },
+  {
+    "description": "Lookup: jw_thread → jw_thread (self-referential, sub-agent parent thread)",
+    "uri": "api/data/v9.2/RelationshipDefinitions",
+    "method": "POST",
+    "headers": { "Content-Type": "application/json", "MSCRM.SolutionUniqueName": "YourSolutionName" },
+    "body": {
+      "@odata.type": "Microsoft.Dynamics.CRM.OneToManyRelationshipMetadata",
+      "SchemaName": "jw_thread_parentthread",
+      "ReferencedEntity": "jw_thread",
+      "ReferencingEntity": "jw_thread",
+      "Lookup": {
+        "@odata.type": "Microsoft.Dynamics.CRM.LookupAttributeMetadata",
+        "SchemaName": "jw_parentthreadid",
+        "DisplayName": { "@odata.type": "Microsoft.Dynamics.CRM.Label", "LocalizedLabels": [{ "Label": "Parent Thread", "LanguageCode": 1033 }] },
+        "RequiredLevel": { "Value": "None" }
       }
     }
   },

@@ -10,30 +10,27 @@ This is a Power Platform Code App. It runs entirely in the browser as a Single P
 
 * **Vite:** The build tool.  
 * **React 18+ & TypeScript:** Core framework.  
-* **Vercel AI SDK (@ai-sdk/react):** Used strictly for client-side state management (useChat, useObject).  
-* **Fluent UI React v9 (@fluentui/react-components):** The primary component library to ensure native Microsoft styling.  
-* **Tailwind CSS:** Used for layout utility classes (spacing, flex, grid).  
+* **Custom Agent Loop:** Replaces Vercel AI SDK — full control over tool interception, sub-agents, and token tracking. No SSE streaming needed (Custom Connector returns full JSON).
+* **Fluent UI React v9 (@fluentui/react-components):** The primary component library to ensure native Microsoft styling.
+* **Tailwind CSS:** Used for layout utility classes (spacing, flex, grid).
 * **Zod:** Used to validate JSON payloads from Dataverse Artifact records before rendering them.
+* **Recharts + Three.js:** Visualization library for agent-generated charts and 3D scenes.
 
-## **6.3 Adapting the Vercel AI SDK**
+## **6.3 Custom Agent Loop Architecture**
 
-Because we lack a Node.js backend, you must intercept the useChat hook's network requests.
+Since the Azure OpenAI Custom Connector returns complete JSON responses (no SSE/streaming), we use a custom agent loop instead of Vercel AI SDK:
 
-Instead of sending requests to a local API, the useChat hook must be configured to use a custom fetch implementation that routes the payload through context.webAPI (calling an Action/Custom API in Dataverse) or triggers a Power Automate flow that handles the Azure OpenAI connection.
+```
+User Message → Build messages array → azureOpenAI.chatCompletion()
+  → If tool_calls: execute tools (HitL gate if needed) → loop back
+  → If no tool_calls: return assistant message → done
+```
 
-*Example pattern:*
+Key hooks:
+- `useAgentChat(agentId, threadId)` — manages the loop, messages, tool calls, token tracking
+- `useThreadManager()` — thread CRUD and navigation
 
-const { messages, append, toolInvocations } = useChat({  
-  api: 'custom-endpoint', // Ignored because we override fetch  
-  fetch: async (url, options) => {  
-    // 1. Intercept the payload  
-    const body = JSON.parse(options.body as string);  
-    // 2. Route via Dataverse WebAPI to your Azure OpenAI Custom API/Connector  
-    const response = await dataverseService.callOpenAI(body.messages);  
-    // 3. Return a mock Response object so Vercel SDK can parse the stream/result  
-    return new Response(response.data);   
-  }  
-});
+See `src/services/agentLoop.ts` and `src/hooks/useAgentChat.ts`.
 
 ## **6.4 The Semantic Renderer Architecture**
 
@@ -47,12 +44,16 @@ This folder will contain all the UI components mapped to meta_artifact types.
 
 Create a central ArtifactRenderer.tsx that takes (type: string, payload: string) as props, parses the payload with Zod, and returns the correct semantic component.
 
-## **6.5 The Interceptor Hook**
+## **6.5 Tool Execution & HitL**
 
-Create a custom hook useToolInterceptor.ts. This hook must observe the toolInvocations array from useChat.
+Tool execution is handled by `src/services/toolExecutor.ts`. The agent loop passes each tool call through this executor:
 
-If a tool requires approval (checked via the meta_tool table):
+1. Check `jw_tool.jw_requiresapproval`
+2. If no approval needed → execute directly (builtin or connector)
+3. If approval needed → create `jw_toolexecution` record (Pending) → emit event to UI → wait for approve/reject callback
+4. On approve: execute tool, save response, return to agent loop
+5. On reject: return rejection message to LLM, loop continues
 
-1. Halt the AI response.  
-2. Create a meta_toolexecution record in Dataverse (Status: Pending).  
-3. Emit state to the UI to render the approval form.
+Built-in tools (InternalReact): `create_visual`, `exit`, `delegate_to_agent`, `load_cheat_sheet`, MCP bridges.
+
+See `src/services/toolExecutor.ts` and `src/services/builtinTools.ts`.

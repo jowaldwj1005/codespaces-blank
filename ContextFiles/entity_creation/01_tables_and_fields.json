@@ -538,6 +538,29 @@
   },
 
   {
+    "description": "Add jw_status to jw_thread — thread lifecycle (Active/Completed/Cancelled)",
+    "uri": "api/data/v9.2/EntityDefinitions(LogicalName='jw_thread')/Attributes",
+    "method": "POST",
+    "headers": { "Content-Type": "application/json", "MSCRM.SolutionUniqueName": "YourSolutionName" },
+    "body": {
+      "@odata.type": "Microsoft.Dynamics.CRM.PicklistAttributeMetadata",
+      "SchemaName": "jw_status",
+      "DisplayName": { "@odata.type": "Microsoft.Dynamics.CRM.Label", "LocalizedLabels": [{ "Label": "Status", "LanguageCode": 1033 }] },
+      "RequiredLevel": { "Value": "None" },
+      "OptionSet": {
+        "@odata.type": "Microsoft.Dynamics.CRM.OptionSetMetadata",
+        "IsGlobal": false,
+        "OptionSetType": "Picklist",
+        "Options": [
+          { "Value": 100000000, "Label": { "@odata.type": "Microsoft.Dynamics.CRM.Label", "LocalizedLabels": [{ "Label": "Active", "LanguageCode": 1033 }] } },
+          { "Value": 100000001, "Label": { "@odata.type": "Microsoft.Dynamics.CRM.Label", "LocalizedLabels": [{ "Label": "Completed", "LanguageCode": 1033 }] } },
+          { "Value": 100000002, "Label": { "@odata.type": "Microsoft.Dynamics.CRM.Label", "LocalizedLabels": [{ "Label": "Cancelled", "LanguageCode": 1033 }] } }
+        ]
+      }
+    }
+  },
+
+  {
     "description": "Create ThreadCase table (jw_threadcase) — N:M thread-case intersection with data",
     "uri": "api/data/v9.2/EntityDefinitions",
     "method": "POST",
@@ -630,6 +653,51 @@
       "RequiredLevel": { "Value": "None" },
       "MaxLength": 1048576,
       "Format": "Text"
+    }
+  },
+
+  {
+    "description": "Add jw_toolcalls to jw_message — JSON array of tool_calls from assistant messages",
+    "uri": "api/data/v9.2/EntityDefinitions(LogicalName='jw_message')/Attributes",
+    "method": "POST",
+    "headers": { "Content-Type": "application/json", "MSCRM.SolutionUniqueName": "YourSolutionName" },
+    "body": {
+      "@odata.type": "Microsoft.Dynamics.CRM.MemoAttributeMetadata",
+      "SchemaName": "jw_toolcalls",
+      "DisplayName": { "@odata.type": "Microsoft.Dynamics.CRM.Label", "LocalizedLabels": [{ "Label": "Tool Calls", "LanguageCode": 1033 }] },
+      "RequiredLevel": { "Value": "None" },
+      "MaxLength": 1048576,
+      "Format": "Text"
+    }
+  },
+  {
+    "description": "Add jw_tokenprompt to jw_message — prompt tokens used for this API call",
+    "uri": "api/data/v9.2/EntityDefinitions(LogicalName='jw_message')/Attributes",
+    "method": "POST",
+    "headers": { "Content-Type": "application/json", "MSCRM.SolutionUniqueName": "YourSolutionName" },
+    "body": {
+      "@odata.type": "Microsoft.Dynamics.CRM.IntegerAttributeMetadata",
+      "SchemaName": "jw_tokenprompt",
+      "DisplayName": { "@odata.type": "Microsoft.Dynamics.CRM.Label", "LocalizedLabels": [{ "Label": "Prompt Tokens", "LanguageCode": 1033 }] },
+      "RequiredLevel": { "Value": "None" },
+      "MinValue": 0,
+      "MaxValue": 2147483647,
+      "Format": "None"
+    }
+  },
+  {
+    "description": "Add jw_tokencompletion to jw_message — completion tokens used for this API call",
+    "uri": "api/data/v9.2/EntityDefinitions(LogicalName='jw_message')/Attributes",
+    "method": "POST",
+    "headers": { "Content-Type": "application/json", "MSCRM.SolutionUniqueName": "YourSolutionName" },
+    "body": {
+      "@odata.type": "Microsoft.Dynamics.CRM.IntegerAttributeMetadata",
+      "SchemaName": "jw_tokencompletion",
+      "DisplayName": { "@odata.type": "Microsoft.Dynamics.CRM.Label", "LocalizedLabels": [{ "Label": "Completion Tokens", "LanguageCode": 1033 }] },
+      "RequiredLevel": { "Value": "None" },
+      "MinValue": 0,
+      "MaxValue": 2147483647,
+      "Format": "None"
     }
   },
 

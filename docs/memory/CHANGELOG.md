@@ -1,5 +1,18 @@
 # Changelog - Playbook Agent
 
+## v0.3.1 (2026-03-23)
+### Changed — Data Model & Architecture Decisions
+- **Architecture Decision: Custom Agent Loop** — decided against Vercel AI SDK. SPA has no SSE streaming; Custom Connector returns full JSON. Custom loop gives full control over HitL, sub-agents, and debugging.
+- **Data Model: jw_thread** — added `jw_parentthreadid` (self-ref lookup for sub-agent threads) and `jw_status` (Choice: Active/Completed/Cancelled)
+- **Data Model: jw_message** — added `jw_toolcalls` (JSON for tool_calls array), `jw_tokenprompt` and `jw_tokencompletion` (Whole Number for token tracking)
+- **Data Model: jw_artifact** — changed `jw_caseid` RequiredLevel from ApplicationRequired to None (visuals without case)
+- Updated entity_creation/01_tables_and_fields.json with 4 new field definitions
+- Updated entity_creation/02_lookup_columns.json with jw_parentthreadid lookup + artifact-case optional fix
+- Updated Data Model Blueprint.md with all new fields
+- Created `ContextFiles/Architecture Decisions.md` (ADR log)
+- Updated ContextFiles: replaced all Vercel AI SDK references with Custom Agent Loop
+- Updated CLAUDE.md memory index and next steps
+
 ## v0.3.0 (2026-03-23)
 ### Added
 - **Visualization Panel**: New tab with Recharts (Bar/Line/Pie charts) + Three.js (3D scene)
