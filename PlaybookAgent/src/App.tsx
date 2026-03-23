@@ -1,11 +1,13 @@
 import { useState } from 'react';
 import { DataverseExplorer } from './components/DataverseExplorer';
 import { ConnectorTester } from './components/ConnectorTester';
+import { VisualizationPanel } from './components/VisualizationPanel';
+import { McpExplorer } from './components/McpExplorer';
 import { DebugPanel } from './components/DebugPanel';
 
-const APP_VERSION = '0.2.0';
+const APP_VERSION = '0.3.0';
 
-type Tab = 'dataverse' | 'connectors' | 'debug';
+type Tab = 'dataverse' | 'connectors' | 'viz' | 'mcp' | 'debug';
 
 function App() {
   const [activeTab, setActiveTab] = useState<Tab>('dataverse');
@@ -32,6 +34,8 @@ function App() {
           [
             { id: 'dataverse', label: 'Dataverse Explorer' },
             { id: 'connectors', label: 'Connector Tester' },
+            { id: 'viz', label: 'Visualization' },
+            { id: 'mcp', label: 'MCP Explorer' },
             { id: 'debug', label: 'Debug Log' },
           ] as const
         ).map((tab) => (
@@ -59,6 +63,8 @@ function App() {
       <main style={{ padding: 12, border: '1px solid #e5e7eb', borderRadius: 4, background: '#fff', minHeight: 400 }}>
         {activeTab === 'dataverse' && <DataverseExplorer />}
         {activeTab === 'connectors' && <ConnectorTester />}
+        {activeTab === 'viz' && <VisualizationPanel />}
+        {activeTab === 'mcp' && <McpExplorer />}
         {activeTab === 'debug' && <DebugPanel />}
       </main>
 

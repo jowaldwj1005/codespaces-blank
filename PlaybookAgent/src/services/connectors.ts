@@ -268,12 +268,21 @@ export const azureDocIntelligence = {
 };
 
 // ─── SAP OData ───────────────────────────────────────────────────────────────
+// IMPORTANT: The custom connector only accepts POST requests.
+// The `method` field inside the body tells the Power Automate proxy flow
+// which HTTP method to execute against SAP (GET/POST/PATCH/DELETE).
+// The connector itself always POSTs the request envelope to the flow trigger.
 
 export interface SapODataRequest {
+  /** HTTP method the proxy flow should execute against SAP */
   method: 'GET' | 'POST' | 'PATCH' | 'DELETE';
+  /** SAP relative path, e.g. "/API_SALES_ORDER_SRV/A_SalesOrder" */
   relativePath: string;
+  /** OData query string, e.g. "$top=10&$filter=SalesOrder eq '123'" */
   queryString?: string;
+  /** Request body for POST/PATCH operations */
   body?: unknown;
+  /** Custom headers — NOTE: may not be supported by all connector configurations */
   headers?: Record<string, string>;
 }
 
@@ -285,6 +294,11 @@ export const SAP_ODATA_DEFAULTS = {
 } as const;
 
 export const sapOData = {
+  /**
+   * Execute a SAP OData request via Power Automate proxy flow.
+   * The connector always sends POST — the `method` field in the body
+   * tells the flow which HTTP verb to use against SAP.
+   */
   execute: (request: SapODataRequest, apiVersion = SAP_ODATA_DEFAULTS.apiVersion, sp = SAP_ODATA_DEFAULTS.sp, sv = SAP_ODATA_DEFAULTS.sv) =>
     tracedOperation<Record<string, unknown>>(
       `SAP.OData.${request.method} ${request.relativePath}`,

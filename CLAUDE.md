@@ -1,7 +1,7 @@
 # CLAUDE.md - Playbook Agent
 
-**App Version:** 0.2.0
-**Phase:** MVP - Dataverse CRUD + Connector Debug
+**App Version:** 0.3.0
+**Phase:** MVP - Dataverse CRUD + Connector Debug + Visualization + MCP
 
 ## Quick Context
 
@@ -38,9 +38,10 @@ Detailed learnings and patterns are split into focused docs to keep context wind
 src/services/sdk.ts          → traced wrappers, table constants, OData helpers
 src/services/dataverse.ts    → CRUD for each table (getAll/get/create/update/delete)
 src/services/connectors.ts   → Connector wrappers + response normalization + OPENAI_DEFAULTS
-src/hooks/                   → useDataverse, useConnectors, useDebugLog
-src/components/              → DataverseExplorer, ConnectorTester, DebugPanel
-src/App.tsx                  → Tabbed shell (version badge in header)
+src/services/dataverseMcp.ts → MCP tools: search_tables, get_schema, execute_query
+src/hooks/                   → useDataverse, useConnectors, useDebugLog, useMcp
+src/components/              → DataverseExplorer, ConnectorTester, VisualizationPanel, McpExplorer, DebugPanel
+src/App.tsx                  → Tabbed shell (5 tabs, version badge in header)
 ```
 
 ## Data Sources (Connected)
