@@ -10,7 +10,12 @@ import {
   executeDataverseQuery,
 } from '../services/dataverseMcp';
 import type { McpSearchResult, McpTableSchema, McpQueryResult } from '../services/dataverseMcp';
-import { systemusers, teams, businessunits } from '../services/dataverse';
+import {
+  systemusers, teams, businessunits,
+  jwAgents, jwTools, jwPlaybooks, jwInstructions, jwAgentTools,
+  jwCases, jwArtifacts, jwDocuments, jwThreadCases,
+  jwThreads, jwMessages, jwToolExecutions,
+} from '../services/dataverse';
 
 interface UseMcpState {
   searchResult: McpSearchResult | null;
@@ -30,6 +35,18 @@ const TABLE_SERVICES: Record<string, {
   systemusers: { getAll: systemusers.getAll, getMetadata: systemusers.getMetadata },
   teams: { getAll: teams.getAll, getMetadata: teams.getMetadata },
   businessunits: { getAll: businessunits.getAll, getMetadata: businessunits.getMetadata },
+  jw_agents: { getAll: jwAgents.getAll },
+  jw_tools: { getAll: jwTools.getAll },
+  jw_playbooks: { getAll: jwPlaybooks.getAll },
+  jw_instructions: { getAll: jwInstructions.getAll },
+  jw_agenttools: { getAll: jwAgentTools.getAll },
+  jw_cases: { getAll: jwCases.getAll },
+  jw_artifacts: { getAll: jwArtifacts.getAll },
+  jw_documents: { getAll: jwDocuments.getAll },
+  jw_threadcases: { getAll: jwThreadCases.getAll },
+  jw_threads: { getAll: jwThreads.getAll },
+  jw_messages: { getAll: jwMessages.getAll },
+  jw_toolexecutions: { getAll: jwToolExecutions.getAll },
 };
 
 export function useMcp() {

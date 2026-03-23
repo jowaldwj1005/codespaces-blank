@@ -31,9 +31,9 @@ export function DebugPanel() {
       )}
 
       <div style={{ maxHeight: 400, overflowY: 'auto' }}>
-        {reversed.map((evt) => (
+        {reversed.map((evt, idx) => (
           <details
-            key={evt.id}
+            key={`${evt.id}_${idx}`}
             style={{
               marginBottom: 4,
               padding: 6,

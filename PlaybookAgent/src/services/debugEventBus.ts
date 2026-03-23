@@ -29,9 +29,15 @@ export function generateEventId(): string {
 }
 
 export function emitDebugEvent(event: DebugEvent): void {
-  eventLog.push(event);
-  if (eventLog.length > MAX_LOG_SIZE) {
-    eventLog.splice(0, eventLog.length - MAX_LOG_SIZE);
+  // Update existing event by id (pending → success/error) instead of duplicating
+  const existingIdx = eventLog.findIndex(e => e.id === event.id);
+  if (existingIdx >= 0) {
+    eventLog[existingIdx] = event;
+  } else {
+    eventLog.push(event);
+    if (eventLog.length > MAX_LOG_SIZE) {
+      eventLog.splice(0, eventLog.length - MAX_LOG_SIZE);
+    }
   }
   listeners.forEach((fn) => {
     try {

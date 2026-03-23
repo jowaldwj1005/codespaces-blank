@@ -751,7 +751,7 @@ export function createMessage(opts: {
   tokenCompletion?: number;
 }) {
   const record: Record<string, unknown> = {
-    'jw_threadid@odata.bind': lookupBind('jw_messages', opts.threadId),
+    'jw_threadid@odata.bind': lookupBind('jw_threads', opts.threadId),
     jw_role: opts.role,
     jw_content: opts.content,
     jw_toolcalls: opts.toolCalls,

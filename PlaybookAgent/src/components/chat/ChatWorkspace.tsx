@@ -3,6 +3,7 @@ import type { AgentStatus, TokenUsage } from '../../types/agent';
 import { MessageList } from './MessageList';
 import { ChatInputBar } from './ChatInputBar';
 import { TokenCounter } from './TokenCounter';
+import { VisualizationCard } from './VisualizationCard';
 import type { useAgentChat } from '../../hooks/useAgentChat';
 
 type AgentChatReturn = ReturnType<typeof useAgentChat>;
@@ -24,7 +25,7 @@ const STATUS_LABELS: Record<AgentStatus, string> = {
 
 export function ChatWorkspace({ chat, threadId, agentId }: ChatWorkspaceProps) {
   const {
-    messages, status, tokenUsage, pendingApprovals, agent,
+    messages, status, tokenUsage, pendingApprovals, visualizations, agent,
     loadAgent, loadMessages, sendMessage, approveToolCall, rejectToolCall,
     error,
   } = chat;
@@ -87,6 +88,14 @@ export function ChatWorkspace({ chat, threadId, agentId }: ChatWorkspaceProps) {
         onApprove={approveToolCall}
         onReject={rejectToolCall}
       />
+
+      {visualizations.length > 0 && (
+        <div style={{ padding: '0 16px 8px' }}>
+          {visualizations.map((vis) => (
+            <VisualizationCard key={vis.id} input={vis.input} />
+          ))}
+        </div>
+      )}
 
       <ChatInputBar
         onSend={sendMessage}

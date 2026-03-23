@@ -87,6 +87,9 @@ const TABLE_GETALL_MAP: Record<string, (opts: unknown) => Promise<IOperationResu
   jw_playbooks: (opts) => dv.jwPlaybooks.getAll(opts as Parameters<typeof dv.jwPlaybooks.getAll>[0]) as Promise<IOperationResult<unknown[]>>,
   jw_instructions: (opts) => dv.jwInstructions.getAll(opts as Parameters<typeof dv.jwInstructions.getAll>[0]) as Promise<IOperationResult<unknown[]>>,
   jw_toolexecutions: (opts) => dv.jwToolExecutions.getAll(opts as Parameters<typeof dv.jwToolExecutions.getAll>[0]) as Promise<IOperationResult<unknown[]>>,
+  jw_documents: (opts) => dv.jwDocuments.getAll(opts as Parameters<typeof dv.jwDocuments.getAll>[0]) as Promise<IOperationResult<unknown[]>>,
+  jw_agenttools: (opts) => dv.jwAgentTools.getAll(opts as Parameters<typeof dv.jwAgentTools.getAll>[0]) as Promise<IOperationResult<unknown[]>>,
+  jw_threadcases: (opts) => dv.jwThreadCases.getAll(opts as Parameters<typeof dv.jwThreadCases.getAll>[0]) as Promise<IOperationResult<unknown[]>>,
 };
 
 async function handleExecuteDataverseQuery(args: Record<string, unknown>): Promise<unknown> {
