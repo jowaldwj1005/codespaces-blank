@@ -263,6 +263,13 @@ export const dataSourcesInfo = {
     "dataSourceType": "Dataverse",
     "apis": {}
   },
+  "jw_toolexecutions": {
+    "tableId": "",
+    "version": "",
+    "primaryKey": "jw_toolexecutionid",
+    "dataSourceType": "Dataverse",
+    "apis": {}
+  },
   "jw_tools": {
     "tableId": "",
     "version": "",
