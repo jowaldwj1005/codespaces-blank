@@ -1,7 +1,7 @@
 # CLAUDE.md - Playbook Agent
 
-**App Version:** 0.4.0
-**Phase:** Agentic Runtime Foundation — Chat workspace, agent loop, tool execution, HitL
+**App Version:** 0.5.0
+**Phase:** Seed Data & Workspace Canvas — Transparent seed system, right panel canvas, bug fixes
 
 ## Quick Context
 
@@ -83,9 +83,16 @@ src/services/sdk.ts          → traced wrappers, table constants, OData helpers
 src/services/dataverse.ts    → CRUD for each table (getAll/get/create/update/delete)
 src/services/connectors.ts   → Connector wrappers + response normalization + OPENAI_DEFAULTS
 src/services/dataverseMcp.ts → MCP tools: search_tables, get_schema, execute_query
-src/hooks/                   → useDataverse, useConnectors, useDebugLog, useMcp
+src/services/agentLoop.ts    → Custom Agent Loop: LLM call → tool execution → iterate
+src/services/toolExecutor.ts → Tool routing (builtin/connector/flow) + HitL gate
+src/services/builtinTools.ts → InternalReact tool handlers + tool definitions
+src/services/seedData.ts     → General Assistant seed data + idempotent executor
+src/hooks/                   → useAgentChat, useThreadManager, useDataverse, useConnectors, useDebugLog, useMcp
+src/components/chat/         → ChatWorkspace, MessageList, ToolCallCard, ApprovalForm, VisualizationCard, etc.
+src/components/layout/       → ThreadSidebar, AppHeader (with panel toggle buttons)
+src/components/admin/        → SeedPanel (transparent seed data UI)
 src/components/              → DataverseExplorer, ConnectorTester, VisualizationPanel, McpExplorer, DebugPanel
-src/App.tsx                  → Tabbed shell (5 tabs, version badge in header)
+src/App.tsx                  → Workspace shell: sidebar + main content + optional right panel
 ```
 
 ## Data Sources (Connected)

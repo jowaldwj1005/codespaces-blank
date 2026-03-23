@@ -5,6 +5,108 @@
 
 ---
 
+## v0.5.0 — Seed Data & Workspace Canvas (2026-03-23)
+
+### What Was Done
+
+**Seed Data System** — transparent, controllable bootstrapping of test data:
+
+1. **SeedPanel UI** (`src/components/admin/SeedPanel.tsx`) — Right panel with toggleable record list. Each record shows type badge (Agent/Tool/Playbook/Instruction/Link), name, and real-time status icons (● exists, ✓ created, ✗ error, ○ skipped). Select All/Deselect All for bulk control. Summary after execution.
+2. **Seed Data Service** (`src/services/seedData.ts`) — Idempotent seed executor. Checks for existing records by `jw_name` before creating. Updates existing records with latest data. Handles agent-tool junction linking with ID mapping.
+3. **General Assistant** — First canary agent, fully defined: 4 tools (search_dataverse, get_table_schema, execute_dataverse_query, create_visual), structured system prompt with bilingual guidance, model config (temp 0.7, 2000 tokens), sample playbook "Data Exploration" with 3 instructions.
+
+**Workspace Canvas** — new layout pattern for side panels:
+
+4. **Right Panel System** — App.tsx now supports a sliding right panel alongside the main content. Panel types: `seed`, `agent-config`, `artifacts`, `case-detail`. Toggle from header buttons. Smooth slide-in animation.
+5. **AppHeader Redesign** — 4 panel toggle buttons (🌱 Seed, ⚙️ Config, 📦 Artifacts, 📋 Cases) with active state. Version bumped to v0.5.0.
+6. **CSS Polish** — New styles for right panel, seed panel, header buttons, type badges, status indicators, animations.
+
+**Bug Fixes** (6 issues resolved):
+
+7. **createMessage lookup bug** — Was binding `jw_threadid` to `jw_messages` table instead of `jw_threads`. Messages couldn't link to their thread.
+8. **DebugPanel duplicate React keys** — Pending + final events shared the same `evt.id`, causing React key collisions. Added index suffix.
+9. **useMcp missing tables** — MCP Explorer could only query 3 system tables. Now all 15 tables (system + jw_) are wired.
+10. **builtinTools missing tables** — `TABLE_GETALL_MAP` was missing jw_documents, jw_agenttools, jw_threadcases. Agent Dataverse queries can now reach all tables.
+11. **VisualizationCard not rendered** — ChatWorkspace tracked visualizations in state but never rendered them. Now renders VisualizationCard components below the message list.
+12. **seedData.ts TypeScript errors** — Relaxed generic constraint on `findByName` and fixed type casts for generated model interfaces.
+
+### What to Expect
+
+When you open the app:
+- **Header** now has 4 panel buttons on the right side (Seed, Config, Artifacts, Cases)
+- Click **🌱 Seed** → right panel slides in with a list of 12 records to create
+- Toggle records on/off, click **Apply** → watch status icons update in real-time
+- Run it again → records show "exists" instead of "created" (idempotent)
+- After seeding: create a new thread → General Assistant appears in the agent dropdown
+- Config/Artifacts/Cases buttons show placeholder panels (coming next)
+
+### How to Test
+
+1. **Seed Panel**: Click 🌱 in header → panel opens → "Select All" → "Apply (12 records)" → watch real-time status
+2. **Idempotency**: Click "Reset" → "Apply" again → all records should show "exists"
+3. **General Assistant**: After seeding, click "New Thread" → agent dropdown should show "General Assistant"
+4. **Chat with Agent**: Select General Assistant thread → send "What tables are available?" → agent uses search_dataverse tool
+5. **Visualization**: Ask agent "Show me a chart of systemusers" → VisualizationCard should render inline
+6. **MCP Explorer**: Switch to MCP view → query any jw_ table (e.g., jw_agents) → should return seeded data
+7. **Debug Panel**: All seed + chat operations should appear in Debug Log
+8. **Panel Toggle**: Click different header buttons → panels open/close, only one at a time
+
+### Known Limitations
+
+- **Config/Artifacts/Cases panels** are placeholders — show "coming next" messages
+- **No inline editing of seed data** — current seed is hardcoded in seedData.ts. Future: load seed definitions from Dataverse or JSON config.
+- **Agent tools loaded from hardcoded definitions** — useAgentChat still uses `BUILTIN_TOOL_DEFINITIONS` instead of loading from jw_agenttool junction. This means the agent gets all builtin tools regardless of what's linked in Dataverse.
+- **No error retry in seed executor** — if a record fails, it shows error but doesn't retry. Manual "Reset + Apply" is the workaround.
+
+### Questions for You
+
+> Answer inline (like previous versions). I'll pick up your responses in the next session.
+
+**Q1: Seed Panel — did it work? Could you seed the General Assistant successfully?**
+If there were errors, paste the error messages or screenshots. This is the critical path for all future testing.
+
+**Q2: Which right panel should we build next?**
+Option A: **Agent Configuration** — create/edit agents, manage tool bindings, test system prompts in-app
+Option B: **Artifact Browser** — view generated artifacts (charts, tables, documents) with preview + metadata
+Option C: **Case Dashboard** — list cases, see linked threads/artifacts/status, case lifecycle management
+> My recommendation: Agent Configuration first — it unlocks fast iteration on agents/tools without touching Dataverse directly.
+
+**Q3: Seed data evolution — how should the General Assistant grow?**
+Option A: Keep updating seedData.ts as we add features (simple, version-controlled)
+Option B: Move seed definitions to a JSON file that can be edited without code changes
+Option C: Make the seed panel load definitions from Dataverse itself (full dog-fooding)
+> I'd lean A for now — the seed code is the source of truth, and we update it as we add tools/features. Move to B/C once we have the Agent Configuration panel.
+
+**Q4: The agent currently gets ALL builtin tools regardless of Dataverse jw_agenttool links. Should we:**
+Option A: Fix this now — load tools from jw_agenttool junction (correct behavior but needs the seed data working first)
+Option B: Keep hardcoded for now — ensures the agent always has tools even if seeding fails
+Option C: Hybrid — load from Dataverse, fall back to hardcoded if empty
+
+**Q5: Next version scope — what should v0.6.0 focus on?**
+Based on our priority ordering from v0.4.0 Q4, Agent Configuration UI is next. But you mentioned wanting co-design before building. Should we do a design sprint first (discuss mechanics, UX, wireframes in FEATURE_IDEAS.md) or go straight to implementation?
+
+---
+
+### Claude's Follow-Up Thoughts (v0.5.0)
+
+**On the Seed Panel architecture:** The controllable/traceable approach you requested works well. The real-time status updates + idempotency make it safe to run repeatedly. For the future: I'm thinking the seed panel could evolve into a general **"Environment Manager"** — not just for bootstrapping, but for comparing environments (dev vs. test), detecting drift (records that exist in one but not another), and migrating configurations between Power Platform environments.
+
+**On the General Assistant as canary agent:** It's now seeded with 4 tools and a thoughtful system prompt. Every feature we add should be reflected in the General Assistant's capabilities. I'll treat updating the seed data as a mandatory part of each version's checklist.
+
+**On the workspace canvas pattern:** The right panel system is deliberately simple — one panel at a time, smooth animation, close button. This pattern scales well: each panel is an independent component, App.tsx just routes the panel type. When we build Agent Configuration, it slots right in without touching the panel infrastructure.
+
+**Design question I want to raise:**
+
+The Agent Configuration panel will need to handle:
+- **Agent CRUD** — name, system prompt (multiline editor), model config, MCP toggle
+- **Tool binding** — which tools does this agent have? (N:N junction management)
+- **Tool CRUD** — name, description, endpoint type, input schema (JSON editor), approval toggle
+- **Live testing** — "Test this prompt" button that spawns a temporary chat
+
+Should this be a **single panel with tabs/sections**, or should we split it into **separate panels** (one for agents, one for tools)? I'm leaning single panel with a sidebar navigation inside it — keeps everything in context while editing.
+
+---
+
 ## v0.4.0 — Agentic Runtime Foundation (2026-03-23)
 
 ### What Was Done

@@ -1,5 +1,26 @@
 # Changelog - Playbook Agent
 
+## v0.5.0 (2026-03-23)
+### Added
+- **SeedPanel** (`src/components/admin/SeedPanel.tsx`): Transparent seed data UI with toggleable records, real-time status, idempotent execution, Select All/Deselect All, summary display
+- **Seed Data Service** (`src/services/seedData.ts`): Idempotent seed executor with General Assistant agent (4 tools, system prompt, model config), sample playbook + 3 instructions, agent-tool junction linking
+- **Right panel canvas**: Sliding right panel in App.tsx for seed, agent-config, artifacts, case-detail (last 3 are placeholders)
+- **AppHeader panel buttons**: 4 toggle buttons (Seed, Config, Artifacts, Cases) with active state styling
+
+### Fixed
+- `createMessage` lookup bug: was binding `jw_threadid` to `jw_messages` instead of `jw_threads`
+- DebugPanel duplicate React keys: pending + final events shared same `evt.id`
+- `useMcp` TABLE_SERVICES: wired all 15 tables (was only 3 system tables)
+- `builtinTools` TABLE_GETALL_MAP: added jw_documents, jw_agenttools, jw_threadcases
+- VisualizationCard not rendered in ChatWorkspace: now renders from visualizations state
+- seedData.ts TypeScript errors: relaxed generic constraint, fixed type casts
+
+### Changed
+- App layout: workspace now supports optional right panel alongside main content
+- AppHeader redesigned with left/right sections and panel toggle buttons
+- Version bumped to 0.5.0
+- CSS: new styles for right panel, seed panel, header buttons, type badges, animations
+
 ## v0.4.0 (2026-03-23)
 ### Added
 - **Version Notes file** (`docs/VERSIONS.md`): Collaborative version tracking — what was done, how to test, open questions for user feedback
