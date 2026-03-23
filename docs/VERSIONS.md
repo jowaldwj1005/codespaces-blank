@@ -41,10 +41,10 @@ When you open the app you should see:
 
 ### Known Limitations
 
-- `jw_toolexecution` has no generated service — tool execution records are not persisted to Dataverse yet
 - `jw_tokenprompt` / `jw_tokencompletion` are typed as `string` in generated models — casting to number in wrappers
 - No seed data yet — agents/tools must exist in Dataverse for the chat to work. Seed data button planned for next version.
 - Sub-agent delegation (`delegate_to_agent`) is structurally complete but untested without proper agent+tool records
+- ~~`jw_toolexecution` has no generated service~~ **Correction:** `Jw_toolexecutionsService.ts` exists! Will be wired up in Batch 0.
 
 ### Questions for You
 
@@ -54,28 +54,63 @@ When you open the app you should see:
 Option A: "Seed" button in the app that creates sample agents/tools/playbooks via Dataverse API
 Option B: Power Automate flow that creates seed data (reusable across environments)
 Option C: JSON file with seed definitions + a service function that idempotently creates them
-> Your answer:
+> **User (v0.4.0):** Option A — Seed button, but it needs to be **controllable and traceable**. User should see exactly what records are being created/deactivated. Think of it as a transparent operation, not a black box.
 
 **Q2: Which agents should we seed first?**
 I'd suggest: (1) "General Assistant" — system prompt for general Q&A + search_dataverse + create_visual, (2) "Document Analyst" — uses Doc Intelligence connector + create_visual for results, (3) "SAP Explorer" — SAP OData queries + create_visual for tables. What do you think?
-> Your answer:
+> **User (v0.4.0):** Yes — start with **General Assistant**. Update its seed data continually as we add new features, so it's always our main test agent. The other agents can come later.
 
 **Q3: Styling direction — are you happy with the current look, or do you have specific SaaS apps you'd like to reference?**
 Current: Clean indigo accent, light backgrounds, card-based layout. Think Linear/Notion-ish. If you have screenshots or references, share them and I'll adjust.
-> Your answer:
+> **User (v0.4.0):** Keep for now. No breakthrough idea yet — will revisit if inspiration strikes.
 
 **Q4: Next priority after seed data — what matters most?**
 Option A: Case management (link threads to cases, case dashboard)
 Option B: Playbook execution (load playbook → auto-create thread with instructions)
 Option C: Advanced visualization (bidirectional artifacts, user edits charts)
 Option D: Agent configuration UI (create/edit agents, tools, playbooks in-app instead of raw Dataverse)
-> Your answer:
+> **User (v0.4.0):** "Obviously we need it all" — trusts Claude's judgment on ordering. Key concern: all features should **evolve in the right direction** from the start. Wants collaborative co-design on how each feature should feel and work before building. Not just implementation, but **vision alignment** on mechanics and UX. Claude is expected to act as feature design expert, agent expert, UI expert, and innovation partner — not just executor.
 
 **Q5: Error handling for 429 (rate limit) — you mentioned "user must click to continue". Should this be:**
 Option A: Toast notification with "Retry" button (non-blocking, user can still read chat)
 Option B: Modal overlay that blocks until user clicks (forces awareness)
 Option C: Inline card in the chat stream (like a ToolCallCard but for errors)
-> Your answer:
+> **User (v0.4.0):** Claude's judgment — pick what fits best.
+
+---
+
+### Claude's Follow-Up Thoughts (v0.4.0)
+
+**On Q1 (Seed Data):** Love the "controllable and traceable" angle. I'm thinking: the seed button opens a **Seed Preview Panel** — a checklist of records that *will* be created, each with a toggle (create/skip). After clicking "Apply", each operation shows real-time status (creating... done / failed) in the Debug Log. Idempotent: if a record with the same `jw_name` already exists, it shows "exists — skip" instead of duplicating. This also becomes the foundation for a future "environment setup wizard" when you want to onboard someone else.
+
+**On Q2 (General Assistant as living test agent):** This is smart — one agent that grows with the app. Every time we add a feature (new tool, new artifact type, new visualization), we update the General Assistant's tool bindings and system prompt to exercise it. It becomes a **canary agent** — if it breaks, something regressed.
+
+**On Q4 (Priority ordering — my recommendation):**
+
+Here's how I'd sequence it, and *why*:
+
+1. **Seed Data + General Assistant** (next) — can't test anything without data
+2. **Agent Configuration UI** — because right now the only way to tweak agents/tools is raw Dataverse. Having an in-app editor means you can iterate on prompts, tool configs, and approval settings *fast*. This accelerates everything else.
+3. **Playbook Execution** — this is where the "meta-app" vision comes alive. A playbook is a recipe: "when a user starts this workflow, create a case, spawn this agent with these instructions, collect these artifacts." It turns the app from a chatbot into an **orchestration engine**.
+4. **Case Management + Dashboard** — once playbooks create cases, you need to see them. Case dashboard with linked threads, artifacts, status tracking.
+5. **Advanced Visualization** — bidirectional artifacts, user edits charts, SemanticRenderer. This is the "wow factor" but needs the plumbing from steps 1-4 first.
+
+**On your role expectation — co-visionary:**
+
+Understood and embraced. I'll proactively:
+- **Challenge assumptions** when I see a simpler or more powerful approach
+- **Propose mechanics** before building (e.g., "what if the seed panel also shows a diff of what changed since last seed?")
+- **Surface design questions** early (e.g., "should playbook execution feel like a wizard, a template picker, or an automated trigger?")
+- **Think about the end-user journey**, not just the developer experience
+
+**Open design question I want to raise now:**
+
+The General Assistant's system prompt will define how the agent "thinks." Should we go with:
+- **Minimal:** "You are a helpful assistant. Use tools when needed." (lets the LLM figure it out)
+- **Structured:** "You are the Playbook Agent General Assistant. You have access to Dataverse search, schema inspection, data queries, and visualization tools. When the user asks about data, first search for relevant tables, then query them, then visualize results. Always explain your reasoning."
+- **Personality-driven:** Give the agent a name, a communication style, maybe even German/English bilingual awareness?
+
+I'd lean toward **structured + light personality** — enough guidance to showcase the tool chain, but not so rigid that it can't handle freeform questions. Thoughts?
 
 ---
 
