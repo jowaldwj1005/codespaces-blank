@@ -64,13 +64,21 @@ When you open the app:
 
 **Q1: Seed Panel — did it work? Could you seed the General Assistant successfully?**
 If there were errors, paste the error messages or screenshots. This is the critical path for all future testing.
+# bug1
+{
+  "success": false,
+  "error": {
+    "message": "{\"error\":{\"code\":\"0x80048d19\",\"message\":\"Error identified in Payload provided by the user for Entity :'jw_tools', For more information on this error please follow this help link https://go.microsoft.com/fwlink/?linkid=2195293  ---->  InnerException : Microsoft.OData.ODataException: Cannot convert the literal '0' to the expected type 'Edm.Boolean'. ---> Microsoft.OData.ODataException: Cannot convert a value of type 'Edm.Int32' to the expected target type 'Edm.Boolean'.\\r\\n   at Microsoft.OData.ODat
+Screensots in separate folder
+I dont like the layout yet, I think we will need to pick that up later after some functional areas
+
 
 **Q2: Which right panel should we build next?**
 Option A: **Agent Configuration** — create/edit agents, manage tool bindings, test system prompts in-app
 Option B: **Artifact Browser** — view generated artifacts (charts, tables, documents) with preview + metadata
 Option C: **Case Dashboard** — list cases, see linked threads/artifacts/status, case lifecycle management
 > My recommendation: Agent Configuration first — it unlocks fast iteration on agents/tools without touching Dataverse directly.
-
+# jo: yes ok
 **Q3: Seed data evolution — how should the General Assistant grow?**
 Option A: Keep updating seedData.ts as we add features (simple, version-controlled)
 Option B: Move seed definitions to a JSON file that can be edited without code changes
