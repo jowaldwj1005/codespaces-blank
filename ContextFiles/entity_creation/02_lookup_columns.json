@@ -3,16 +3,16 @@
     "description": "Lookup: jw_instruction → jw_playbook (optional, null for global instructions)",
     "uri": "api/data/v9.2/RelationshipDefinitions",
     "method": "POST",
-    "headers": { "Content-Type": "application/json", "MSCRM.SolutionUniqueName": "YourSolutionName" },
+    "headers": { "Content-Type": "application/json", "MSCRM.SolutionUniqueName": "CaseAgent" },
     "body": {
-      "@odata.type": "Microsoft.Dynamics.CRM.OneToManyRelationshipMetadata",
+      "@@odata.type": "Microsoft.Dynamics.CRM.OneToManyRelationshipMetadata",
       "SchemaName": "jw_playbook_instruction",
       "ReferencedEntity": "jw_playbook",
       "ReferencingEntity": "jw_instruction",
       "Lookup": {
-        "@odata.type": "Microsoft.Dynamics.CRM.LookupAttributeMetadata",
+        "@@odata.type": "Microsoft.Dynamics.CRM.LookupAttributeMetadata",
         "SchemaName": "jw_playbookid",
-        "DisplayName": { "@odata.type": "Microsoft.Dynamics.CRM.Label", "LocalizedLabels": [{ "Label": "Playbook", "LanguageCode": 1033 }] },
+        "DisplayName": { "@@odata.type": "Microsoft.Dynamics.CRM.Label", "LocalizedLabels": [{ "Label": "Playbook", "LanguageCode": 1033 }] },
         "RequiredLevel": { "Value": "None" }
       }
     }
@@ -21,16 +21,16 @@
     "description": "Lookup: jw_agenttool → jw_agent",
     "uri": "api/data/v9.2/RelationshipDefinitions",
     "method": "POST",
-    "headers": { "Content-Type": "application/json", "MSCRM.SolutionUniqueName": "YourSolutionName" },
+    "headers": { "Content-Type": "application/json", "MSCRM.SolutionUniqueName": "CaseAgent" },
     "body": {
-      "@odata.type": "Microsoft.Dynamics.CRM.OneToManyRelationshipMetadata",
+      "@@odata.type": "Microsoft.Dynamics.CRM.OneToManyRelationshipMetadata",
       "SchemaName": "jw_agent_agenttool",
       "ReferencedEntity": "jw_agent",
       "ReferencingEntity": "jw_agenttool",
       "Lookup": {
-        "@odata.type": "Microsoft.Dynamics.CRM.LookupAttributeMetadata",
+        "@@odata.type": "Microsoft.Dynamics.CRM.LookupAttributeMetadata",
         "SchemaName": "jw_agentid",
-        "DisplayName": { "@odata.type": "Microsoft.Dynamics.CRM.Label", "LocalizedLabels": [{ "Label": "Agent", "LanguageCode": 1033 }] },
+        "DisplayName": { "@@odata.type": "Microsoft.Dynamics.CRM.Label", "LocalizedLabels": [{ "Label": "Agent", "LanguageCode": 1033 }] },
         "RequiredLevel": { "Value": "ApplicationRequired" }
       }
     }
@@ -39,16 +39,16 @@
     "description": "Lookup: jw_agenttool → jw_tool",
     "uri": "api/data/v9.2/RelationshipDefinitions",
     "method": "POST",
-    "headers": { "Content-Type": "application/json", "MSCRM.SolutionUniqueName": "YourSolutionName" },
+    "headers": { "Content-Type": "application/json", "MSCRM.SolutionUniqueName": "CaseAgent" },
     "body": {
-      "@odata.type": "Microsoft.Dynamics.CRM.OneToManyRelationshipMetadata",
+      "@@odata.type": "Microsoft.Dynamics.CRM.OneToManyRelationshipMetadata",
       "SchemaName": "jw_tool_agenttool",
       "ReferencedEntity": "jw_tool",
       "ReferencingEntity": "jw_agenttool",
       "Lookup": {
-        "@odata.type": "Microsoft.Dynamics.CRM.LookupAttributeMetadata",
+        "@@odata.type": "Microsoft.Dynamics.CRM.LookupAttributeMetadata",
         "SchemaName": "jw_toolid",
-        "DisplayName": { "@odata.type": "Microsoft.Dynamics.CRM.Label", "LocalizedLabels": [{ "Label": "Tool", "LanguageCode": 1033 }] },
+        "DisplayName": { "@@odata.type": "Microsoft.Dynamics.CRM.Label", "LocalizedLabels": [{ "Label": "Tool", "LanguageCode": 1033 }] },
         "RequiredLevel": { "Value": "ApplicationRequired" }
       }
     }
@@ -57,16 +57,16 @@
     "description": "Lookup: jw_case → jw_playbook (optional, if case follows a process)",
     "uri": "api/data/v9.2/RelationshipDefinitions",
     "method": "POST",
-    "headers": { "Content-Type": "application/json", "MSCRM.SolutionUniqueName": "YourSolutionName" },
+    "headers": { "Content-Type": "application/json", "MSCRM.SolutionUniqueName": "CaseAgent" },
     "body": {
-      "@odata.type": "Microsoft.Dynamics.CRM.OneToManyRelationshipMetadata",
+      "@@odata.type": "Microsoft.Dynamics.CRM.OneToManyRelationshipMetadata",
       "SchemaName": "jw_playbook_case",
       "ReferencedEntity": "jw_playbook",
       "ReferencingEntity": "jw_case",
       "Lookup": {
-        "@odata.type": "Microsoft.Dynamics.CRM.LookupAttributeMetadata",
+        "@@odata.type": "Microsoft.Dynamics.CRM.LookupAttributeMetadata",
         "SchemaName": "jw_playbookid",
-        "DisplayName": { "@odata.type": "Microsoft.Dynamics.CRM.Label", "LocalizedLabels": [{ "Label": "Playbook", "LanguageCode": 1033 }] },
+        "DisplayName": { "@@odata.type": "Microsoft.Dynamics.CRM.Label", "LocalizedLabels": [{ "Label": "Playbook", "LanguageCode": 1033 }] },
         "RequiredLevel": { "Value": "None" }
       }
     }
@@ -75,16 +75,16 @@
     "description": "Lookup: jw_artifact → jw_case (optional — visuals/artifacts can exist without case)",
     "uri": "api/data/v9.2/RelationshipDefinitions",
     "method": "POST",
-    "headers": { "Content-Type": "application/json", "MSCRM.SolutionUniqueName": "YourSolutionName" },
+    "headers": { "Content-Type": "application/json", "MSCRM.SolutionUniqueName": "CaseAgent" },
     "body": {
-      "@odata.type": "Microsoft.Dynamics.CRM.OneToManyRelationshipMetadata",
+      "@@odata.type": "Microsoft.Dynamics.CRM.OneToManyRelationshipMetadata",
       "SchemaName": "jw_case_artifact",
       "ReferencedEntity": "jw_case",
       "ReferencingEntity": "jw_artifact",
       "Lookup": {
-        "@odata.type": "Microsoft.Dynamics.CRM.LookupAttributeMetadata",
+        "@@odata.type": "Microsoft.Dynamics.CRM.LookupAttributeMetadata",
         "SchemaName": "jw_caseid",
-        "DisplayName": { "@odata.type": "Microsoft.Dynamics.CRM.Label", "LocalizedLabels": [{ "Label": "Case", "LanguageCode": 1033 }] },
+        "DisplayName": { "@@odata.type": "Microsoft.Dynamics.CRM.Label", "LocalizedLabels": [{ "Label": "Case", "LanguageCode": 1033 }] },
         "RequiredLevel": { "Value": "None" }
       }
     }
@@ -93,16 +93,16 @@
     "description": "Lookup: jw_artifact → jw_artifact (self-referential, parent grouping)",
     "uri": "api/data/v9.2/RelationshipDefinitions",
     "method": "POST",
-    "headers": { "Content-Type": "application/json", "MSCRM.SolutionUniqueName": "YourSolutionName" },
+    "headers": { "Content-Type": "application/json", "MSCRM.SolutionUniqueName": "CaseAgent" },
     "body": {
-      "@odata.type": "Microsoft.Dynamics.CRM.OneToManyRelationshipMetadata",
+      "@@odata.type": "Microsoft.Dynamics.CRM.OneToManyRelationshipMetadata",
       "SchemaName": "jw_artifact_parentartifact",
       "ReferencedEntity": "jw_artifact",
       "ReferencingEntity": "jw_artifact",
       "Lookup": {
-        "@odata.type": "Microsoft.Dynamics.CRM.LookupAttributeMetadata",
+        "@@odata.type": "Microsoft.Dynamics.CRM.LookupAttributeMetadata",
         "SchemaName": "jw_parentartifactid",
-        "DisplayName": { "@odata.type": "Microsoft.Dynamics.CRM.Label", "LocalizedLabels": [{ "Label": "Parent Artifact", "LanguageCode": 1033 }] },
+        "DisplayName": { "@@odata.type": "Microsoft.Dynamics.CRM.Label", "LocalizedLabels": [{ "Label": "Parent Artifact", "LanguageCode": 1033 }] },
         "RequiredLevel": { "Value": "None" }
       }
     }
@@ -111,16 +111,16 @@
     "description": "Lookup: jw_document → jw_case",
     "uri": "api/data/v9.2/RelationshipDefinitions",
     "method": "POST",
-    "headers": { "Content-Type": "application/json", "MSCRM.SolutionUniqueName": "YourSolutionName" },
+    "headers": { "Content-Type": "application/json", "MSCRM.SolutionUniqueName": "CaseAgent" },
     "body": {
-      "@odata.type": "Microsoft.Dynamics.CRM.OneToManyRelationshipMetadata",
+      "@@odata.type": "Microsoft.Dynamics.CRM.OneToManyRelationshipMetadata",
       "SchemaName": "jw_case_document",
       "ReferencedEntity": "jw_case",
       "ReferencingEntity": "jw_document",
       "Lookup": {
-        "@odata.type": "Microsoft.Dynamics.CRM.LookupAttributeMetadata",
+        "@@odata.type": "Microsoft.Dynamics.CRM.LookupAttributeMetadata",
         "SchemaName": "jw_caseid",
-        "DisplayName": { "@odata.type": "Microsoft.Dynamics.CRM.Label", "LocalizedLabels": [{ "Label": "Case", "LanguageCode": 1033 }] },
+        "DisplayName": { "@@odata.type": "Microsoft.Dynamics.CRM.Label", "LocalizedLabels": [{ "Label": "Case", "LanguageCode": 1033 }] },
         "RequiredLevel": { "Value": "ApplicationRequired" }
       }
     }
@@ -129,16 +129,16 @@
     "description": "Lookup: jw_thread → jw_agent (primary AI persona)",
     "uri": "api/data/v9.2/RelationshipDefinitions",
     "method": "POST",
-    "headers": { "Content-Type": "application/json", "MSCRM.SolutionUniqueName": "YourSolutionName" },
+    "headers": { "Content-Type": "application/json", "MSCRM.SolutionUniqueName": "CaseAgent" },
     "body": {
-      "@odata.type": "Microsoft.Dynamics.CRM.OneToManyRelationshipMetadata",
+      "@@odata.type": "Microsoft.Dynamics.CRM.OneToManyRelationshipMetadata",
       "SchemaName": "jw_agent_thread",
       "ReferencedEntity": "jw_agent",
       "ReferencingEntity": "jw_thread",
       "Lookup": {
-        "@odata.type": "Microsoft.Dynamics.CRM.LookupAttributeMetadata",
+        "@@odata.type": "Microsoft.Dynamics.CRM.LookupAttributeMetadata",
         "SchemaName": "jw_agentid",
-        "DisplayName": { "@odata.type": "Microsoft.Dynamics.CRM.Label", "LocalizedLabels": [{ "Label": "Agent", "LanguageCode": 1033 }] },
+        "DisplayName": { "@@odata.type": "Microsoft.Dynamics.CRM.Label", "LocalizedLabels": [{ "Label": "Agent", "LanguageCode": 1033 }] },
         "RequiredLevel": { "Value": "ApplicationRequired" }
       }
     }
@@ -147,16 +147,16 @@
     "description": "Lookup: jw_thread → jw_thread (self-referential, sub-agent parent thread)",
     "uri": "api/data/v9.2/RelationshipDefinitions",
     "method": "POST",
-    "headers": { "Content-Type": "application/json", "MSCRM.SolutionUniqueName": "YourSolutionName" },
+    "headers": { "Content-Type": "application/json", "MSCRM.SolutionUniqueName": "CaseAgent" },
     "body": {
-      "@odata.type": "Microsoft.Dynamics.CRM.OneToManyRelationshipMetadata",
+      "@@odata.type": "Microsoft.Dynamics.CRM.OneToManyRelationshipMetadata",
       "SchemaName": "jw_thread_parentthread",
       "ReferencedEntity": "jw_thread",
       "ReferencingEntity": "jw_thread",
       "Lookup": {
-        "@odata.type": "Microsoft.Dynamics.CRM.LookupAttributeMetadata",
+        "@@odata.type": "Microsoft.Dynamics.CRM.LookupAttributeMetadata",
         "SchemaName": "jw_parentthreadid",
-        "DisplayName": { "@odata.type": "Microsoft.Dynamics.CRM.Label", "LocalizedLabels": [{ "Label": "Parent Thread", "LanguageCode": 1033 }] },
+        "DisplayName": { "@@odata.type": "Microsoft.Dynamics.CRM.Label", "LocalizedLabels": [{ "Label": "Parent Thread", "LanguageCode": 1033 }] },
         "RequiredLevel": { "Value": "None" }
       }
     }
@@ -165,16 +165,16 @@
     "description": "Lookup: jw_threadcase → jw_thread",
     "uri": "api/data/v9.2/RelationshipDefinitions",
     "method": "POST",
-    "headers": { "Content-Type": "application/json", "MSCRM.SolutionUniqueName": "YourSolutionName" },
+    "headers": { "Content-Type": "application/json", "MSCRM.SolutionUniqueName": "CaseAgent" },
     "body": {
-      "@odata.type": "Microsoft.Dynamics.CRM.OneToManyRelationshipMetadata",
+      "@@odata.type": "Microsoft.Dynamics.CRM.OneToManyRelationshipMetadata",
       "SchemaName": "jw_thread_threadcase",
       "ReferencedEntity": "jw_thread",
       "ReferencingEntity": "jw_threadcase",
       "Lookup": {
-        "@odata.type": "Microsoft.Dynamics.CRM.LookupAttributeMetadata",
+        "@@odata.type": "Microsoft.Dynamics.CRM.LookupAttributeMetadata",
         "SchemaName": "jw_threadid",
-        "DisplayName": { "@odata.type": "Microsoft.Dynamics.CRM.Label", "LocalizedLabels": [{ "Label": "Thread", "LanguageCode": 1033 }] },
+        "DisplayName": { "@@odata.type": "Microsoft.Dynamics.CRM.Label", "LocalizedLabels": [{ "Label": "Thread", "LanguageCode": 1033 }] },
         "RequiredLevel": { "Value": "ApplicationRequired" }
       }
     }
@@ -183,16 +183,16 @@
     "description": "Lookup: jw_threadcase → jw_case",
     "uri": "api/data/v9.2/RelationshipDefinitions",
     "method": "POST",
-    "headers": { "Content-Type": "application/json", "MSCRM.SolutionUniqueName": "YourSolutionName" },
+    "headers": { "Content-Type": "application/json", "MSCRM.SolutionUniqueName": "CaseAgent" },
     "body": {
-      "@odata.type": "Microsoft.Dynamics.CRM.OneToManyRelationshipMetadata",
+      "@@odata.type": "Microsoft.Dynamics.CRM.OneToManyRelationshipMetadata",
       "SchemaName": "jw_case_threadcase",
       "ReferencedEntity": "jw_case",
       "ReferencingEntity": "jw_threadcase",
       "Lookup": {
-        "@odata.type": "Microsoft.Dynamics.CRM.LookupAttributeMetadata",
+        "@@odata.type": "Microsoft.Dynamics.CRM.LookupAttributeMetadata",
         "SchemaName": "jw_caseid",
-        "DisplayName": { "@odata.type": "Microsoft.Dynamics.CRM.Label", "LocalizedLabels": [{ "Label": "Case", "LanguageCode": 1033 }] },
+        "DisplayName": { "@@odata.type": "Microsoft.Dynamics.CRM.Label", "LocalizedLabels": [{ "Label": "Case", "LanguageCode": 1033 }] },
         "RequiredLevel": { "Value": "ApplicationRequired" }
       }
     }
@@ -201,16 +201,16 @@
     "description": "Lookup: jw_message → jw_thread",
     "uri": "api/data/v9.2/RelationshipDefinitions",
     "method": "POST",
-    "headers": { "Content-Type": "application/json", "MSCRM.SolutionUniqueName": "YourSolutionName" },
+    "headers": { "Content-Type": "application/json", "MSCRM.SolutionUniqueName": "CaseAgent" },
     "body": {
-      "@odata.type": "Microsoft.Dynamics.CRM.OneToManyRelationshipMetadata",
+      "@@odata.type": "Microsoft.Dynamics.CRM.OneToManyRelationshipMetadata",
       "SchemaName": "jw_thread_message",
       "ReferencedEntity": "jw_thread",
       "ReferencingEntity": "jw_message",
       "Lookup": {
-        "@odata.type": "Microsoft.Dynamics.CRM.LookupAttributeMetadata",
+        "@@odata.type": "Microsoft.Dynamics.CRM.LookupAttributeMetadata",
         "SchemaName": "jw_threadid",
-        "DisplayName": { "@odata.type": "Microsoft.Dynamics.CRM.Label", "LocalizedLabels": [{ "Label": "Thread", "LanguageCode": 1033 }] },
+        "DisplayName": { "@@odata.type": "Microsoft.Dynamics.CRM.Label", "LocalizedLabels": [{ "Label": "Thread", "LanguageCode": 1033 }] },
         "RequiredLevel": { "Value": "ApplicationRequired" }
       }
     }
@@ -219,16 +219,16 @@
     "description": "Lookup: jw_toolexecution → jw_message (links to assistant message that called it)",
     "uri": "api/data/v9.2/RelationshipDefinitions",
     "method": "POST",
-    "headers": { "Content-Type": "application/json", "MSCRM.SolutionUniqueName": "YourSolutionName" },
+    "headers": { "Content-Type": "application/json", "MSCRM.SolutionUniqueName": "CaseAgent" },
     "body": {
-      "@odata.type": "Microsoft.Dynamics.CRM.OneToManyRelationshipMetadata",
+      "@@odata.type": "Microsoft.Dynamics.CRM.OneToManyRelationshipMetadata",
       "SchemaName": "jw_message_toolexecution",
       "ReferencedEntity": "jw_message",
       "ReferencingEntity": "jw_toolexecution",
       "Lookup": {
-        "@odata.type": "Microsoft.Dynamics.CRM.LookupAttributeMetadata",
+        "@@odata.type": "Microsoft.Dynamics.CRM.LookupAttributeMetadata",
         "SchemaName": "jw_messageid",
-        "DisplayName": { "@odata.type": "Microsoft.Dynamics.CRM.Label", "LocalizedLabels": [{ "Label": "Message", "LanguageCode": 1033 }] },
+        "DisplayName": { "@@odata.type": "Microsoft.Dynamics.CRM.Label", "LocalizedLabels": [{ "Label": "Message", "LanguageCode": 1033 }] },
         "RequiredLevel": { "Value": "ApplicationRequired" }
       }
     }
@@ -237,16 +237,16 @@
     "description": "Lookup: jw_toolexecution → jw_tool",
     "uri": "api/data/v9.2/RelationshipDefinitions",
     "method": "POST",
-    "headers": { "Content-Type": "application/json", "MSCRM.SolutionUniqueName": "YourSolutionName" },
+    "headers": { "Content-Type": "application/json", "MSCRM.SolutionUniqueName": "CaseAgent" },
     "body": {
-      "@odata.type": "Microsoft.Dynamics.CRM.OneToManyRelationshipMetadata",
+      "@@odata.type": "Microsoft.Dynamics.CRM.OneToManyRelationshipMetadata",
       "SchemaName": "jw_tool_toolexecution",
       "ReferencedEntity": "jw_tool",
       "ReferencingEntity": "jw_toolexecution",
       "Lookup": {
-        "@odata.type": "Microsoft.Dynamics.CRM.LookupAttributeMetadata",
+        "@@odata.type": "Microsoft.Dynamics.CRM.LookupAttributeMetadata",
         "SchemaName": "jw_toolid",
-        "DisplayName": { "@odata.type": "Microsoft.Dynamics.CRM.Label", "LocalizedLabels": [{ "Label": "Tool", "LanguageCode": 1033 }] },
+        "DisplayName": { "@@odata.type": "Microsoft.Dynamics.CRM.Label", "LocalizedLabels": [{ "Label": "Tool", "LanguageCode": 1033 }] },
         "RequiredLevel": { "Value": "ApplicationRequired" }
       }
     }

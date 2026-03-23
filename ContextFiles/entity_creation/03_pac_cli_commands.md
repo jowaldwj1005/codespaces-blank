@@ -10,30 +10,33 @@ Execute from the `PlaybookAgent/` directory.
 3. PAC CLI authenticated: `pac auth create --environment <env-url>`
 
 ## Batch 1: Definition Layer
+I edited the code so it matches the correct command. 
+Whenever checking records with n:n relations I think best practice is to child expand to the n:N table and inside the expand do a select on the value field and a expand up to the other parent to retrieve the related records
 
+pac code add-data-source -a dataverse -t systemuser  
 ```bash
-pac code add -t jw_agent
-pac code add -t jw_tool
-pac code add -t jw_playbook
-pac code add -t jw_instruction
-pac code add -t jw_agenttool
+pac code add-data-source -a dataverse -t jw_agent
+pac code add-data-source -a dataverse -t jw_tool
+pac code add-data-source -a dataverse -t jw_playbook
+pac code add-data-source -a dataverse -t jw_instruction
+pac code add-data-source -a dataverse -t jw_agenttool
 ```
 
 ## Batch 2: State Layer
 
 ```bash
-pac code add -t jw_case
-pac code add -t jw_artifact
-pac code add -t jw_document
+pac code add-data-source -a dataverse -t jw_case
+pac code add-data-source -a dataverse -t jw_artifact
+pac code add-data-source -a dataverse -t jw_document
 ```
 
 ## Batch 3: Interaction Layer
 
 ```bash
-pac code add -t jw_thread
-pac code add -t jw_threadcase
-pac code add -t jw_message
-pac code add -t jw_toolexecution
+pac code add-data-source -a dataverse -t jw_thread
+pac code add-data-source -a dataverse -t jw_threadcase
+pac code add-data-source -a dataverse -t jw_message
+pac code add-data-source -a dataverse -t jw_toolexecution
 ```
 
 ## After Each Batch

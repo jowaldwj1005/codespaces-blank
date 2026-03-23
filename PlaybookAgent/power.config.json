@@ -32,6 +32,16 @@
         "cr_5fcustcon_5fsap_5fodata_5fe435f80a6d4c3504"
       ],
       "dataSets": {}
+    },
+    "8fef6c71-ce33-40cc-9ceb-2f3282878b31": {
+      "id": "/providers/Microsoft.PowerApps/apis/shared_webcontents",
+      "displayName": "HTTP with Microsoft Entra ID (preauthorized)",
+      "dataSources": [
+        "webcontents"
+      ],
+      "authenticationType": "EntraAuth",
+      "sharedConnectionId": "/providers/Microsoft.PowerApps/apis/shared_webcontents/connections/shared-webcontents-c66bce8c-0dd9-4668-8dea-fb73423538ef",
+      "dataSets": {}
     }
   },
   "databaseReferences": {
@@ -48,6 +58,54 @@
         "businessunits": {
           "entitySetName": "businessunits",
           "logicalName": "businessunit"
+        },
+        "agents": {
+          "entitySetName": "jw_agents",
+          "logicalName": "jw_agent"
+        },
+        "tools": {
+          "entitySetName": "jw_tools",
+          "logicalName": "jw_tool"
+        },
+        "playbooks": {
+          "entitySetName": "jw_playbooks",
+          "logicalName": "jw_playbook"
+        },
+        "instructions": {
+          "entitySetName": "jw_instructions",
+          "logicalName": "jw_instruction"
+        },
+        "agenttools": {
+          "entitySetName": "jw_agenttools",
+          "logicalName": "jw_agenttool"
+        },
+        "cases": {
+          "entitySetName": "jw_cases",
+          "logicalName": "jw_case"
+        },
+        "artifacts": {
+          "entitySetName": "jw_artifacts",
+          "logicalName": "jw_artifact"
+        },
+        "documents": {
+          "entitySetName": "jw_documents",
+          "logicalName": "jw_document"
+        },
+        "threads": {
+          "entitySetName": "jw_threads",
+          "logicalName": "jw_thread"
+        },
+        "threadcases": {
+          "entitySetName": "jw_threadcases",
+          "logicalName": "jw_threadcase"
+        },
+        "messages": {
+          "entitySetName": "jw_messages",
+          "logicalName": "jw_message"
+        },
+        "notes": {
+          "entitySetName": "annotations",
+          "logicalName": "annotation"
         }
       },
       "environmentVariableName": ""

@@ -4,18 +4,44 @@
  */
 
 // Models
+export * as AnnotationsModel from './models/AnnotationsModel';
 export * as BusinessunitsModel from './models/BusinessunitsModel';
 export * as CommonModels from './models/CommonModels';
 export * as CustCon_AzureDocIntModel from './models/CustCon_AzureDocIntModel';
 export * as CustCon_SAP_OdataModel from './models/CustCon_SAP_OdataModel';
 export * as CustomConnector_AzureOpenAIModel from './models/CustomConnector_AzureOpenAIModel';
+export * as HTTPwithMicrosoftEntraID_preauthorized_Model from './models/HTTPwithMicrosoftEntraID_preauthorized_Model';
+export * as Jw_agentsModel from './models/Jw_agentsModel';
+export * as Jw_agenttoolsModel from './models/Jw_agenttoolsModel';
+export * as Jw_artifactsModel from './models/Jw_artifactsModel';
+export * as Jw_casesModel from './models/Jw_casesModel';
+export * as Jw_documentsModel from './models/Jw_documentsModel';
+export * as Jw_instructionsModel from './models/Jw_instructionsModel';
+export * as Jw_messagesModel from './models/Jw_messagesModel';
+export * as Jw_playbooksModel from './models/Jw_playbooksModel';
+export * as Jw_threadcasesModel from './models/Jw_threadcasesModel';
+export * as Jw_threadsModel from './models/Jw_threadsModel';
+export * as Jw_toolsModel from './models/Jw_toolsModel';
 export * as SystemusersModel from './models/SystemusersModel';
 export * as TeamsModel from './models/TeamsModel';
 
 // Services
+export * from './services/AnnotationsService';
 export * from './services/BusinessunitsService';
 export * from './services/CustCon_AzureDocIntService';
 export * from './services/CustCon_SAP_OdataService';
 export * from './services/CustomConnector_AzureOpenAIService';
+export * from './services/HTTPwithMicrosoftEntraID_preauthorized_Service';
+export * from './services/Jw_agentsService';
+export * from './services/Jw_agenttoolsService';
+export * from './services/Jw_artifactsService';
+export * from './services/Jw_casesService';
+export * from './services/Jw_documentsService';
+export * from './services/Jw_instructionsService';
+export * from './services/Jw_messagesService';
+export * from './services/Jw_playbooksService';
+export * from './services/Jw_threadcasesService';
+export * from './services/Jw_threadsService';
+export * from './services/Jw_toolsService';
 export * from './services/SystemusersService';
 export * from './services/TeamsService';
