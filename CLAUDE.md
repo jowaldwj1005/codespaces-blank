@@ -1,7 +1,7 @@
 # CLAUDE.md - Playbook Agent
 
-**App Version:** 0.3.0
-**Phase:** MVP - Dataverse CRUD + Connector Debug + Visualization + MCP
+**App Version:** 0.3.1
+**Phase:** MVP - Dataverse CRUD + Connector Debug + Visualization + MCP → Agentic Runtime (next)
 
 ## Quick Context
 
@@ -11,18 +11,60 @@ This is a Power Platform Code App (React + TypeScript + Vite) — a meta-app / o
 
 Detailed learnings and patterns are split into focused docs to keep context windows lean:
 
+### Quick Reference (read first)
 | File | What's in it |
 |------|-------------|
 | `docs/memory/CHANGELOG.md` | Version history — what changed when |
 | `docs/memory/DATAVERSE_PATTERNS.md` | SDK access, CRUD patterns, lookup binding, adding new tables |
 | `docs/memory/CONNECTOR_PATTERNS.md` | Azure OpenAI, Doc Intelligence, SAP OData — API versions, gotchas |
-| `ContextFiles/CLAUDE.md` | Original Gemini-suggested AI dev instructions |
-| `ContextFiles/Data Model Blueprint.md` | Full jw_ entity schema (strict source of truth) |
-| `ContextFiles/Architecture Core.md` | SemanticRenderer, decoupled workspaces, meta-app concept |
+| `docs/FEATURE_IDEAS.md` | Feature-Brainstorming & Ideen-Austausch (User bewertet, Claude ergänzt) |
+
+### Architecture & Design (deep context)
+| File | What's in it |
+|------|-------------|
+| `ContextFiles/Data Model Blueprint.md` | Full jw_ entity schema — **strict source of truth** |
 | `ContextFiles/Architecture Decisions.md` | ADRs: Custom Agent Loop, Sub-Agents, Visuals, Token Tracking |
+| `ContextFiles/Architecture Core.md` | SemanticRenderer, decoupled workspaces, meta-app concept |
 | `ContextFiles/Agentic Workflows.md` | HitL architecture, Smart Context, Dataverse MCP |
+| `ContextFiles/Frameworks & Setup.md` | SPA constraint, tech stack, Custom Agent Loop pattern, SemanticRenderer |
 | `ContextFiles/PAC CLI & Connectors.md` | Connector bridge patterns, Custom Agent Loop architecture |
-| `ContextFiles/learningsfromprioragent/` | Bootstrap checklist + connection management playbook |
+| `ContextFiles/Dynamic RAG.md` | CheatSheet indexing, agentic learning (save_learning) |
+| `ContextFiles/ERD Diagramm & Relationen.md` | Entity-Relationship Diagram |
+| `ContextFiles/AI Implementation Manifesto.md` | German-language architecture overview |
+| `ContextFiles/FeatureComponentTechnicalIdeas.md` | Dataflow/grid patterns, activity stream, artifact generation |
+
+### Entity Creation (Dataverse Setup)
+| File | What's in it |
+|------|-------------|
+| `ContextFiles/entity_creation/01_tables_and_fields.json` | 12 entities + all non-lookup columns (Power Automate flow input) |
+| `ContextFiles/entity_creation/02_lookup_columns.json` | 14 lookup relationships (run after publish) |
+| `ContextFiles/entity_creation/03_pac_cli_commands.md` | `pac code add` commands by layer batch |
+| `ContextFiles/entity_creation/APPROACH.md` | Reusable guide for adding more entities later |
+| `ContextFiles/Payload WebUrl Entity Creation.md` | Reference payloads for Dataverse Web API entity creation |
+| `ContextFiles/sampleDataverseCreationPayload.json` | Sample JSON payload for entity creation |
+
+### Connector Specs (raw OpenAPI info)
+| File | What's in it |
+|------|-------------|
+| `ContextFiles/customconnectorinformation/azureopenai.txt` | Azure OpenAI connector spec |
+| `ContextFiles/customconnectorinformation/azuredocumentintelligence.txt` | Doc Intelligence connector spec |
+| `ContextFiles/customconnectorinformation/sapodatacustomconnectorforflow.txt` | SAP OData connector spec |
+
+### Legacy / Prior Agent Learnings
+| File | What's in it |
+|------|-------------|
+| `ContextFiles/CLAUDE.md` | Original Gemini-suggested AI dev instructions |
+| `ContextFiles/learningsfromprioragent/AGENT_APP_BOOTSTRAP_CHECKLIST.md` | Bootstrap checklist from prior agent |
+| `ContextFiles/learningsfromprioragent/AGENT_APP_CONNECTION_MANAGEMENT.md` | Connection management playbook |
+
+### Where to store what
+| Type of info | Store in |
+|-------------|----------|
+| Code patterns, SDK gotchas, bugfixes | `docs/memory/DATAVERSE_PATTERNS.md` or `CONNECTOR_PATTERNS.md` |
+| Architecture decisions (why X not Y) | `ContextFiles/Architecture Decisions.md` |
+| Data model changes (new fields/entities) | `ContextFiles/Data Model Blueprint.md` + entity_creation JSONs |
+| Feature ideas & brainstorming | `docs/FEATURE_IDEAS.md` |
+| Version history | `docs/memory/CHANGELOG.md` |
 
 **Read `docs/memory/` first** — it has the distilled, actionable patterns. Read `ContextFiles/` for deep architectural context.
 
