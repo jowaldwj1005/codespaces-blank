@@ -50,6 +50,11 @@ Error messages in the seed panel were truncated to 60 chars with only a `title` 
 
 > **Default tools** — "Looking forward to artifact creation, case management, SAP querying default tools." — These are next. The General Assistant seed data grows with each version — when we build case management, we add case tools to the seed. Same for SAP.
 
+# jo:
+ah what would be nice is if you give me the option to see anagents tool definitions with a clean json viewer, also for other points where json is displayed. think about how we can improve the debug console 
+fix the height of the main container
+improve the schemas for mcp
+we have critical bugs around get query response handling or sending and you invented columns. for response handling i'm sad that I had to find this out manually that no records where retrieved, for the invented column I am more concerned, whats the root cause here? how can we make sure that does not happen again?
 ---
 
 ## v0.5.0 — Seed Data & Workspace Canvas (2026-03-23)
@@ -132,14 +137,19 @@ Option B: Move seed definitions to a JSON file that can be edited without code c
 Option C: Make the seed panel load definitions from Dataverse itself (full dog-fooding)
 > I'd lean A for now — the seed code is the source of truth, and we update it as we add tools/features. Move to B/C once we have the Agent Configuration panel.
 
-**Q4: The agent currently gets ALL builtin tools regardless of Dataverse jw_agenttool links. Should we:**
+*Q4: The agent currently gets ALL builtin tools regardless of Dataverse jw_agenttool links. Should we:**
 Option A: Fix this now — load tools from jw_agenttool junction (correct behavior but needs the seed data working first)
 Option B: Keep hardcoded for now — ensures the agent always has tools even if seeding fails
 Option C: Hybrid — load from Dataverse, fall back to hardcoded if empty
+# jo:
+C, as you have to write these tool definitions and their execution code either way but for now I could not create agents either way so if record creation fails it does not matter
+Wait a minute - at this point I am not sure about the difference between an agent and a playbook, it makes sense from a gut feeilng point of view but both is functionally one entity that controls the state of how a process is agenticly executed. So we need to be very clear here with our vision. I want them to be separate things but it must be total clear how they interrelate with each other from a functional perspective. we can perfectly address this when we build functionalities to create these and related records with ai helpers (like an agent that creates everything based on a chat interactively and can inspect past definitions and cases etc, we have mcp either way).
+update this bold in the plans, we should do all things in this comment very soon
 
 **Q5: Next version scope — what should v0.6.0 focus on?**
 Based on our priority ordering from v0.4.0 Q4, Agent Configuration UI is next. But you mentioned wanting co-design before building. Should we do a design sprint first (discuss mechanics, UX, wireframes in FEATURE_IDEAS.md) or go straight to implementation?
-
+# jo:
+Yes lets go into a design spring (code changes allowed for obvious things, dont remember if I mentioned sth)
 ---
 
 ### Claude's Follow-Up Thoughts (v0.5.0)
