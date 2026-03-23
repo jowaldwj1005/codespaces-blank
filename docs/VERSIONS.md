@@ -51,10 +51,30 @@ Error messages in the seed panel were truncated to 60 chars with only a `title` 
 > **Default tools** — "Looking forward to artifact creation, case management, SAP querying default tools." — These are next. The General Assistant seed data grows with each version — when we build case management, we add case tools to the seed. Same for SAP.
 
 # jo:
-ah what would be nice is if you give me the option to see anagents tool definitions with a clean json viewer, also for other points where json is displayed. think about how we can improve the debug console 
+ah what would be nice is if you give me the option to see anagents tool definitions with a clean json viewer, also for other points where json is displayed. think about how we can improve the debug console
 fix the height of the main container
 improve the schemas for mcp
 we have critical bugs around get query response handling or sending and you invented columns. for response handling i'm sad that I had to find this out manually that no records where retrieved, for the invented column I am more concerned, whats the root cause here? how can we make sure that does not happen again?
+
+> **Claude (v0.5.1 response):**
+>
+> **JSON Viewer** — Agreed, the debug console needs a proper collapsible JSON viewer (syntax-highlighted, expandable nodes, copy button). Also useful for tool definitions and MCP responses. Noted for the debug console improvement sprint.
+>
+> **Main container height** — Fixed in v0.5.1. Added `min-height: 0` to all flex parents in the layout chain. This is a common CSS flexbox gotcha where content overflows its container instead of scrolling.
+>
+> **MCP schemas** — Will enrich `get_table_schema` with column descriptions, picklist values, relationship info, and example records. With ~15 tables, we could also preload all table descriptions into the agent's context when MCP is enabled.
+>
+> **Hallucinated column `jw_ordernumber`** — Root cause and prevention:
+> I assumed `jw_instruction` had an ordering field because conceptually instructions in a playbook need ordering. But the field was never defined in the data model — the actual columns are only `jw_name`, `jw_type`, `jw_tags`, `jw_content`, `jw_playbookid`. **I never verified against the generated TypeScript model before writing the seed data.** This is the same class of error as the boolean fields — the generated models ARE the source of truth, and I must check them.
+>
+> **Prevention measures implemented:**
+> 1. Removed `jw_ordernumber` from seed data, using existing `jw_type: 'Rule'` instead
+> 2. Added rule to `DATAVERSE_PATTERNS.md`: always verify field names against generated models before use
+> 3. The `tracedOperation` success check now surfaces the exact Dataverse error message (which names the invalid field) instead of silently swallowing it
+> 4. Going forward: before adding ANY field to a create/update payload, I will read the generated model interface to confirm the field exists
+>
+> **getAll returning empty** — You confirmed it works in DataverseExplorer, so the records ARE being created. The thread manager's "No agents available" was likely a timing issue (loaded before seeding completed). Not a data loss bug, but the UX should handle this better — a "Refresh" button or automatic reload after seeding would help.
+
 ---
 
 ## v0.5.0 — Seed Data & Workspace Canvas (2026-03-23)
@@ -146,10 +166,20 @@ C, as you have to write these tool definitions and their execution code either w
 Wait a minute - at this point I am not sure about the difference between an agent and a playbook, it makes sense from a gut feeilng point of view but both is functionally one entity that controls the state of how a process is agenticly executed. So we need to be very clear here with our vision. I want them to be separate things but it must be total clear how they interrelate with each other from a functional perspective. we can perfectly address this when we build functionalities to create these and related records with ai helpers (like an agent that creates everything based on a chat interactively and can inspect past definitions and cases etc, we have mcp either way).
 update this bold in the plans, we should do all things in this comment very soon
 
+> **Claude (v0.5.1):** Option C implemented. Noted on the agent vs playbook distinction — this is an important design question. My current mental model:
+> - **Agent** = the *who*: identity, capabilities, system prompt, model config, tool bindings. An agent is a reusable persona that can handle many different tasks.
+> - **Playbook** = the *what/how*: a structured workflow recipe with ordered instructions. A playbook defines a specific process (e.g., "Data Exploration", "Invoice Processing", "Vendor Onboarding").
+> - **The interrelation**: A playbook is *executed by* an agent. When a user starts a playbook, it creates a case, spawns a thread with a specific agent, and injects the playbook's instructions into the agent's context. One agent can execute many different playbooks. One playbook could theoretically be executed by different agents (with different expertise).
+> - **Think of it as:** Agent = employee with skills. Playbook = SOP (Standard Operating Procedure). The same employee can follow different SOPs, and the same SOP can be followed by different qualified employees.
+> This MUST be clarified in the design sprint. Adding to the agenda. The AI-assisted builder you mentioned (agent that creates agents/playbooks via chat) is the perfect place to make this distinction tangible.
+
 **Q5: Next version scope — what should v0.6.0 focus on?**
 Based on our priority ordering from v0.4.0 Q4, Agent Configuration UI is next. But you mentioned wanting co-design before building. Should we do a design sprint first (discuss mechanics, UX, wireframes in FEATURE_IDEAS.md) or go straight to implementation?
 # jo:
 Yes lets go into a design spring (code changes allowed for obvious things, dont remember if I mentioned sth)
+
+> **Claude (v0.5.1):** Design sprint it is. v0.5.2 will be the bugfix completion (hallucinated column fix, height fix, current batch). v0.6.0 will be the design sprint output — written up in FEATURE_IDEAS.md and VERSIONS.md with clear specs for Agent Configuration UI, agent/playbook relationship model, tool loading (hybrid approach), and MCP schema enrichment. Code changes only for obvious improvements (like the JSON viewer for debug).
+
 ---
 
 ### Claude's Follow-Up Thoughts (v0.5.0)

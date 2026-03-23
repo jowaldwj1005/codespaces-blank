@@ -131,6 +131,22 @@ const result = await Service.create(record);
 
 `tracedOperation` in sdk.ts now checks this and throws on `success: false`, so errors propagate correctly. But always be aware that **unchecked raw SDK calls will silently swallow errors**.
 
+### CRITICAL: Always Verify Field Names Against Generated Models
+
+**Never assume a column exists.** The generated TypeScript interfaces in `src/generated/models/` are the source of truth for what fields exist on each entity.
+
+Before adding ANY field to a create/update payload, verify it exists in the model:
+```typescript
+// Check: src/generated/models/Jw_instructionsModel.ts
+// Fields: jw_name, jw_content, jw_type, jw_tags, jw_playbookid@odata.bind
+// NOT: jw_ordernumber (doesn't exist!)
+```
+
+**Root cause of past error:** `jw_ordernumber` was used in seed data because conceptually instructions need ordering. But the field was never defined in Dataverse. The generated model only has `jw_name`, `jw_content`, `jw_type`, `jw_tags`, and `jw_playbookid`. Dataverse rejects unknown properties with:
+> "The property 'jw_ordernumber' does not exist on type 'Microsoft.Dynamics.CRM.jw_instruction'"
+
+**Prevention:** Before writing any CRUD payload, read the `*Base` interface from the generated model file. If a field isn't there, it doesn't exist.
+
 ### CRITICAL: Lookup @odata.bind keys must be LOWERCASE
 
 The PAC CLI generates TypeScript interfaces with PascalCase lookup keys:

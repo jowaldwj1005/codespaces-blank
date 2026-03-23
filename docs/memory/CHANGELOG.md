@@ -1,5 +1,14 @@
 # Changelog - Playbook Agent
 
+## v0.5.2 (2026-03-23)
+### Fixed
+- **Hallucinated column `jw_ordernumber`** — Field doesn't exist on `jw_instruction` entity. Removed from seed data, using `jw_type: 'Rule'` instead. Instructions can now be created successfully.
+- **Main container height** — Added `min-height: 0` to flex parents (app-body, workspace, main-content). Fixes content not filling the viewport when scrolling.
+
+### Added
+- **DATAVERSE_PATTERNS.md** — Documented field verification rule: always check generated model before using any field name in CRUD payloads
+- **VERSIONS.md** — Responded to all user v0.5.1 feedback (JSON viewer, hallucinated column root cause, agent vs playbook, design sprint)
+
 ## v0.5.1 (2026-03-23)
 ### Fixed
 - **CRITICAL: Boolean fields** — Dataverse Yes/No columns require `true`/`false`, not `0`/`1`. PAC CLI generates misleading `{0: 'No', 1: 'Yes'}` enums. Fixed `jw_requiresapproval` and `jw_allowmcp` in seed data.

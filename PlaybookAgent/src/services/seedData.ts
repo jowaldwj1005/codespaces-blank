@@ -168,7 +168,7 @@ export function getGeneralAssistantSeedData(): SeedRecord[] {
       data: {
         jw_name: 'Step 1: Identify relevant tables',
         jw_content: 'Use search_dataverse to find tables related to the user\'s question. Present a summary of matching tables.',
-        jw_ordernumber: 1,
+        jw_type: 'Rule',
       },
     },
     {
@@ -177,7 +177,7 @@ export function getGeneralAssistantSeedData(): SeedRecord[] {
       data: {
         jw_name: 'Step 2: Inspect and query',
         jw_content: 'Use get_table_schema to understand the data structure, then execute_dataverse_query to retrieve relevant records.',
-        jw_ordernumber: 2,
+        jw_type: 'Rule',
       },
     },
     {
@@ -186,7 +186,7 @@ export function getGeneralAssistantSeedData(): SeedRecord[] {
       data: {
         jw_name: 'Step 3: Visualize findings',
         jw_content: 'Use create_visual to present the data as a chart or table. Choose the visualization type that best communicates the insight.',
-        jw_ordernumber: 3,
+        jw_type: 'Rule',
       },
     },
   ];
