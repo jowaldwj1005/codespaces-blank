@@ -135,13 +135,38 @@ const TABLE_REGISTRY: McpTableInfo[] = [
     description: 'Rules and cheat sheets for agents, tagged for retrieval',
     keywords: ['instruction', 'rule', 'cheatsheet', 'knowledge', 'anweisung', 'wissen'],
   },
+  {
+    logicalName: 'jw_agenttool',
+    displayName: 'Agent-Tool Link',
+    pluralName: 'jw_agenttools',
+    primaryKey: 'jw_agenttoolid',
+    description: 'N:N junction: which tools are assigned to which agents',
+    keywords: ['agent tool', 'binding', 'junction', 'link', 'zuordnung'],
+  },
+  {
+    logicalName: 'jw_threadcase',
+    displayName: 'Thread-Case Link',
+    pluralName: 'jw_threadcases',
+    primaryKey: 'jw_threadcaseid',
+    description: 'N:N junction: which threads belong to which cases',
+    keywords: ['thread case', 'junction', 'link'],
+  },
 ];
 
 // ─── MCP Tool 1: Search Tables ──────────────────────────────────────────────
 
+export interface McpSearchResultTable extends McpTableInfo {
+  /** Number of custom columns in the schema */
+  columnCount: number;
+  /** Summary of relationships (lookups) */
+  relationships: string[];
+}
+
 export interface McpSearchResult {
-  tables: McpTableInfo[];
+  tables: McpSearchResultTable[];
   matchedKeywords: string[];
+  /** Total tables available in the registry */
+  totalTablesAvailable: number;
 }
 
 /**
@@ -194,8 +219,17 @@ export function searchDataverseTables(intent: string): McpSearchResult {
   matched.sort((a, b) => b.score - a.score);
 
   return {
-    tables: matched.map((m) => m.table),
+    tables: matched.map((m) => {
+      const schema = STATIC_SCHEMAS[m.table.logicalName];
+      const lookups = schema?.filter(c => c.isLookup) ?? [];
+      return {
+        ...m.table,
+        columnCount: schema?.length ?? 0,
+        relationships: lookups.map(l => `${l.logicalName} → ${l.lookupTarget}`),
+      };
+    }),
     matchedKeywords: [...new Set(matched.flatMap((m) => m.keywords))],
+    totalTablesAvailable: TABLE_REGISTRY.length,
   };
 }
 
@@ -207,6 +241,9 @@ export interface McpColumnInfo {
   description?: string;
   isLookup?: boolean;
   lookupTarget?: string;
+  required?: boolean;
+  /** For Choice/Enum fields: the possible values */
+  choices?: Record<number, string>;
 }
 
 export interface McpTableSchema {
@@ -334,66 +371,100 @@ export async function executeDataverseQuery(
   };
 }
 
-// ─── Static Schemas (from Data Model Blueprint) ─────────────────────────────
-// Used as fallback when live metadata isn't available.
+// ─── Static Schemas (verified against src/generated/models/) ─────────────────
+// Enriched with all writable fields, choice values, lookups, and descriptions.
+// RULE: Always verify against generated *Base interface before adding fields.
 
 const STATIC_SCHEMAS: Record<string, McpColumnInfo[]> = {
   jw_agent: [
-    { logicalName: 'jw_name', type: 'String', description: 'Display name' },
-    { logicalName: 'jw_systemprompt', type: 'Memo', description: 'Base system prompt' },
-    { logicalName: 'jw_modelconfig', type: 'Memo', description: 'JSON: LLM parameters' },
-    { logicalName: 'jw_allowmcp', type: 'Boolean', description: 'Enable MCP tools' },
+    { logicalName: 'jw_name', type: 'String', description: 'Display name', required: true },
+    { logicalName: 'jw_systemprompt', type: 'Memo', description: 'Base system prompt (instructions for the LLM)' },
+    { logicalName: 'jw_modelconfig', type: 'Memo', description: 'JSON: LLM parameters (temperature, max_completion_tokens, tool_choice)' },
+    { logicalName: 'jw_allowmcp', type: 'Boolean', description: 'Enable MCP discovery tools (search/schema/query)', choices: { 0: 'No', 1: 'Yes' } },
+    { logicalName: 'statecode', type: 'Choice', description: 'Record state', choices: { 0: 'Active', 1: 'Inactive' } },
   ],
   jw_tool: [
-    { logicalName: 'jw_name', type: 'String', description: 'Function name for LLM' },
-    { logicalName: 'jw_description', type: 'Memo', description: 'When/how to use' },
-    { logicalName: 'jw_inputschema', type: 'Memo', description: 'JSON Schema for args' },
-    { logicalName: 'jw_requiresapproval', type: 'Boolean', description: 'HitL flag' },
-    { logicalName: 'jw_endpointtype', type: 'Choice', description: 'CloudFlow|CustomConnector|InternalReact' },
-    { logicalName: 'jw_executiontarget', type: 'String', description: 'Flow ID or endpoint' },
+    { logicalName: 'jw_name', type: 'String', description: 'Function name the LLM calls (e.g. search_dataverse)', required: true },
+    { logicalName: 'jw_description', type: 'Memo', description: 'When and how the LLM should use this tool' },
+    { logicalName: 'jw_inputschema', type: 'Memo', description: 'JSON Schema defining the tool parameters' },
+    { logicalName: 'jw_requiresapproval', type: 'Boolean', description: 'Human-in-the-Loop: pause for user approval before execution', choices: { 0: 'No', 1: 'Yes' } },
+    { logicalName: 'jw_endpointtype', type: 'Choice', description: 'How the tool is executed', choices: { 100000000: 'CloudFlow', 100000001: 'CustomConnector', 100000002: 'InternalReact' } },
+    { logicalName: 'jw_executiontarget', type: 'String', description: 'Flow URL or connector endpoint (empty for InternalReact)' },
+    { logicalName: 'statecode', type: 'Choice', description: 'Record state', choices: { 0: 'Active', 1: 'Inactive' } },
   ],
   jw_playbook: [
-    { logicalName: 'jw_name', type: 'String', description: 'Process name' },
-    { logicalName: 'jw_description', type: 'Memo', description: 'Human-readable context' },
+    { logicalName: 'jw_name', type: 'String', description: 'Playbook/process name', required: true },
+    { logicalName: 'jw_description', type: 'Memo', description: 'What this playbook does, when to use it' },
+    { logicalName: 'statecode', type: 'Choice', description: 'Record state', choices: { 0: 'Active', 1: 'Inactive' } },
   ],
   jw_instruction: [
-    { logicalName: 'jw_playbookid', type: 'Lookup', isLookup: true, lookupTarget: 'jw_playbook' },
-    { logicalName: 'jw_type', type: 'String', description: 'Rule or CheatSheet' },
-    { logicalName: 'jw_tags', type: 'String', description: 'Comma-separated index keys' },
-    { logicalName: 'jw_content', type: 'Memo', description: 'Knowledge content' },
+    { logicalName: 'jw_name', type: 'String', description: 'Instruction title / identifier' },
+    { logicalName: 'jw_content', type: 'Memo', description: 'Knowledge content (markdown supported)' },
+    { logicalName: 'jw_type', type: 'String', description: 'Instruction type: Rule or CheatSheet' },
+    { logicalName: 'jw_tags', type: 'String', description: 'Comma-separated search tags for retrieval' },
+    { logicalName: 'jw_playbookid', type: 'Lookup', isLookup: true, lookupTarget: 'jw_playbook', description: 'Parent playbook' },
+    { logicalName: 'statecode', type: 'Choice', description: 'Record state', choices: { 0: 'Active', 1: 'Inactive' } },
   ],
   jw_case: [
-    { logicalName: 'jw_title', type: 'String', description: 'Case identifier' },
-    { logicalName: 'jw_playbookid', type: 'Lookup', isLookup: true, lookupTarget: 'jw_playbook' },
-    { logicalName: 'jw_contextdata', type: 'Memo', description: 'JSON: case variables' },
+    { logicalName: 'jw_title', type: 'String', description: 'Case title / identifier', required: true },
+    { logicalName: 'jw_contextdata', type: 'Memo', description: 'JSON: case variables and accumulated state' },
+    { logicalName: 'jw_status', type: 'String', description: 'Case lifecycle status' },
+    { logicalName: 'jw_playbookid', type: 'Lookup', isLookup: true, lookupTarget: 'jw_playbook', description: 'Playbook this case follows' },
+    { logicalName: 'statecode', type: 'Choice', description: 'Record state', choices: { 0: 'Active', 1: 'Inactive' } },
   ],
   jw_artifact: [
-    { logicalName: 'jw_caseid', type: 'Lookup', isLookup: true, lookupTarget: 'jw_case' },
-    { logicalName: 'jw_parentartifactid', type: 'Lookup', isLookup: true, lookupTarget: 'jw_artifact' },
-    { logicalName: 'jw_type', type: 'String', description: 'Semantic UI type key' },
-    { logicalName: 'jw_referencekey', type: 'String', description: 'External ID for querying' },
-    { logicalName: 'jw_payload', type: 'Memo', description: 'JSON payload (max 1MB)' },
+    { logicalName: 'jw_type', type: 'String', description: 'Semantic UI type key (chart, table, document, etc.)', required: true },
+    { logicalName: 'jw_name', type: 'String', description: 'Display name' },
+    { logicalName: 'jw_payload', type: 'Memo', description: 'JSON payload (max 1MB) — data for SemanticRenderer' },
+    { logicalName: 'jw_referencekey', type: 'String', description: 'External reference key for querying' },
+    { logicalName: 'jw_caseid', type: 'Lookup', isLookup: true, lookupTarget: 'jw_case', description: 'Optional: linked case' },
+    { logicalName: 'jw_parentartifactid', type: 'Lookup', isLookup: true, lookupTarget: 'jw_artifact', description: 'Optional: parent artifact (versioning)' },
+    { logicalName: 'statecode', type: 'Choice', description: 'Record state', choices: { 0: 'Active', 1: 'Inactive' } },
   ],
   jw_thread: [
     { logicalName: 'jw_title', type: 'String', description: 'Thread title' },
-    { logicalName: 'jw_agentid', type: 'Lookup', isLookup: true, lookupTarget: 'jw_agent' },
+    { logicalName: 'jw_agentid', type: 'Lookup', isLookup: true, lookupTarget: 'jw_agent', description: 'Agent handling this thread', required: true },
+    { logicalName: 'jw_parentthreadid', type: 'Lookup', isLookup: true, lookupTarget: 'jw_thread', description: 'Parent thread (for sub-agent threads)' },
+    { logicalName: 'jw_status', type: 'Choice', description: 'Thread lifecycle', choices: { 100000000: 'Active', 100000001: 'Completed', 100000002: 'Cancelled' } },
+    { logicalName: 'statecode', type: 'Choice', description: 'Record state', choices: { 0: 'Active', 1: 'Inactive' } },
   ],
   jw_message: [
-    { logicalName: 'jw_threadid', type: 'Lookup', isLookup: true, lookupTarget: 'jw_thread' },
-    { logicalName: 'jw_role', type: 'String', description: 'user|assistant|system|tool' },
-    { logicalName: 'jw_content', type: 'Memo', description: 'Message text' },
+    { logicalName: 'jw_role', type: 'String', description: 'Message role: user, assistant, system, or tool', required: true },
+    { logicalName: 'jw_content', type: 'Memo', description: 'Message text content' },
+    { logicalName: 'jw_threadid', type: 'Lookup', isLookup: true, lookupTarget: 'jw_thread', description: 'Parent thread', required: true },
+    { logicalName: 'jw_toolcalls', type: 'Memo', description: 'JSON: array of tool_calls from LLM response' },
+    { logicalName: 'jw_tokenprompt', type: 'WholeNumber', description: 'Prompt tokens used (stored as string)' },
+    { logicalName: 'jw_tokencompletion', type: 'WholeNumber', description: 'Completion tokens used (stored as string)' },
+    { logicalName: 'jw_name', type: 'String', description: 'Optional message label' },
+    { logicalName: 'statecode', type: 'Choice', description: 'Record state', choices: { 0: 'Active', 1: 'Inactive' } },
   ],
   jw_toolexecution: [
-    { logicalName: 'jw_messageid', type: 'Lookup', isLookup: true, lookupTarget: 'jw_message' },
-    { logicalName: 'jw_toolid', type: 'Lookup', isLookup: true, lookupTarget: 'jw_tool' },
-    { logicalName: 'jw_callid', type: 'String', description: 'LLM tool_call_id' },
-    { logicalName: 'jw_requestpayload', type: 'Memo', description: 'JSON: LLM-generated args' },
-    { logicalName: 'jw_responsepayload', type: 'Memo', description: 'JSON: execution result' },
-    { logicalName: 'jw_approvalstate', type: 'Choice', description: 'Pending|Approved|Rejected|AutoExecuted' },
+    { logicalName: 'jw_callid', type: 'String', description: 'LLM-generated tool_call_id for correlation' },
+    { logicalName: 'jw_requestpayload', type: 'Memo', description: 'JSON: arguments the LLM passed to the tool' },
+    { logicalName: 'jw_responsepayload', type: 'Memo', description: 'JSON: execution result returned to the LLM' },
+    { logicalName: 'jw_approvalstate', type: 'Choice', description: 'HitL approval lifecycle', choices: { 100000000: 'Pending', 100000001: 'Approved', 100000002: 'Rejected', 100000003: 'AutoExecuted' } },
+    { logicalName: 'jw_messageid', type: 'Lookup', isLookup: true, lookupTarget: 'jw_message', description: 'Message that triggered this execution', required: true },
+    { logicalName: 'jw_toolid', type: 'Lookup', isLookup: true, lookupTarget: 'jw_tool', description: 'Tool that was executed', required: true },
+    { logicalName: 'statecode', type: 'Choice', description: 'Record state', choices: { 0: 'Active', 1: 'Inactive' } },
   ],
   jw_document: [
-    { logicalName: 'jw_caseid', type: 'Lookup', isLookup: true, lookupTarget: 'jw_case' },
-    { logicalName: 'jw_file', type: 'File', description: 'Physical file blob' },
-    { logicalName: 'jw_mimetype', type: 'String', description: 'MIME type' },
+    { logicalName: 'jw_name', type: 'String', description: 'Document name / filename' },
+    { logicalName: 'jw_mimetype', type: 'String', description: 'MIME type (e.g. application/pdf)' },
+    { logicalName: 'jw_caseid', type: 'Lookup', isLookup: true, lookupTarget: 'jw_case', description: 'Linked case', required: true },
+    { logicalName: 'statecode', type: 'Choice', description: 'Record state', choices: { 0: 'Active', 1: 'Inactive' } },
+  ],
+  jw_agenttool: [
+    { logicalName: 'jw_name', type: 'String', description: 'Junction record label' },
+    { logicalName: 'jw_data', type: 'Memo', description: 'Optional: agent-specific tool config overrides' },
+    { logicalName: 'jw_agentid', type: 'Lookup', isLookup: true, lookupTarget: 'jw_agent', description: 'Agent', required: true },
+    { logicalName: 'jw_toolid', type: 'Lookup', isLookup: true, lookupTarget: 'jw_tool', description: 'Tool', required: true },
+    { logicalName: 'statecode', type: 'Choice', description: 'Record state', choices: { 0: 'Active', 1: 'Inactive' } },
+  ],
+  jw_threadcase: [
+    { logicalName: 'jw_name', type: 'String', description: 'Junction record label' },
+    { logicalName: 'jw_data', type: 'Memo', description: 'Optional: thread-case context data' },
+    { logicalName: 'jw_threadid', type: 'Lookup', isLookup: true, lookupTarget: 'jw_thread', description: 'Thread', required: true },
+    { logicalName: 'jw_caseid', type: 'Lookup', isLookup: true, lookupTarget: 'jw_case', description: 'Case', required: true },
+    { logicalName: 'statecode', type: 'Choice', description: 'Record state', choices: { 0: 'Active', 1: 'Inactive' } },
   ],
 };

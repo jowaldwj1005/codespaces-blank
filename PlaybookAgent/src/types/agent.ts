@@ -41,6 +41,12 @@ export interface ModelConfig {
   tool_choice?: 'auto' | 'required' | 'none' | { type: 'function'; function: { name: string } };
 }
 
+/** Runtime capabilities that can be toggled per agent or globally */
+export interface AgentCapabilities {
+  /** Allow delete operations on Dataverse records (default: false) */
+  allowDelete?: boolean;
+}
+
 export interface AgentDefinition {
   id: string;
   name: string;
@@ -48,6 +54,7 @@ export interface AgentDefinition {
   modelConfig: ModelConfig;
   allowMcp: boolean;
   tools: ToolDefinition[];
+  capabilities?: AgentCapabilities;
 }
 
 // ─── Agent Loop State ────────────────────────────────────────────────────────

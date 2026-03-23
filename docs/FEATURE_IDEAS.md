@@ -48,6 +48,15 @@ Automatische Snapshots des `jw_case.jw_contextdata` bei wichtigen Ereignissen (T
 # jo: 
 wenn möglich gerne
 
+### 7b. Runtime Config Changes — What Happens Mid-Conversation? `[diskutieren]`
+If an admin changes an agent's system prompt, tool bindings, or capability flags (like allowDelete) while a conversation is active, what should happen?
+- **Option A: Lazy reload** — next LLM call picks up the latest config. Simple but may cause mid-conversation inconsistency (tool was available in message 3, gone in message 5).
+- **Option B: Session snapshot** — agent config is frozen when the thread starts. Changes only apply to new threads. Predictable but stale.
+- **Option C: Explicit refresh** — user clicks "Refresh Agent Config" in the chat header. Agent announces what changed. Most transparent.
+- **Related:** Interactive diagrams / flowcharts that change tool definitions or system prompts also need this pattern. If a user edits a Mermaid diagram that represents a playbook, the agent needs to pick up the new structure.
+- **Claude's leaning:** Option C for user-initiated changes, Option A for admin changes with a notification badge in the chat header.
+# jo:
+
 ---
 
 ## Visualisierung & Artifacts

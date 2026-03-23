@@ -3,7 +3,7 @@
  * These include MCP bridges, visualization, and sub-agent delegation.
  */
 
-import type { CreateVisualInput, ToolDefinition } from '../types/agent';
+import type { CreateVisualInput, ToolDefinition, AgentCapabilities } from '../types/agent';
 import { searchDataverseTables, getTableSchema, executeDataverseQuery } from './dataverseMcp';
 import { createArtifact } from './dataverse';
 import type { IOperationResult } from '@microsoft/power-apps/data';
@@ -21,7 +21,19 @@ export const BUILTIN_TOOLS: Record<string, ToolHandler> = {
   search_dataverse: handleSearchDataverse,
   get_table_schema: handleGetTableSchema,
   execute_dataverse_query: handleExecuteDataverseQuery,
+  delete_dataverse_record: handleDeleteDataverseRecord,
 };
+
+// ─── Capability-Gated Tools ────────────────────────────────────────────────
+// Tools that are only available when specific capabilities are enabled.
+
+/** Returns the subset of BUILTIN_TOOL_DEFINITIONS available given capabilities */
+export function getToolsForCapabilities(capabilities?: AgentCapabilities): ToolDefinition[] {
+  if (capabilities?.allowDelete) {
+    return BUILTIN_TOOL_DEFINITIONS;
+  }
+  return BUILTIN_TOOL_DEFINITIONS.filter(t => t.name !== 'delete_dataverse_record');
+}
 
 // ─── Handlers ────────────────────────────────────────────────────────────────
 
@@ -108,6 +120,36 @@ async function handleExecuteDataverseQuery(args: Record<string, unknown>): Promi
     top: args.top as number | undefined,
     orderBy: args.orderBy as string | undefined,
   }, getAllFn);
+}
+
+// Map of table plural names to their delete functions
+const TABLE_DELETE_MAP: Record<string, (id: string) => Promise<void>> = {
+  jw_agents: (id) => dv.jwAgents.delete(id),
+  jw_tools: (id) => dv.jwTools.delete(id),
+  jw_cases: (id) => dv.jwCases.delete(id),
+  jw_threads: (id) => dv.jwThreads.delete(id),
+  jw_messages: (id) => dv.jwMessages.delete(id),
+  jw_artifacts: (id) => dv.jwArtifacts.delete(id),
+  jw_playbooks: (id) => dv.jwPlaybooks.delete(id),
+  jw_instructions: (id) => dv.jwInstructions.delete(id),
+  jw_toolexecutions: (id) => dv.jwToolExecutions.delete(id),
+  jw_documents: (id) => dv.jwDocuments.delete(id),
+  jw_agenttools: (id) => dv.jwAgentTools.delete(id),
+  jw_threadcases: (id) => dv.jwThreadCases.delete(id),
+};
+
+async function handleDeleteDataverseRecord(args: Record<string, unknown>): Promise<unknown> {
+  const tablePluralName = (args.tablePluralName ?? args.table ?? '') as string;
+  const recordId = (args.recordId ?? args.id ?? '') as string;
+
+  if (!tablePluralName) return { error: 'Missing tablePluralName parameter' };
+  if (!recordId) return { error: 'Missing recordId parameter' };
+
+  const deleteFn = TABLE_DELETE_MAP[tablePluralName];
+  if (!deleteFn) return { error: `Unknown or protected table: ${tablePluralName}. Deletable tables: ${Object.keys(TABLE_DELETE_MAP).join(', ')}` };
+
+  await deleteFn(recordId);
+  return { success: true, deleted: { table: tablePluralName, id: recordId } };
 }
 
 // ─── Built-in Tool Definitions (for agent config) ────────────────────────────
@@ -205,6 +247,21 @@ export const BUILTIN_TOOL_DEFINITIONS: ToolDefinition[] = [
       },
     },
     requiresApproval: false,
+    endpointType: 'InternalReact',
+  },
+  {
+    id: 'builtin_delete_dataverse_record',
+    name: 'delete_dataverse_record',
+    description: 'Delete a record from a Dataverse table. DESTRUCTIVE — only available when delete capability is enabled for this agent. Always confirm with the user before deleting.',
+    inputSchema: {
+      type: 'object',
+      required: ['tablePluralName', 'recordId'],
+      properties: {
+        tablePluralName: { type: 'string', description: 'Plural name of the table (e.g. jw_agents)' },
+        recordId: { type: 'string', description: 'GUID of the record to delete' },
+      },
+    },
+    requiresApproval: true, // Always requires HitL approval
     endpointType: 'InternalReact',
   },
 ];
