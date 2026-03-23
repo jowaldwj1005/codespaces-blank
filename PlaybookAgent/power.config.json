@@ -106,6 +106,10 @@
         "notes": {
           "entitySetName": "annotations",
           "logicalName": "annotation"
+        },
+        "toolexecutions": {
+          "entitySetName": "jw_toolexecutions",
+          "logicalName": "jw_toolexecution"
         }
       },
       "environmentVariableName": ""
