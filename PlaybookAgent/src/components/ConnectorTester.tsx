@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { useConnectors } from '../hooks/useConnectors';
 import { OPENAI_DEFAULTS } from '../services/connectors';
+import type { SapODataRequest } from '../services/connectors';
 
 type ConnectorType = 'openai' | 'docint' | 'sap';
 
@@ -27,6 +28,9 @@ export function ConnectorTester() {
   // ─── SAP defaults ───
   const [sapPath, setSapPath] = useState('');
   const [sapMethod, setSapMethod] = useState<'GET' | 'POST' | 'PATCH' | 'DELETE'>('GET');
+  const [sapQueryString, setSapQueryString] = useState('');
+  const [sapBody, setSapBody] = useState('');
+  const [sapHeaders, setSapHeaders] = useState('');
 
   const handleTest = () => {
     switch (connector) {
@@ -47,10 +51,20 @@ export function ConnectorTester() {
         break;
       case 'sap':
         if (sapPath.trim()) {
-          callSapOData({
+          const sapRequest: SapODataRequest = {
             method: sapMethod,
             relativePath: sapPath.trim(),
-          });
+          };
+          if (sapQueryString.trim()) sapRequest.queryString = sapQueryString.trim();
+          if (sapBody.trim()) {
+            try { sapRequest.body = JSON.parse(sapBody.trim()); }
+            catch { sapRequest.body = sapBody.trim(); }
+          }
+          if (sapHeaders.trim()) {
+            try { sapRequest.headers = JSON.parse(sapHeaders.trim()); }
+            catch { /* ignore invalid headers JSON */ }
+          }
+          callSapOData(sapRequest);
         }
         break;
     }
@@ -151,26 +165,61 @@ export function ConnectorTester() {
       )}
 
       {connector === 'sap' && (
-        <div style={{ display: 'flex', gap: 8, marginBottom: 12, alignItems: 'center' }}>
+        <div style={{ marginBottom: 12, display: 'flex', flexDirection: 'column', gap: 8 }}>
+          <div style={{ fontSize: 11, color: '#6366f1', background: '#eef2ff', padding: '4px 8px', borderRadius: 4 }}>
+            Connector sends POST to Power Automate flow. The <code>method</code> field tells the flow which HTTP verb to use against SAP.
+          </div>
+          <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
+            <label>
+              Method:{' '}
+              <select value={sapMethod} onChange={(e) => setSapMethod(e.target.value as typeof sapMethod)}>
+                <option>GET</option>
+                <option>POST</option>
+                <option>PATCH</option>
+                <option>DELETE</option>
+              </select>
+            </label>
+            <label>
+              Relative Path:{' '}
+              <input
+                type="text"
+                value={sapPath}
+                onChange={(e) => setSapPath(e.target.value)}
+                placeholder="/API_SALES_ORDER_SRV/A_SalesOrder"
+                style={{ width: 350 }}
+              />
+            </label>
+          </div>
           <label>
-            Method:{' '}
-            <select value={sapMethod} onChange={(e) => setSapMethod(e.target.value as typeof sapMethod)}>
-              <option>GET</option>
-              <option>POST</option>
-              <option>PATCH</option>
-              <option>DELETE</option>
-            </select>
-          </label>
-          <label>
-            Path:{' '}
+            Query String:{' '}
             <input
               type="text"
-              value={sapPath}
-              onChange={(e) => setSapPath(e.target.value)}
-              placeholder="/sap/opu/odata/sap/..."
-              style={{ width: 350 }}
+              value={sapQueryString}
+              onChange={(e) => setSapQueryString(e.target.value)}
+              placeholder="$top=10&$filter=SalesOrder eq '123'"
+              style={{ width: '100%' }}
             />
           </label>
+          <label>
+            Body (JSON):{' '}
+            <textarea
+              value={sapBody}
+              onChange={(e) => setSapBody(e.target.value)}
+              placeholder='{"key": "value"}'
+              rows={3}
+              style={{ width: '100%', fontFamily: 'monospace', fontSize: 12 }}
+            />
+          </label>
+          <details>
+            <summary style={{ cursor: 'pointer', fontSize: 12, color: '#888' }}>Headers (JSON) — may not be supported</summary>
+            <textarea
+              value={sapHeaders}
+              onChange={(e) => setSapHeaders(e.target.value)}
+              placeholder='{"X-Custom": "value"}'
+              rows={2}
+              style={{ width: '100%', fontFamily: 'monospace', fontSize: 12, marginTop: 4 }}
+            />
+          </details>
         </div>
       )}
 

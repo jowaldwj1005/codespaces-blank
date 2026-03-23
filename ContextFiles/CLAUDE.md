@@ -13,7 +13,7 @@ You are an Expert Enterprise AI Solution Architect and Senior React/TypeScript D
 ## **Technical Constraints**
 
 1. **Dataverse Communication:** NEVER use fetch(), axios, or direct REST calls to the Dataverse API. You must strictly use the Power Platform Code App SDK (e.g., context.webAPI). Authentication is handled by the host.  
-2. **State Management:** Use the Vercel AI SDK (or similar) for chat state, but you MUST write custom middleware to intercept tool calls and sync them with Dataverse ToolExecution records.
+2. **State Management:** Use the custom agent loop (`agentLoop.ts` + `useAgentChat` hook) for chat state. The loop handles tool call interception, HitL approval gates, sub-agent delegation, and syncs with Dataverse ToolExecution records.
 
 ## **Required Reading**
 

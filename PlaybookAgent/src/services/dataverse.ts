@@ -146,7 +146,13 @@ export const businessunits = {
 
 // ─── Convenience Helpers ─────────────────────────────────────────────────────
 
-/** Create a team with lookup bindings pre-built. */
+/**
+ * Create a team with lookup bindings pre-built.
+ * IMPORTANT: Dataverse OData API requires lowercase lookup property names
+ * (e.g. businessunitid@odata.bind, NOT BusinessUnitId@odata.bind).
+ * The PAC CLI TypeScript interface uses PascalCase, but the actual API rejects it.
+ * We cast to bypass the typed interface and send the correct lowercase keys.
+ */
 export function createTeam(opts: {
   name: string;
   description?: string;
@@ -155,12 +161,13 @@ export function createTeam(opts: {
   teamType?: 0 | 1 | 2 | 3;
   membershipType?: 0 | 1 | 2 | 3;
 }) {
-  return teams.create({
+  const record = {
     name: opts.name,
     description: opts.description,
-    'BusinessUnitId@odata.bind': lookupBind('businessunits', opts.businessUnitId),
-    'AdministratorId@odata.bind': lookupBind('systemusers', opts.administratorId),
-    teamtype: (opts.teamType ?? 0) as TeamsBase['teamtype'],
-    membershiptype: (opts.membershipType ?? 0) as TeamsBase['membershiptype'],
-  });
+    'businessunitid@odata.bind': lookupBind('businessunits', opts.businessUnitId),
+    'administratorid@odata.bind': lookupBind('systemusers', opts.administratorId),
+    teamtype: opts.teamType ?? 0,
+    membershiptype: opts.membershipType ?? 0,
+  };
+  return teams.create(record as unknown as Omit<TeamsBase, 'teamid'>);
 }

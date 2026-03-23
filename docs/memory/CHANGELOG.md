@@ -1,5 +1,40 @@
 # Changelog - Playbook Agent
 
+## v0.3.1 (2026-03-23)
+### Changed — Data Model & Architecture Decisions
+- **Architecture Decision: Custom Agent Loop** — decided against Vercel AI SDK. SPA has no SSE streaming; Custom Connector returns full JSON. Custom loop gives full control over HitL, sub-agents, and debugging.
+- **Data Model: jw_thread** — added `jw_parentthreadid` (self-ref lookup for sub-agent threads) and `jw_status` (Choice: Active/Completed/Cancelled)
+- **Data Model: jw_message** — added `jw_toolcalls` (JSON for tool_calls array), `jw_tokenprompt` and `jw_tokencompletion` (Whole Number for token tracking)
+- **Data Model: jw_artifact** — changed `jw_caseid` RequiredLevel from ApplicationRequired to None (visuals without case)
+- Updated entity_creation/01_tables_and_fields.json with 4 new field definitions
+- Updated entity_creation/02_lookup_columns.json with jw_parentthreadid lookup + artifact-case optional fix
+- Updated Data Model Blueprint.md with all new fields
+- Created `ContextFiles/Architecture Decisions.md` (ADR log)
+- Updated ContextFiles: replaced all Vercel AI SDK references with Custom Agent Loop
+- Updated CLAUDE.md memory index and next steps
+
+## v0.3.0 (2026-03-23)
+### Added
+- **Visualization Panel**: New tab with Recharts (Bar/Line/Pie charts) + Three.js (3D scene)
+  - JSON data input for custom chart data
+  - 3D bar chart with OrbitControls and labeled bars
+  - Deps: recharts, @react-three/fiber, @react-three/drei, three
+- **Dataverse MCP Explorer**: New tab with interactive testing of MCP tools
+  - `search_dataverse_tables(intent)`: Keyword-based table discovery (DE+EN)
+  - `get_table_schema(logical_name)`: Minified schema with static fallback from Data Model Blueprint
+  - `execute_dataverse_query(table, options)`: Read-only OData queries (max 50 records)
+  - Full table registry for all jw_ entities + system entities
+  - Static schemas for all jw_ entities from the Data Model Blueprint
+- **SAP Connector UI**: Extended with queryString, body (JSON), and headers inputs
+  - Info banner explaining POST-only connector pattern
+
+### Changed
+- SAP OData: Documented POST-only connector pattern (method in body, not HTTP verb)
+- SAP OData: Added JSDoc comments explaining RPC envelope architecture
+- SAP connector docs: Added headers support warning
+- App version bumped to 0.3.0
+- App tabs: 5 tabs now (Dataverse Explorer, Connector Tester, Visualization, MCP Explorer, Debug Log)
+
 ## v0.2.0 (2026-03-22)
 ### Fixed
 - Azure OpenAI: switched from `max_tokens` to `max_completion_tokens` (required by API)

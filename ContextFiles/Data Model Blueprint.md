@@ -57,7 +57,7 @@ jw is set as confirmed prefix, initial plasecolder meta was replaced automatical
 
 | Schema Name | Dataverse Type | Feature Role & Description |
 | :---- | :---- | :---- |
-| jw_caseid | Lookup | Lookup to jw_case. |
+| jw_caseid | Lookup | Lookup to jw_case. **Optional** — artifacts (e.g. visualizations) can exist without a case. |
 | jw_parentartifactid | Lookup | Self-referential. Allows grouping (e.g., an extraction artifact with child error artifacts). |
 | jw_type | Single Line of Text | **CRITICAL:** MUST be a String, NOT a Choice. Drives the Semantic UI mapping (e.g., Type="SapPayload" maps to \<SapForm /\>). |
 | jw_referencekey | Single Line of Text | Escaped string or ID (e.g., "SAP-Vendor-123"). Used for fast OData/FetchXML querying. |
@@ -79,6 +79,8 @@ jw is set as confirmed prefix, initial plasecolder meta was replaced automatical
 | :---- | :---- | :---- |
 | jw_title | Single Line of Text | E.g., "Chat session 10/24". |
 | jw_agentid | Lookup | Lookup to jw_agent. The primary AI handling the conversation. |
+| jw_parentthreadid | Lookup | **Self-referential.** Links sub-agent threads back to the parent thread for delegation tracking. Null for top-level threads. |
+| jw_status | Choice | **Active** (100000000), **Completed** (100000001), **Cancelled** (100000002). Thread lifecycle for sub-agents and thread list UI. |
 
 ### **Relationship: Thread to Case (jw_thread\_case)**
 
@@ -90,8 +92,11 @@ jw is set as confirmed prefix, initial plasecolder meta was replaced automatical
 | Schema Name | Dataverse Type | Feature Role & Description |
 | :---- | :---- | :---- |
 | jw_threadid | Lookup | Lookup to jw_thread. |
-| jw_role | Single Line of Text | user, assistant, system, or tool. Required for Vercel AI SDK reconstruction. |
+| jw_role | Single Line of Text | user, assistant, system, or tool. Required for custom agent loop message reconstruction. |
 | jw_content | Multiline Text | The chat string. |
+| jw_toolcalls | Multiline Text | **JSON Payload.** Stores the `tool_calls` array from assistant messages. Required for conversation replay and sub-agent audit. |
+| jw_tokenprompt | Whole Number | Prompt tokens consumed by the API call that generated this assistant message. |
+| jw_tokencompletion | Whole Number | Completion tokens consumed by the API call that generated this assistant message. |
 
 ### **Entity: Tool Execution (jw_toolexecution)**
 

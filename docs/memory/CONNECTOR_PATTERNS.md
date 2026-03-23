@@ -56,22 +56,35 @@ The `extractOperationId()` helper checks all known locations.
 **Service:** `CustCon_SAP_OdataService`
 **Operation:** `ExecuteSapODataRequest`
 
+### Critical: POST-Only Connector
+The custom connector **always sends POST** to the Power Automate proxy flow.
+The `method` field *inside* the request body tells the flow which HTTP verb to execute against SAP.
+This is NOT a REST passthrough — it's an RPC-style envelope.
+
 ### Key Parameters
-- `api_version`: `'2024-10-01'` (NOT `2024-01-01` — that returns "version not supported")
-- `sp`: `'/triggers/manual/paths/invoke'`
+- `api_version`: `'1'` (just the number — NOT a date-based version string)
+- `sp`: `'/triggers/manual/run'` (NOT `/triggers/manual/paths/invoke` — that returns AuthorizationFailed 401)
 - `sv`: `'1.0'`
 - `body`: `{ method, relativePath, queryString?, body?, headers? }`
 
-### Request Structure
+### Error: AuthorizationFailed on `/triggers/manual/paths/invoke`
+Using the wrong `sp` path returns 401: `You do not have permissions to perform action 'run' on scope '/triggers/manual/paths/'`.
+The correct path for the Power Automate proxy flow trigger is `/triggers/manual/run`.
+
+### Request Body Structure (RPC Envelope)
+The connector POSTs this envelope to the flow. The flow unpacks it and executes against SAP:
 ```typescript
 {
-  method: 'GET' | 'POST' | 'PATCH' | 'DELETE',
-  relativePath: '/sap/opu/odata/sap/...',
-  queryString: '$top=10&$filter=...',
-  body: { ... },  // for POST/PATCH
-  headers: { 'X-Custom': 'value' }
+  method: 'GET' | 'POST' | 'PATCH' | 'DELETE',  // HTTP verb for SAP
+  relativePath: '/API_SALES_ORDER_SRV/A_SalesOrder',  // SAP OData path
+  queryString: '$top=10&$filter=SalesOrder eq \'123\'',  // OData query
+  body: { ... },  // POST/PATCH payload for SAP
+  headers: { ... }  // NOTE: may not be fully supported by connector config
 }
 ```
+
+### Headers Support
+The `headers` field is part of the interface but **may not be fully supported** depending on the Power Automate flow configuration. Test with the Debug Log tab to verify if headers are forwarded to SAP.
 
 ## Response Normalization
 
