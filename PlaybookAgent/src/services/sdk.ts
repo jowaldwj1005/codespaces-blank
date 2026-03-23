@@ -16,16 +16,18 @@ export const TABLES = {
   systemusers: { name: 'systemusers', primaryKey: 'systemuserid' },
   teams: { name: 'teams', primaryKey: 'teamid' },
   businessunits: { name: 'businessunits', primaryKey: 'businessunitid' },
-  // Future jw_ entities:
-  // jw_agent: { name: 'jw_agents', primaryKey: 'jw_agentid' },
-  // jw_case: { name: 'jw_cases', primaryKey: 'jw_caseid' },
-  // jw_thread: { name: 'jw_threads', primaryKey: 'jw_threadid' },
-  // jw_message: { name: 'jw_messages', primaryKey: 'jw_messageid' },
-  // jw_artifact: { name: 'jw_artifacts', primaryKey: 'jw_artifactid' },
-  // jw_tool: { name: 'jw_tools', primaryKey: 'jw_toolid' },
-  // jw_toolexecution: { name: 'jw_toolexecutions', primaryKey: 'jw_toolexecutionid' },
-  // jw_playbook: { name: 'jw_playbooks', primaryKey: 'jw_playbookid' },
-  // jw_instruction: { name: 'jw_instructions', primaryKey: 'jw_instructionid' },
+  jw_agents: { name: 'jw_agents', primaryKey: 'jw_agentid' },
+  jw_tools: { name: 'jw_tools', primaryKey: 'jw_toolid' },
+  jw_playbooks: { name: 'jw_playbooks', primaryKey: 'jw_playbookid' },
+  jw_instructions: { name: 'jw_instructions', primaryKey: 'jw_instructionid' },
+  jw_agenttools: { name: 'jw_agenttools', primaryKey: 'jw_agenttoolid' },
+  jw_cases: { name: 'jw_cases', primaryKey: 'jw_caseid' },
+  jw_artifacts: { name: 'jw_artifacts', primaryKey: 'jw_artifactid' },
+  jw_documents: { name: 'jw_documents', primaryKey: 'jw_documentid' },
+  jw_threadcases: { name: 'jw_threadcases', primaryKey: 'jw_threadcaseid' },
+  jw_threads: { name: 'jw_threads', primaryKey: 'jw_threadid' },
+  jw_messages: { name: 'jw_messages', primaryKey: 'jw_messageid' },
+  jw_toolexecutions: { name: 'jw_toolexecutions', primaryKey: 'jw_toolexecutionid' },
 } as const;
 
 export type TableName = keyof typeof TABLES;
