@@ -67,6 +67,27 @@ export async function tracedOperation<T>(
 
   try {
     const result = await fn();
+
+    // Dataverse SDK resolves the promise even on failure — check success flag
+    const raw = result as unknown as Record<string, unknown>;
+    if ('success' in raw && !raw.success) {
+      const errMsg = raw.error
+        ? JSON.stringify(raw.error)
+        : `${operation} returned success: false`;
+      emitDebugEvent({
+        id: eventId,
+        timestamp: startTime,
+        operation,
+        source,
+        status: 'error',
+        durationMs: Date.now() - startTime,
+        input,
+        error: errMsg,
+        rawResult: result,
+      });
+      throw new Error(errMsg);
+    }
+
     emitDebugEvent({
       id: eventId,
       timestamp: startTime,

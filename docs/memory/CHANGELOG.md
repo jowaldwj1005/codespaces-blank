@@ -1,5 +1,16 @@
 # Changelog - Playbook Agent
 
+## v0.5.1 (2026-03-23)
+### Fixed
+- **CRITICAL: Boolean fields** — Dataverse Yes/No columns require `true`/`false`, not `0`/`1`. PAC CLI generates misleading `{0: 'No', 1: 'Yes'}` enums. Fixed `jw_requiresapproval` and `jw_allowmcp` in seed data.
+- **CRITICAL: tracedOperation silent failures** — Dataverse SDK resolves promise even on failure (`success: false`). `tracedOperation` now checks `result.success` and throws with the actual error message. Debug Log correctly shows errors.
+- **executeSeed defensive validation** — Create operations now verify `result.data` contains an ID. Throws descriptive error if create returns empty data.
+- **agent-tool link error messages** — Changed from "skipped" to "error" with message "parent record likely failed to create" when agent/tool IDs are missing.
+
+### Added
+- **Error hover tooltip** — Seed panel error messages now show full error in a styled popover on hover (was truncated title attribute)
+- **DATAVERSE_PATTERNS.md** — Documented boolean field gotcha and IOperationResult.success checking pattern
+
 ## v0.5.0 (2026-03-23)
 ### Added
 - **SeedPanel** (`src/components/admin/SeedPanel.tsx`): Transparent seed data UI with toggleable records, real-time status, idempotent execution, Select All/Deselect All, summary display

@@ -157,8 +157,11 @@ export function SeedPanel() {
             )}
 
             {record.error && (
-              <span className="seed-item__error" title={record.error}>
-                {record.error.slice(0, 60)}
+              <span className="seed-item__error-wrapper">
+                <span className="seed-item__error">
+                  {record.error.slice(0, 50)}{record.error.length > 50 ? '…' : ''}
+                </span>
+                <span className="seed-item__error-tooltip">{record.error}</span>
               </span>
             )}
           </div>

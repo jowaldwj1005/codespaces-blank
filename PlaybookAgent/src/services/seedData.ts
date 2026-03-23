@@ -62,7 +62,7 @@ export function getGeneralAssistantSeedData(): SeedRecord[] {
         jw_name: 'search_dataverse',
         jw_description: 'Search for Dataverse tables by intent. Returns matching tables with schema info.',
         jw_endpointtype: 100000002, // InternalReact
-        jw_requiresapproval: 0,
+        jw_requiresapproval: false,
         jw_inputschema: JSON.stringify({
           type: 'object',
           required: ['intent'],
@@ -79,7 +79,7 @@ export function getGeneralAssistantSeedData(): SeedRecord[] {
         jw_name: 'get_table_schema',
         jw_description: 'Get the schema (columns, types, keys) of a Dataverse table.',
         jw_endpointtype: 100000002,
-        jw_requiresapproval: 0,
+        jw_requiresapproval: false,
         jw_inputschema: JSON.stringify({
           type: 'object',
           required: ['logicalName'],
@@ -96,7 +96,7 @@ export function getGeneralAssistantSeedData(): SeedRecord[] {
         jw_name: 'execute_dataverse_query',
         jw_description: 'Execute an OData query against a Dataverse table. Returns up to 50 records.',
         jw_endpointtype: 100000002,
-        jw_requiresapproval: 0,
+        jw_requiresapproval: false,
         jw_inputschema: JSON.stringify({
           type: 'object',
           required: ['tablePluralName'],
@@ -117,7 +117,7 @@ export function getGeneralAssistantSeedData(): SeedRecord[] {
         jw_name: 'create_visual',
         jw_description: 'Create a visualization (chart or table) from data. Supports bar, line, pie, area, scatter, radar, treemap, table types. Rendered inline in the chat.',
         jw_endpointtype: 100000002,
-        jw_requiresapproval: 0,
+        jw_requiresapproval: false,
         jw_inputschema: JSON.stringify({
           type: 'object',
           required: ['chartType', 'title', 'data'],
@@ -140,7 +140,7 @@ export function getGeneralAssistantSeedData(): SeedRecord[] {
       data: {
         jw_name: 'General Assistant',
         jw_systemprompt: GENERAL_ASSISTANT_PROMPT,
-        jw_allowmcp: 1,
+        jw_allowmcp: true,
         jw_modelconfig: JSON.stringify({
           temperature: 0.7,
           max_completion_tokens: 2000,
@@ -216,12 +216,14 @@ export async function executeSeed(
           if (existing) {
             record.status = 'exists';
             record.recordId = existing.jw_agentid;
-            // Update the agent with latest data (system prompt, model config, etc.)
             await jwAgents.update(existing.jw_agentid, record.data as Parameters<typeof jwAgents.update>[1]);
           } else {
             const result = await jwAgents.create(record.data as Parameters<typeof jwAgents.create>[0]);
+            if (!result.data?.jw_agentid) {
+              throw new Error(`Agent create returned no ID — response: ${JSON.stringify(result)}`);
+            }
             record.status = 'created';
-            record.recordId = result.data?.jw_agentid;
+            record.recordId = result.data.jw_agentid;
           }
           if (record.recordId) agentIdMap.set(record.data.jw_name as string, record.recordId);
           break;
@@ -235,8 +237,11 @@ export async function executeSeed(
             await jwTools.update(existing.jw_toolid, record.data as Parameters<typeof jwTools.update>[1]);
           } else {
             const result = await jwTools.create(record.data as Parameters<typeof jwTools.create>[0]);
+            if (!result.data?.jw_toolid) {
+              throw new Error(`Tool create returned no ID — response: ${JSON.stringify(result)}`);
+            }
             record.status = 'created';
-            record.recordId = result.data?.jw_toolid;
+            record.recordId = result.data.jw_toolid;
           }
           if (record.recordId) toolIdMap.set(record.data.jw_name as string, record.recordId);
           break;
@@ -249,8 +254,11 @@ export async function executeSeed(
             record.recordId = (existing as unknown as Record<string, string>).jw_playbookid;
           } else {
             const result = await jwPlaybooks.create(record.data as Parameters<typeof jwPlaybooks.create>[0]);
+            if (!result.data) {
+              throw new Error(`Playbook create returned no data — response: ${JSON.stringify(result)}`);
+            }
             record.status = 'created';
-            record.recordId = result.data?.jw_playbookid;
+            record.recordId = (result.data as unknown as Record<string, string>).jw_playbookid;
           }
           break;
         }
@@ -262,8 +270,11 @@ export async function executeSeed(
             record.recordId = (existing as unknown as Record<string, string>).jw_instructionid;
           } else {
             const result = await jwInstructions.create(record.data as Parameters<typeof jwInstructions.create>[0]);
+            if (!result.data) {
+              throw new Error(`Instruction create returned no data — response: ${JSON.stringify(result)}`);
+            }
             record.status = 'created';
-            record.recordId = result.data?.jw_instructionid;
+            record.recordId = (result.data as unknown as Record<string, string>).jw_instructionid;
           }
           break;
         }
@@ -272,16 +283,21 @@ export async function executeSeed(
           const agentId = agentIdMap.get(record.agentName!);
           const toolId = toolIdMap.get(record.toolName!);
           if (!agentId || !toolId) {
-            record.status = 'skipped';
-            record.error = `Missing ${!agentId ? 'agent' : 'tool'} reference`;
+            record.status = 'error';
+            record.error = `Missing ${!agentId ? 'agent' : 'tool'} ID — parent record likely failed to create`;
             break;
           }
           try {
             await linkAgentTool(agentId, toolId);
             record.status = 'created';
-          } catch {
-            // Likely already exists (duplicate junction record)
-            record.status = 'exists';
+          } catch (linkErr) {
+            // Check if it's a duplicate (already exists) vs real error
+            const msg = linkErr instanceof Error ? linkErr.message : String(linkErr);
+            if (msg.toLowerCase().includes('duplicate') || msg.includes('0x80040237')) {
+              record.status = 'exists';
+            } else {
+              throw linkErr;
+            }
           }
           break;
         }

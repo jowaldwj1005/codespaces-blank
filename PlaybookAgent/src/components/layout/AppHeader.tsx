@@ -1,8 +1,8 @@
 import { useState } from 'react';
 import type { RightPanel } from '../../App';
 
-export const APP_VERSION = '0.5.0';
-const VERSION_SUMMARY = 'Seed data system, workspace canvas, design polish, debug log fix.';
+export const APP_VERSION = '0.5.1';
+const VERSION_SUMMARY = 'Fix: boolean fields, silent Dataverse errors, error tooltips.';
 
 interface AppHeaderProps {
   rightPanel: RightPanel;

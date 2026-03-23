@@ -5,6 +5,53 @@
 
 ---
 
+## v0.5.1 — Critical Bugfixes: Boolean Fields & Error Handling (2026-03-23)
+
+### What Was Done
+
+**Bug #1: Boolean fields used integers instead of true/false** (showstopper)
+
+Dataverse Yes/No columns are `Edm.Boolean` at the OData level. The PAC CLI generates TypeScript enums with `{0: 'No', 1: 'Yes'}`, which is misleading — the actual API rejects integers and requires `true`/`false`. This caused all tool creations (`jw_requiresapproval: 0`) and agent creation (`jw_allowmcp: 1`) to fail silently.
+
+**Fix:** Changed all boolean seed values to use `true`/`false`. Documented the pattern in `docs/memory/DATAVERSE_PATTERNS.md` so we never hit this again.
+
+**Bug #2: Silent failure — tracedOperation didn't check success: false** (critical)
+
+The Dataverse SDK resolves the promise even on failure — it returns `{success: false, error: {...}}` instead of throwing. Our `tracedOperation` wrapper only caught thrown errors, so it logged failed operations as "success" in the Debug Log and returned undefined data to callers.
+
+**Fix:** `tracedOperation` now checks `result.success` and throws an Error with the Dataverse error message when `success: false`. This means:
+- Debug Log correctly shows errors (red, with the actual Dataverse error message)
+- `executeSeed` catches the error and marks the record as "error" with the real message
+- Cascading failures (agent-tool links with missing parent IDs) now show "parent record likely failed to create" instead of generic "Missing reference"
+
+**Bug #3: executeSeed didn't validate create results** (defensive)
+
+Even with tracedOperation fixed, added explicit checks: if a create returns successfully but `result.data` has no ID, we throw immediately with a descriptive message including the raw response. Belt-and-suspenders for Dataverse edge cases.
+
+**Improvement: Error hover tooltip on seed items**
+
+Error messages in the seed panel were truncated to 60 chars with only a `title` attribute. Now they show a proper hover tooltip with the full error message — styled with a bordered popover, readable font, and word-break for long Dataverse error strings.
+
+### How to Test
+
+1. **Seed Panel**: Click 🌱 → Apply → all 12 records should show green ✓ "created"
+2. **Idempotency**: Reset → Apply again → all should show blue ● "exists"
+3. **Debug Log**: Check that all operations show correct status (success = green, error = red)
+4. **Error tooltip**: If any record fails, hover over the error text → full error message appears in popover
+5. **MCP/Dataverse Explorer**: Query `jw_agents` → should return "General Assistant" with `jw_allowmcp: true`
+
+### Your v0.5.0 Feedback — Noted & Addressed
+
+> **Layout** — "I don't like the layout yet" — Agreed, layout rework deferred until we have more functional areas to arrange. Current priority is getting the agent working end-to-end.
+
+> **3D Scene** — Empty 3D visualization. Noted — 3D is a stretch feature. Your interest in broader visualization frameworks (Mermaid, interactive diagrams) is more valuable. Adding to the agent's visual toolkit is planned — the `create_visual` tool will expand to support more types.
+
+> **Schema/Search depth** — "Is get_schema and search enough? More description and metadata, example values are important for an agent." — Good point. Current MCP tools return minimal schema info. For v0.6.0+ we should enrich `get_table_schema` to return column descriptions, picklist values, example records, and relationship info. With only ~15 tables, the agent could also preload all table descriptions by default when MCP is enabled.
+
+> **Default tools** — "Looking forward to artifact creation, case management, SAP querying default tools." — These are next. The General Assistant seed data grows with each version — when we build case management, we add case tools to the seed. Same for SAP.
+
+---
+
 ## v0.5.0 — Seed Data & Workspace Canvas (2026-03-23)
 
 ### What Was Done

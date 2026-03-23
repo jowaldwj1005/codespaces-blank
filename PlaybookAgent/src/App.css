@@ -938,6 +938,12 @@
 .seed-status--error { background: var(--color-error-bg); color: var(--color-error-text); }
 .seed-status--skipped { background: var(--color-bg-secondary); color: var(--color-text-tertiary); }
 
+.seed-item__error-wrapper {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+}
+
 .seed-item__error {
   font-size: 11px;
   color: var(--color-error);
@@ -945,6 +951,32 @@
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
+  cursor: help;
+}
+
+.seed-item__error-tooltip {
+  display: none;
+  position: absolute;
+  bottom: calc(100% + 6px);
+  right: 0;
+  z-index: 100;
+  background: var(--color-bg-primary);
+  color: var(--color-text-primary);
+  border: 1px solid var(--color-error);
+  border-radius: 6px;
+  padding: 8px 10px;
+  font-size: 12px;
+  line-height: 1.4;
+  max-width: 360px;
+  min-width: 200px;
+  white-space: pre-wrap;
+  word-break: break-word;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+  pointer-events: none;
+}
+
+.seed-item__error-wrapper:hover .seed-item__error-tooltip {
+  display: block;
 }
 
 /* ─── Status Dot ─────────────────────────────────────────────────────────── */

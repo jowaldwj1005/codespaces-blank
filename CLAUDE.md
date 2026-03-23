@@ -1,7 +1,7 @@
 # CLAUDE.md - Playbook Agent
 
-**App Version:** 0.5.0
-**Phase:** Seed Data & Workspace Canvas — Transparent seed system, right panel canvas, bug fixes
+**App Version:** 0.5.1
+**Phase:** Seed Data & Workspace Canvas — Transparent seed system, right panel canvas, critical Dataverse fixes
 
 ## Quick Context
 
