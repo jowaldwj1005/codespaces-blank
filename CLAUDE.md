@@ -1,7 +1,7 @@
 # CLAUDE.md - Playbook Agent
 
-**App Version:** 0.3.1
-**Phase:** MVP - Dataverse CRUD + Connector Debug + Visualization + MCP → Agentic Runtime (next)
+**App Version:** 0.4.0
+**Phase:** Agentic Runtime Foundation — Chat workspace, agent loop, tool execution, HitL
 
 ## Quick Context
 
@@ -14,6 +14,7 @@ Detailed learnings and patterns are split into focused docs to keep context wind
 ### Quick Reference (read first)
 | File | What's in it |
 |------|-------------|
+| `docs/VERSIONS.md` | **Collaborative version notes** — what was done, how to test, questions for user |
 | `docs/memory/CHANGELOG.md` | Version history — what changed when |
 | `docs/memory/DATAVERSE_PATTERNS.md` | SDK access, CRUD patterns, lookup binding, adding new tables |
 | `docs/memory/CONNECTOR_PATTERNS.md` | Azure OpenAI, Doc Intelligence, SAP OData — API versions, gotchas |

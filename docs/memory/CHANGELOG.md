@@ -1,5 +1,14 @@
 # Changelog - Playbook Agent
 
+## v0.4.0 (2026-03-23)
+### Added
+- **Version Notes file** (`docs/VERSIONS.md`): Collaborative version tracking — what was done, how to test, open questions for user feedback
+- Version badge tooltip in AppHeader showing version summary + pointer to VERSIONS.md
+- Exported `APP_VERSION` constant from AppHeader for reuse
+
+### Changed
+- CLAUDE.md updated: version 0.4.0, phase description, VERSIONS.md added to documentation index
+
 ## v0.3.1 (2026-03-23)
 ### Changed — Data Model & Architecture Decisions
 - **Architecture Decision: Custom Agent Loop** — decided against Vercel AI SDK. SPA has no SSE streaming; Custom Connector returns full JSON. Custom loop gives full control over HitL, sub-agents, and debugging.
