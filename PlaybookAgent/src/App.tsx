@@ -4,6 +4,7 @@ import { AppHeader } from './components/layout/AppHeader';
 import { ThreadSidebar } from './components/layout/ThreadSidebar';
 import { ChatWorkspace } from './components/chat/ChatWorkspace';
 import { SeedPanel } from './components/admin/SeedPanel';
+import { AdminWorkspace } from './components/admin/AdminWorkspace';
 import { DataverseExplorer } from './components/DataverseExplorer';
 import { ConnectorTester } from './components/ConnectorTester';
 import { VisualizationPanel } from './components/VisualizationPanel';
@@ -12,7 +13,7 @@ import { DebugPanel } from './components/DebugPanel';
 import { useThreadManager } from './hooks/useThreadManager';
 import { useAgentChat } from './hooks/useAgentChat';
 
-export type MainView = 'chat' | 'dataverse' | 'connectors' | 'viz' | 'mcp' | 'debug';
+export type MainView = 'chat' | 'admin' | 'dataverse' | 'connectors' | 'viz' | 'mcp' | 'debug';
 export type RightPanel = 'none' | 'seed' | 'agent-config' | 'artifacts' | 'case-detail';
 
 function App() {
@@ -55,6 +56,7 @@ function App() {
                 agentId={activeAgentId}
               />
             )}
+            {activeView === 'admin' && <AdminWorkspace />}
             {activeView === 'dataverse' && (
               <div className="debug-view"><DataverseExplorer /></div>
             )}
@@ -86,26 +88,33 @@ function App() {
                   className="right-panel__close"
                   onClick={() => setRightPanel('none')}
                 >
-                  ×
+                  x
                 </button>
               </div>
               <div className="right-panel__body">
                 {rightPanel === 'seed' && <SeedPanel />}
                 {rightPanel === 'agent-config' && (
                   <div className="placeholder-panel">
-                    <span className="placeholder-panel__icon">⚙️</span>
-                    <span>Agent configuration coming next</span>
+                    <span className="placeholder-panel__icon">Settings</span>
+                    <span>Use the Admin workspace for full agent configuration</span>
+                    <button
+                      className="admin-btn admin-btn--primary"
+                      style={{ marginTop: '12px' }}
+                      onClick={() => { setActiveView('admin'); setRightPanel('none'); }}
+                    >
+                      Open Admin
+                    </button>
                   </div>
                 )}
                 {rightPanel === 'artifacts' && (
                   <div className="placeholder-panel">
-                    <span className="placeholder-panel__icon">📦</span>
+                    <span className="placeholder-panel__icon">Artifacts</span>
                     <span>Artifact browser coming soon</span>
                   </div>
                 )}
                 {rightPanel === 'case-detail' && (
                   <div className="placeholder-panel">
-                    <span className="placeholder-panel__icon">📋</span>
+                    <span className="placeholder-panel__icon">Cases</span>
                     <span>Case detail view coming soon</span>
                   </div>
                 )}

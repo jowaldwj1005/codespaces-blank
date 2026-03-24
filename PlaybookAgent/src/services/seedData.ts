@@ -38,6 +38,9 @@ const GENERAL_ASSISTANT_PROMPT = `You are the Playbook Agent General Assistant. 
 - **get_table_schema**: Inspect table structure (columns, types, keys)
 - **execute_dataverse_query**: Run OData queries to retrieve data
 - **create_visual**: Create inline charts and tables from data
+- **create_dataverse_record**: Create new agents, tools, playbooks, instructions (requires approval)
+- **update_dataverse_record**: Update existing records (requires approval)
+- **link_agent_tool**: Connect tools to agents
 
 ## How to Work
 1. When asked about data, first search for relevant tables
@@ -133,6 +136,61 @@ export function getGeneralAssistantSeedData(): SeedRecord[] {
         }),
       },
     },
+    {
+      type: 'tool',
+      name: 'create_dataverse_record',
+      data: {
+        jw_name: 'create_dataverse_record',
+        jw_description: 'Create a new record in a Dataverse table (agents, tools, playbooks, instructions, cases, artifacts). For boolean fields use true/false. For lookups use @odata.bind syntax.',
+        jw_endpointtype: 100000002,
+        jw_requiresapproval: true,
+        jw_inputschema: JSON.stringify({
+          type: 'object',
+          required: ['tablePluralName', 'data'],
+          properties: {
+            tablePluralName: { type: 'string', description: 'Table: jw_agents, jw_tools, jw_playbooks, jw_instructions, jw_cases, jw_artifacts' },
+            data: { type: 'object', description: 'Field values (e.g. { jw_name: "My Agent", jw_systemprompt: "..." })' },
+          },
+        }),
+      },
+    },
+    {
+      type: 'tool',
+      name: 'update_dataverse_record',
+      data: {
+        jw_name: 'update_dataverse_record',
+        jw_description: 'Update an existing Dataverse record. Only include fields you want to change.',
+        jw_endpointtype: 100000002,
+        jw_requiresapproval: true,
+        jw_inputschema: JSON.stringify({
+          type: 'object',
+          required: ['tablePluralName', 'recordId', 'data'],
+          properties: {
+            tablePluralName: { type: 'string' },
+            recordId: { type: 'string', description: 'GUID of the record' },
+            data: { type: 'object', description: 'Fields to update' },
+          },
+        }),
+      },
+    },
+    {
+      type: 'tool',
+      name: 'link_agent_tool',
+      data: {
+        jw_name: 'link_agent_tool',
+        jw_description: 'Link a tool to an agent by creating a junction record. Makes the tool available to the agent in conversations.',
+        jw_endpointtype: 100000002,
+        jw_requiresapproval: false,
+        jw_inputschema: JSON.stringify({
+          type: 'object',
+          required: ['agentId', 'toolId'],
+          properties: {
+            agentId: { type: 'string', description: 'GUID of the agent' },
+            toolId: { type: 'string', description: 'GUID of the tool' },
+          },
+        }),
+      },
+    },
     // ─── Agent ────────────────────────────────────────────────────────
     {
       type: 'agent',
@@ -153,6 +211,9 @@ export function getGeneralAssistantSeedData(): SeedRecord[] {
     { type: 'agent_tool_link', name: 'General Assistant → get_table_schema', data: {}, agentName: 'General Assistant', toolName: 'get_table_schema' },
     { type: 'agent_tool_link', name: 'General Assistant → execute_dataverse_query', data: {}, agentName: 'General Assistant', toolName: 'execute_dataverse_query' },
     { type: 'agent_tool_link', name: 'General Assistant → create_visual', data: {}, agentName: 'General Assistant', toolName: 'create_visual' },
+    { type: 'agent_tool_link', name: 'General Assistant → create_dataverse_record', data: {}, agentName: 'General Assistant', toolName: 'create_dataverse_record' },
+    { type: 'agent_tool_link', name: 'General Assistant → update_dataverse_record', data: {}, agentName: 'General Assistant', toolName: 'update_dataverse_record' },
+    { type: 'agent_tool_link', name: 'General Assistant → link_agent_tool', data: {}, agentName: 'General Assistant', toolName: 'link_agent_tool' },
     // ─── Playbook + Instructions (sample) ─────────────────────────────
     {
       type: 'playbook',

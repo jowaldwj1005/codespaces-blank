@@ -22,6 +22,9 @@ export const BUILTIN_TOOLS: Record<string, ToolHandler> = {
   get_table_schema: handleGetTableSchema,
   execute_dataverse_query: handleExecuteDataverseQuery,
   delete_dataverse_record: handleDeleteDataverseRecord,
+  create_dataverse_record: handleCreateDataverseRecord,
+  update_dataverse_record: handleUpdateDataverseRecord,
+  link_agent_tool: handleLinkAgentTool,
 };
 
 // ─── Capability-Gated Tools ────────────────────────────────────────────────
@@ -152,6 +155,96 @@ async function handleDeleteDataverseRecord(args: Record<string, unknown>): Promi
   return { success: true, deleted: { table: tablePluralName, id: recordId } };
 }
 
+// ─── CRUD Tools: Create, Update, Link ─────────────────────────────────────────
+
+// Map of table plural names to their create functions
+const TABLE_CREATE_MAP: Record<string, (data: unknown) => Promise<{ data?: unknown; success?: boolean }>> = {
+  jw_agents: (data) => dv.jwAgents.create(data as never),
+  jw_tools: (data) => dv.jwTools.create(data as never),
+  jw_playbooks: (data) => dv.jwPlaybooks.create(data as never),
+  jw_instructions: (data) => dv.jwInstructions.create(data as never),
+  jw_cases: (data) => dv.jwCases.create(data as never),
+  jw_artifacts: (data) => dv.jwArtifacts.create(data as never),
+};
+
+const TABLE_UPDATE_MAP: Record<string, (id: string, data: unknown) => Promise<{ success?: boolean }>> = {
+  jw_agents: (id, data) => dv.jwAgents.update(id, data as never),
+  jw_tools: (id, data) => dv.jwTools.update(id, data as never),
+  jw_playbooks: (id, data) => dv.jwPlaybooks.update(id, data as never),
+  jw_instructions: (id, data) => dv.jwInstructions.update(id, data as never),
+  jw_cases: (id, data) => dv.jwCases.update(id, data as never),
+  jw_artifacts: (id, data) => dv.jwArtifacts.update(id, data as never),
+};
+
+async function handleCreateDataverseRecord(args: Record<string, unknown>): Promise<unknown> {
+  const tablePluralName = (args.tablePluralName ?? args.table ?? '') as string;
+  const data = (args.data ?? args.record) as Record<string, unknown>;
+
+  if (!tablePluralName) return { error: 'Missing tablePluralName parameter' };
+  if (!data || typeof data !== 'object') return { error: 'Missing data parameter (object)' };
+
+  const createFn = TABLE_CREATE_MAP[tablePluralName];
+  if (!createFn) return { error: `Cannot create in table: ${tablePluralName}. Creatable: ${Object.keys(TABLE_CREATE_MAP).join(', ')}` };
+
+  // Handle boolean fields (Dataverse requires true/false, not 0/1)
+  const cleanData: Record<string, unknown> = {};
+  for (const [key, val] of Object.entries(data)) {
+    if (key.includes('allowmcp') || key.includes('requiresapproval')) {
+      cleanData[key] = val === true || val === 1 || val === '1' || val === 'true';
+    } else {
+      cleanData[key] = val;
+    }
+  }
+
+  const result = await createFn(cleanData);
+  return { success: true, created: { table: tablePluralName, record: result.data } };
+}
+
+async function handleUpdateDataverseRecord(args: Record<string, unknown>): Promise<unknown> {
+  const tablePluralName = (args.tablePluralName ?? args.table ?? '') as string;
+  const recordId = (args.recordId ?? args.id ?? '') as string;
+  const data = (args.data ?? args.record) as Record<string, unknown>;
+
+  if (!tablePluralName) return { error: 'Missing tablePluralName parameter' };
+  if (!recordId) return { error: 'Missing recordId parameter' };
+  if (!data || typeof data !== 'object') return { error: 'Missing data parameter (object)' };
+
+  const updateFn = TABLE_UPDATE_MAP[tablePluralName];
+  if (!updateFn) return { error: `Cannot update table: ${tablePluralName}. Updatable: ${Object.keys(TABLE_UPDATE_MAP).join(', ')}` };
+
+  // Handle boolean fields
+  const cleanData: Record<string, unknown> = {};
+  for (const [key, val] of Object.entries(data)) {
+    if (key.includes('allowmcp') || key.includes('requiresapproval')) {
+      cleanData[key] = val === true || val === 1 || val === '1' || val === 'true';
+    } else {
+      cleanData[key] = val;
+    }
+  }
+
+  await updateFn(recordId, cleanData);
+  return { success: true, updated: { table: tablePluralName, id: recordId } };
+}
+
+async function handleLinkAgentTool(args: Record<string, unknown>): Promise<unknown> {
+  const agentId = (args.agentId ?? '') as string;
+  const toolId = (args.toolId ?? '') as string;
+
+  if (!agentId) return { error: 'Missing agentId parameter' };
+  if (!toolId) return { error: 'Missing toolId parameter' };
+
+  try {
+    await dv.linkAgentTool(agentId, toolId);
+    return { success: true, linked: { agentId, toolId } };
+  } catch (err) {
+    const msg = err instanceof Error ? err.message : String(err);
+    if (msg.includes('duplicate') || msg.includes('already exists')) {
+      return { success: true, message: 'Link already exists', agentId, toolId };
+    }
+    throw err;
+  }
+}
+
 // ─── Built-in Tool Definitions (for agent config) ────────────────────────────
 
 export const BUILTIN_TOOL_DEFINITIONS: ToolDefinition[] = [
@@ -262,6 +355,52 @@ export const BUILTIN_TOOL_DEFINITIONS: ToolDefinition[] = [
       },
     },
     requiresApproval: true, // Always requires HitL approval
+    endpointType: 'InternalReact',
+  },
+  {
+    id: 'builtin_create_dataverse_record',
+    name: 'create_dataverse_record',
+    description: 'Create a new record in a Dataverse table. Use this to create agents, tools, playbooks, instructions, cases, or artifacts. For boolean fields (jw_allowmcp, jw_requiresapproval) use true/false. For lookup fields use @odata.bind syntax (e.g. "jw_playbookid@odata.bind": "/jw_playbooks(guid)").',
+    inputSchema: {
+      type: 'object',
+      required: ['tablePluralName', 'data'],
+      properties: {
+        tablePluralName: { type: 'string', description: 'Plural API name: jw_agents, jw_tools, jw_playbooks, jw_instructions, jw_cases, jw_artifacts' },
+        data: { type: 'object', description: 'Field values to set. Use exact Dataverse column names (e.g. jw_name, jw_systemprompt).' },
+      },
+    },
+    requiresApproval: true,
+    endpointType: 'InternalReact',
+  },
+  {
+    id: 'builtin_update_dataverse_record',
+    name: 'update_dataverse_record',
+    description: 'Update an existing record in a Dataverse table. Only include fields you want to change.',
+    inputSchema: {
+      type: 'object',
+      required: ['tablePluralName', 'recordId', 'data'],
+      properties: {
+        tablePluralName: { type: 'string', description: 'Plural API name of the table' },
+        recordId: { type: 'string', description: 'GUID of the record to update' },
+        data: { type: 'object', description: 'Fields to update with new values' },
+      },
+    },
+    requiresApproval: true,
+    endpointType: 'InternalReact',
+  },
+  {
+    id: 'builtin_link_agent_tool',
+    name: 'link_agent_tool',
+    description: 'Link a tool to an agent by creating a jw_agenttool junction record. This makes the tool available to the agent during conversations.',
+    inputSchema: {
+      type: 'object',
+      required: ['agentId', 'toolId'],
+      properties: {
+        agentId: { type: 'string', description: 'GUID of the agent' },
+        toolId: { type: 'string', description: 'GUID of the tool' },
+      },
+    },
+    requiresApproval: false,
     endpointType: 'InternalReact',
   },
 ];

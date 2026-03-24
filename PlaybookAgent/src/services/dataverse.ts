@@ -840,3 +840,36 @@ export function createArtifact(opts: {
   }
   return jwArtifacts.create(record as unknown as Omit<Jw_artifactsBase, 'jw_artifactid'>);
 }
+
+// ─── Generic CRUD by Table Name ─────────────────────────────────────────────
+// Used by Admin Workspace and AI-assisted creation tools.
+
+interface CrudService {
+  getAll: (options?: IGetAllOptions) => Promise<{ data?: unknown[]; success: boolean }>;
+  get: (id: string) => Promise<{ data?: unknown; success: boolean }>;
+  create: (data: unknown) => Promise<{ data?: unknown; success: boolean }>;
+  update: (id: string, data: unknown) => Promise<{ success: boolean }>;
+  delete: (id: string) => Promise<{ success: boolean }>;
+}
+
+const TABLE_CRUD_MAP: Record<string, CrudService> = {
+  jw_agents: jwAgents as unknown as CrudService,
+  jw_tools: jwTools as unknown as CrudService,
+  jw_playbooks: jwPlaybooks as unknown as CrudService,
+  jw_instructions: jwInstructions as unknown as CrudService,
+  jw_cases: jwCases as unknown as CrudService,
+  jw_artifacts: jwArtifacts as unknown as CrudService,
+  jw_threads: jwThreads as unknown as CrudService,
+  jw_messages: jwMessages as unknown as CrudService,
+  jw_toolexecutions: jwToolExecutions as unknown as CrudService,
+  jw_agenttools: jwAgentTools as unknown as CrudService,
+  jw_threadcases: jwThreadCases as unknown as CrudService,
+  jw_documents: jwDocuments as unknown as CrudService,
+};
+
+export function getTableService(pluralName: string): CrudService | undefined {
+  return TABLE_CRUD_MAP[pluralName];
+}
+
+export { lookupBind, escapeOData };
+

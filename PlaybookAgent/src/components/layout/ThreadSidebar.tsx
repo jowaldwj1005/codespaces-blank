@@ -3,7 +3,7 @@ import type { useThreadManager } from '../../hooks/useThreadManager';
 
 type ThreadManagerReturn = ReturnType<typeof useThreadManager>;
 
-type View = 'chat' | 'dataverse' | 'connectors' | 'viz' | 'mcp' | 'debug';
+type View = 'chat' | 'admin' | 'dataverse' | 'connectors' | 'viz' | 'mcp' | 'debug';
 
 interface ThreadSidebarProps {
   manager: ThreadManagerReturn;
@@ -12,11 +12,12 @@ interface ThreadSidebarProps {
 }
 
 const NAV_ITEMS: Array<{ id: View; label: string; icon: string }> = [
-  { id: 'dataverse', label: 'Dataverse', icon: '📊' },
-  { id: 'connectors', label: 'Connectors', icon: '🔌' },
-  { id: 'viz', label: 'Visualization', icon: '📈' },
-  { id: 'mcp', label: 'MCP', icon: '🔍' },
-  { id: 'debug', label: 'Debug Log', icon: '🐛' },
+  { id: 'admin', label: 'Admin', icon: '\u{2699}\u{FE0F}' },
+  { id: 'dataverse', label: 'Dataverse', icon: '\u{1F4CA}' },
+  { id: 'connectors', label: 'Connectors', icon: '\u{1F50C}' },
+  { id: 'viz', label: 'Visualization', icon: '\u{1F4C8}' },
+  { id: 'mcp', label: 'MCP', icon: '\u{1F50D}' },
+  { id: 'debug', label: 'Debug Log', icon: '\u{1F41B}' },
 ];
 
 export function ThreadSidebar({ manager, activeView, onViewChange }: ThreadSidebarProps) {
