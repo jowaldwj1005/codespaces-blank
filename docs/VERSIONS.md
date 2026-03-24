@@ -13,7 +13,7 @@
 
 **Seed Data Fixes:**
 - Instructions now linked to their playbook via `jw_playbookid@odata.bind` — `start_playbook` was finding 0 instructions
-- Choice fields (`jw_requiresapproval`, `jw_allowmcp`) now use `0`/`1` instead of `true`/`false`
+- Boolean fields (`jw_requiresapproval`, `jw_allowmcp`) now correctly use `true`/`false` (Dataverse Edm.Boolean rejects integers)
 - Added missing tools: `exit`, `delete_dataverse_record`
 - `create_visual` schema expanded: `3d` chart type, `caseId`/`artifactType`/`artifactName` fields
 
@@ -35,6 +35,17 @@
 **UI Fixes:**
 - System messages visible as collapsible banners (were completely hidden)
 - AdminWorkspace AgentConfig no longer blocked in create mode
+
+**Follow-up Fixes (review agent):**
+- `playbook.jw_name` null safety — case title no longer becomes `"undefined — Case"` if playbook has no name
+- `create_visual` now tells the LLM when artifact save fails (returns `artifactError` field)
+- `analyze_document` seed schema clarifies "provide either urlSource OR base64Source"
+
+**Review Agent Findings (deferred — low severity / intentional design):**
+- `save_artifact.payload` has no `type` in schema (handler accepts both string and object — works fine)
+- `TABLE_CREATE_MAP` / `TABLE_UPDATE_MAP` only cover 6 tables (intentional: prevents agents from creating raw messages/threads/toolexecutions — those have dedicated handlers)
+- `linkAgentTool` duplicate handling is silent but correct (idempotent by design)
+- JSON parse failure in `completeInstruction` context data silently resets to `{}` (acceptable — logged in debug)
 
 ### How to Test
 1. **Seed data**: Run seed → verify instructions appear in Debug Log with `_jw_playbookid_value` populated

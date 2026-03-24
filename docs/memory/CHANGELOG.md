@@ -3,7 +3,7 @@
 ## v0.8.1 (2026-03-24)
 ### Fixed — Bug Fix Sprint: Core Mechanics & Robustness
 - **Seed Data: Instructions linked to Playbooks** — Instructions now include `jw_playbookid@odata.bind`, fixing `start_playbook` returning 0 instructions
-- **Seed Data: Choice field values** — `jw_requiresapproval` and `jw_allowmcp` now use `0`/`1` instead of `true`/`false`
+- **Seed Data: Boolean field values** — `jw_requiresapproval` and `jw_allowmcp` now correctly use `true`/`false` (Dataverse `Edm.Boolean` rejects integers — see DATAVERSE_PATTERNS.md)
 - **Seed Data: Missing tools** — Added `exit` and `delete_dataverse_record` tools with agent-tool junction links
 - **Seed Data: create_visual schema** — Added `3d` chart type, `caseId`, `artifactType`, `artifactName` fields, expanded options properties
 - **Agent Loop: Token count fix** — `totalTokens` was using `+=` (doubling), now correctly uses `=`
@@ -17,6 +17,11 @@
 - **useAgentChat: Token persistence** — Cumulative token usage now saved to the last assistant message in Dataverse
 - **MessageList: System messages visible** — System messages rendered as collapsible banners instead of hidden
 - **AdminWorkspace: AgentConfig condition** — Removed redundant `formMode === 'edit'` check that blocked create mode
+
+### Fixed — Follow-up (review agent findings)
+- **builtinTools: playbook name null safety** — `playbook.jw_name` fallback to `'Unnamed Playbook'` in case title and `'Playbook'` in thread-case link name
+- **builtinTools: artifact error feedback** — `handleCreateVisual` now returns `artifactError` field to LLM when artifact save fails (was silently swallowed)
+- **seedData: analyze_document schema** — Added description clarifying "provide either urlSource OR base64Source"
 
 ### Changed
 - AppHeader version bump to 0.8.1
