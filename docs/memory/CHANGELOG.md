@@ -1,5 +1,34 @@
 # Changelog - Playbook Agent
 
+## v0.6.0 (2026-03-24)
+### Added
+- **Admin Workspace** (`src/components/admin/AdminWorkspace.tsx`): Full entity management view with entity tabs, split-panel layout (record list + detail form), search, sort, CRUD for all 6 admin entities
+- **Agent Config** (`src/components/admin/AgentConfig.tsx`): Specialized agent editor with tool binding checkboxes, Monaco system prompt editor, model config JSON editor, tabbed interface (General/Prompt/Tools)
+- **RecordForm** (`src/components/admin/RecordForm.tsx`): Dynamic form renderer from EntityRegistry metadata, supports string/memo/boolean/choice/lookup/json fields
+- **RecordList** (`src/components/admin/RecordList.tsx`): Reusable record list with search, sortable columns, animated rows (framer-motion), delete actions
+- **EntityRegistry** (`src/components/admin/EntityRegistry.ts`): Schema metadata for all 9 jw_ entities (fields, types, lookups, choices, display names)
+- **AI-assisted creation tools**: `create_dataverse_record`, `update_dataverse_record`, `link_agent_tool` — new builtin tools for LLM-driven entity management (HitL gated)
+- **Generic CRUD service map** (`getTableService` in dataverse.ts): Route CRUD operations by table plural name
+- New libraries: `@monaco-editor/react`, `framer-motion`, `react-hot-toast`
+- Admin nav item in ThreadSidebar
+- ~400 lines admin CSS (dark theme, toggle switches, tool cards, Monaco wraps)
+
+### Changed
+- Seed data expanded: 7 tools (was 4), 7 agent-tool links (was 4)
+- General Assistant system prompt updated with new tool descriptions
+- AppHeader version bump to 0.6.0
+- App.tsx: added 'admin' to MainView type, AdminWorkspace rendering
+
+## v0.5.3 (2026-03-24)
+### Fixed
+- **MCP query options** — Changed `$select`/`$filter`/`$orderby`/`$top` to SDK-style `select`/`filter`/`orderBy`/`top`. Fixed `orderBy` to `string[]` as IGetAllOptions requires.
+- **Tool-call replay** — `tool_call_id` and `name` fields now persisted to Dataverse (via `jw_toolcalls` JSON + `jw_name`) and reconstructed on thread reload.
+- **System message duplication** — Agent loop now always replaces system message with latest agent.systemPrompt, preventing stale prompts after config changes.
+
+### Changed
+- `createMessage` in dataverse.ts: added `toolCallId` and `name` parameters
+- `loadMessages` in useAgentChat.ts: role-aware JSON parsing for tool_call_id
+
 ## v0.5.2 (2026-03-23)
 ### Fixed
 - **Hallucinated column `jw_ordernumber`** — Field doesn't exist on `jw_instruction` entity. Removed from seed data, using `jw_type: 'Rule'` instead. Instructions can now be created successfully.

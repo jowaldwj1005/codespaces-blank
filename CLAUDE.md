@@ -1,7 +1,7 @@
 # CLAUDE.md - Playbook Agent
 
-**App Version:** 0.5.2
-**Phase:** Seed Data & Workspace Canvas — Transparent seed system, right panel canvas, critical Dataverse fixes
+**App Version:** 0.6.0
+**Phase:** Admin Workspace & AI-Assisted CRUD — Entity management, Agent Config, tool binding, creation tools
 
 ## Quick Context
 
@@ -90,7 +90,7 @@ src/services/seedData.ts     → General Assistant seed data + idempotent execut
 src/hooks/                   → useAgentChat, useThreadManager, useDataverse, useConnectors, useDebugLog, useMcp
 src/components/chat/         → ChatWorkspace, MessageList, ToolCallCard, ApprovalForm, VisualizationCard, etc.
 src/components/layout/       → ThreadSidebar, AppHeader (with panel toggle buttons)
-src/components/admin/        → SeedPanel (transparent seed data UI)
+src/components/admin/        → AdminWorkspace, AgentConfig, RecordList, RecordForm, EntityRegistry, SeedPanel
 src/components/              → DataverseExplorer, ConnectorTester, VisualizationPanel, McpExplorer, DebugPanel
 src/App.tsx                  → Workspace shell: sidebar + main content + optional right panel
 ```
@@ -129,9 +129,10 @@ cd PlaybookAgent && npm run lint   # ESLint
 
 ## What's Next
 
-1. Finalize jw_ data model in Dataverse (create entities via PAC CLI)
-2. Plan SemanticRenderer architecture for dynamic UI
-3. Implement Custom Agent Loop (decided: no Vercel AI SDK — SPA has no SSE)
-4. Design HitL approval flow with ToolExecution records
-5. Layout features: Chat workspace, Case dashboard, Artifact viewer, Debug panel
-6. Decide on RAG/CheatSheet indexing strategy
+1. Wire jw_toolexecution into agent loop (needs in-loop or post-loop message persistence)
+2. Wire connector tools (SAP OData, Doc Intelligence) into toolExecutor routing
+3. Implement Playbook execution flow: case creation, instruction injection, step tracking
+4. Build Artifact Browser panel with SemanticRenderer mapping
+5. Implement HitL approval flow with ToolExecution audit records
+6. Dynamic tool loading: load agent tools from jw_agenttool junction (hybrid with builtin fallback)
+7. Case dashboard: linked threads/artifacts/status lifecycle

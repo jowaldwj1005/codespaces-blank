@@ -5,6 +5,59 @@
 
 ---
 
+## v0.6.0 — Admin Workspace & AI-Assisted CRUD (2026-03-24)
+
+### What Was Done
+
+**Admin Workspace** — dedicated management view (sidebar: "Admin"):
+- Entity tabs: Agents, Tools, Playbooks, Instructions, Cases, Artifacts
+- Split panel: searchable/sortable record list (left) + dynamic form or specialized editor (right)
+- Entity count badges on tabs, animated list rows (framer-motion), toast notifications
+
+**Agent Config** — specialized agent editor:
+- Inline name editing, tabbed interface (General / System Prompt / Tools)
+- Monaco Editor for system prompt (markdown) and model config (JSON)
+- Tool binding: checkboxes to link/unlink tools from agents (creates/deletes jw_agenttool junction records)
+- Token count estimate for system prompt
+
+**Dynamic Forms** — auto-generated from EntityRegistry:
+- Supports string, memo, boolean (toggle switch), choice (dropdown), lookup (dropdown with record loading), JSON (Monaco editor)
+- Validation with error messages, required field markers
+- Lookup fields resolve options from Dataverse
+
+**AI-Assisted Entity Creation** — 3 new builtin tools:
+- `create_dataverse_record` — create agents/tools/playbooks via chat (HitL approval required)
+- `update_dataverse_record` — update any record via chat (HitL approval required)
+- `link_agent_tool` — connect tools to agents programmatically
+
+**Libraries**: @monaco-editor/react (code editors), framer-motion (animations), react-hot-toast (notifications)
+
+### How to Test
+
+1. Click **Admin** in the sidebar nav → Admin workspace opens
+2. **Browse entities**: Click tabs to switch between Agents, Tools, etc.
+3. **Create**: Click "+ New Agent" → fill form → Create
+4. **Edit**: Click any record in list → form loads with data → edit → Save
+5. **Agent Config**: Click an Agent → specialized view with General/Prompt/Tools tabs
+6. **Tool Binding**: In Agent Config → Tools tab → check/uncheck tools → instant link/unlink
+7. **Monaco Editor**: Edit system prompt or JSON with syntax highlighting
+8. **Search/Sort**: Use search bar, click column headers to sort
+9. **Delete**: Hover row → trash icon → deleted with toast notification
+10. **AI creation**: In chat, ask "Create a new agent called SAP Agent with a system prompt for SAP queries" → agent uses create_dataverse_record tool (requires approval)
+
+### Questions for You
+
+**Q1: Admin Workspace — does it feel right?**
+The split-panel layout with entity tabs. Is this the UX you had in mind? Any immediate reactions on layout, navigation, or missing features?
+
+**Q2: Agent Config tool binding — what about the jw_agenttool.jw_data field?**
+The junction table has a `jw_data` column (JSON) that could store agent-specific tool configuration (e.g., override parameters, conditional availability). Should we expose this in the tool binding UI?
+
+**Q3: Next sprint priorities — which direction?**
+See suggestions below for options. What excites you most?
+
+---
+
 ## v0.5.3 — Bug Fixes + Design Sprint Results (2026-03-24)
 
 ### Bug Fixes (3 of 5 confirmed bugs resolved)
