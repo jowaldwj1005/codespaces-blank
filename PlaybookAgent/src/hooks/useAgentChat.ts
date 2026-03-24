@@ -283,10 +283,19 @@ export function useAgentChat(threadId: string | null) {
 
     try {
       const allMessages = [...state.messages, userMsg];
+      // Track cumulative token usage for persistence
+      let finalTokenUsage: { promptTokens: number; completionTokens: number } | undefined;
+      const tokenTrackingHandler = (event: AgentEvent) => {
+        handleEvent(event);
+        if (event.type === 'token_update') {
+          finalTokenUsage = { promptTokens: event.usage.promptTokens, completionTokens: event.usage.completionTokens };
+        }
+      };
+
       const resultMessages = await runAgentLoop({
         agent,
         messages: allMessages,
-        onEvent: handleEvent,
+        onEvent: tokenTrackingHandler,
         executeToolCall: executor,
         signal: abortRef.current.signal,
       });
@@ -295,9 +304,13 @@ export function useAgentChat(threadId: string | null) {
       const newMessages = resultMessages.slice(allMessages.length);
       const persistedMessageIds: Map<number, string> = new Map(); // index → messageId
 
+      // Find the last assistant message to attach token data
+      const lastAssistantIdx = newMessages.reduce((acc, msg, i) => msg.role === 'assistant' ? i : acc, -1);
+
       for (let i = 0; i < newMessages.length; i++) {
         const msg = newMessages[i];
         if (msg.role === 'assistant' || msg.role === 'tool') {
+          const isLastAssistant = i === lastAssistantIdx && finalTokenUsage;
           try {
             const msgResult = await createMessage({
               threadId,
@@ -306,6 +319,7 @@ export function useAgentChat(threadId: string | null) {
               toolCalls: msg.tool_calls ? JSON.stringify(msg.tool_calls) : undefined,
               toolCallId: msg.tool_call_id,
               name: msg.name,
+              ...(isLastAssistant ? { tokenPrompt: finalTokenUsage!.promptTokens, tokenCompletion: finalTokenUsage!.completionTokens } : {}),
             });
             const msgId = (msgResult.data as unknown as Record<string, unknown>)?.jw_messageid as string;
             if (msgId) persistedMessageIds.set(i, msgId);

@@ -1,7 +1,7 @@
 # CLAUDE.md - Playbook Agent
 
-**App Version:** 0.8.0
-**Phase:** Make the Invisible Visible — SemanticRenderer, Artifact Browser, Case Dashboard, Playbook Progress, structured HitL approval
+**App Version:** 0.8.1
+**Phase:** Bug Fix Sprint — Core Mechanics & Robustness (15 fixes across seed data, agent loop, tool execution, persistence, UI)
 
 ## Quick Context
 

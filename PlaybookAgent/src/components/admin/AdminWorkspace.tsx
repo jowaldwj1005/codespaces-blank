@@ -245,7 +245,7 @@ export function AdminWorkspace() {
               </motion.div>
             )}
 
-            {(formMode === 'edit' || formMode === 'create') && isAgentEntity && formMode === 'edit' && selectedId && (
+            {(formMode === 'edit' || formMode === 'create') && isAgentEntity && selectedId && (
               <AgentConfig
                 key={`agent-${selectedId}`}
                 agentId={selectedId}
@@ -253,7 +253,7 @@ export function AdminWorkspace() {
               />
             )}
 
-            {(formMode === 'edit' || formMode === 'create') && !(isAgentEntity && formMode === 'edit') && (
+            {(formMode === 'edit' || formMode === 'create') && !(isAgentEntity && selectedId) && (
               <RecordForm
                 key={`form-${selectedId ?? 'new'}`}
                 entity={entity}

@@ -767,8 +767,8 @@ export function createMessage(opts: {
     jw_content: opts.content,
     jw_toolcalls: toolCallsValue,
     jw_name: opts.name,
-    jw_tokenprompt: opts.tokenPrompt?.toString(),
-    jw_tokencompletion: opts.tokenCompletion?.toString(),
+    jw_tokenprompt: opts.tokenPrompt,
+    jw_tokencompletion: opts.tokenCompletion,
   };
   return jwMessages.create(record as unknown as Omit<Jw_messagesBase, 'jw_messageid'>);
 }

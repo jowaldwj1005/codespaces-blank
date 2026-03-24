@@ -428,6 +428,63 @@
   gap: var(--space-md);
 }
 
+/* ─── System Message Banner ─────────────────────────────────────────────── */
+
+.system-message-banner {
+  margin: var(--space-xs) var(--space-md);
+  padding: var(--space-sm) var(--space-md);
+  background: var(--color-surface-alt, #f8fafc);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  font-size: 12px;
+  cursor: pointer;
+  opacity: 0.7;
+  transition: opacity 0.2s;
+}
+.system-message-banner:hover { opacity: 1; }
+.system-message-banner__header {
+  display: flex;
+  align-items: center;
+  gap: var(--space-sm);
+}
+.system-message-banner__icon {
+  background: var(--color-primary, #4338ca);
+  color: white;
+  padding: 1px 6px;
+  border-radius: var(--radius-sm);
+  font-size: 10px;
+  font-weight: 600;
+  text-transform: uppercase;
+}
+.system-message-banner__label {
+  font-weight: 500;
+  color: var(--color-text-secondary);
+  flex: 1;
+}
+.system-message-banner__toggle {
+  font-size: 11px;
+  color: var(--color-primary, #4338ca);
+}
+.system-message-banner__preview {
+  margin-top: var(--space-xs);
+  color: var(--color-text-tertiary);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.system-message-banner__content {
+  margin-top: var(--space-sm);
+  padding: var(--space-sm);
+  background: var(--color-surface);
+  border-radius: var(--radius-sm);
+  font-size: 11px;
+  line-height: 1.5;
+  max-height: 200px;
+  overflow-y: auto;
+  white-space: pre-wrap;
+  word-break: break-word;
+}
+
 .chat-empty {
   flex: 1;
   display: flex;

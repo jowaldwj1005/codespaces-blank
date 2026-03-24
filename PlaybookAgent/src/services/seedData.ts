@@ -8,6 +8,7 @@ import {
   jwAgents, jwTools, jwPlaybooks, jwInstructions,
   linkAgentTool,
 } from './dataverse';
+import { lookupBind } from './sdk';
 import type { Jw_agents } from '../generated/models/Jw_agentsModel';
 import type { Jw_tools } from '../generated/models/Jw_toolsModel';
 
@@ -25,6 +26,8 @@ export interface SeedRecord {
   /** For agent_tool_link: references to agent and tool names */
   agentName?: string;
   toolName?: string;
+  /** For instruction: the playbook this instruction belongs to */
+  playbookName?: string;
 }
 
 export type SeedProgress = (record: SeedRecord, index: number, total: number) => void;
@@ -82,7 +85,7 @@ export function getGeneralAssistantSeedData(): SeedRecord[] {
         jw_name: 'search_dataverse',
         jw_description: 'Search for Dataverse tables by intent. Returns matching tables with schema info.',
         jw_endpointtype: 100000002, // InternalReact
-        jw_requiresapproval: false,
+        jw_requiresapproval: 0,
         jw_inputschema: JSON.stringify({
           type: 'object',
           required: ['intent'],
@@ -99,7 +102,7 @@ export function getGeneralAssistantSeedData(): SeedRecord[] {
         jw_name: 'get_table_schema',
         jw_description: 'Get the schema (columns, types, keys) of a Dataverse table.',
         jw_endpointtype: 100000002,
-        jw_requiresapproval: false,
+        jw_requiresapproval: 0,
         jw_inputschema: JSON.stringify({
           type: 'object',
           required: ['logicalName'],
@@ -116,7 +119,7 @@ export function getGeneralAssistantSeedData(): SeedRecord[] {
         jw_name: 'execute_dataverse_query',
         jw_description: 'Execute an OData query against a Dataverse table. Returns up to 50 records.',
         jw_endpointtype: 100000002,
-        jw_requiresapproval: false,
+        jw_requiresapproval: 0,
         jw_inputschema: JSON.stringify({
           type: 'object',
           required: ['tablePluralName'],
@@ -135,20 +138,30 @@ export function getGeneralAssistantSeedData(): SeedRecord[] {
       name: 'create_visual',
       data: {
         jw_name: 'create_visual',
-        jw_description: 'Create a visualization (chart or table) from data. Supports bar, line, pie, area, scatter, radar, treemap, table types. Rendered inline in the chat.',
+        jw_description: 'Create a visualization (chart or table) from data. Supports bar, line, pie, area, scatter, radar, treemap, table, 3d types. Rendered inline in chat. Optionally saves as artifact when caseId is provided.',
         jw_endpointtype: 100000002,
-        jw_requiresapproval: false,
+        jw_requiresapproval: 0,
         jw_inputschema: JSON.stringify({
           type: 'object',
           required: ['chartType', 'title', 'data'],
           properties: {
-            chartType: { type: 'string', enum: ['bar', 'line', 'pie', 'area', 'scatter', 'radar', 'treemap', 'table'] },
+            chartType: { type: 'string', enum: ['bar', 'line', 'pie', 'area', 'scatter', 'radar', 'treemap', 'table', '3d'] },
             title: { type: 'string' },
             data: { type: 'array', items: { type: 'object' } },
             xAxisKey: { type: 'string' },
             yAxisKey: { oneOf: [{ type: 'string' }, { type: 'array', items: { type: 'string' } }] },
             colors: { type: 'array', items: { type: 'string' } },
-            options: { type: 'object' },
+            options: { type: 'object', properties: {
+              interactive: { type: 'boolean' },
+              stacked: { type: 'boolean' },
+              legend: { type: 'boolean' },
+              sortable: { type: 'boolean' },
+              filterable: { type: 'boolean' },
+              pageSize: { type: 'integer' },
+            } },
+            caseId: { type: 'string', description: 'Optional: link visualization to a case as artifact' },
+            artifactType: { type: 'string', description: 'Artifact type when saving (default: Chart)' },
+            artifactName: { type: 'string', description: 'Artifact display name (defaults to title)' },
           },
         }),
       },
@@ -160,7 +173,7 @@ export function getGeneralAssistantSeedData(): SeedRecord[] {
         jw_name: 'create_dataverse_record',
         jw_description: 'Create a new record in a Dataverse table (agents, tools, playbooks, instructions, cases, artifacts). For boolean fields use true/false. For lookups use @odata.bind syntax.',
         jw_endpointtype: 100000002,
-        jw_requiresapproval: true,
+        jw_requiresapproval: 1,
         jw_inputschema: JSON.stringify({
           type: 'object',
           required: ['tablePluralName', 'data'],
@@ -178,7 +191,7 @@ export function getGeneralAssistantSeedData(): SeedRecord[] {
         jw_name: 'update_dataverse_record',
         jw_description: 'Update an existing Dataverse record. Only include fields you want to change.',
         jw_endpointtype: 100000002,
-        jw_requiresapproval: true,
+        jw_requiresapproval: 1,
         jw_inputschema: JSON.stringify({
           type: 'object',
           required: ['tablePluralName', 'recordId', 'data'],
@@ -197,13 +210,47 @@ export function getGeneralAssistantSeedData(): SeedRecord[] {
         jw_name: 'link_agent_tool',
         jw_description: 'Link a tool to an agent by creating a junction record. Makes the tool available to the agent in conversations.',
         jw_endpointtype: 100000002,
-        jw_requiresapproval: false,
+        jw_requiresapproval: 0,
         jw_inputschema: JSON.stringify({
           type: 'object',
           required: ['agentId', 'toolId'],
           properties: {
             agentId: { type: 'string', description: 'GUID of the agent' },
             toolId: { type: 'string', description: 'GUID of the tool' },
+          },
+        }),
+      },
+    },
+    {
+      type: 'tool',
+      name: 'exit',
+      data: {
+        jw_name: 'exit',
+        jw_description: 'End the conversation loop. Call this when the task is complete or the user says goodbye.',
+        jw_endpointtype: 100000002,
+        jw_requiresapproval: 0,
+        jw_inputschema: JSON.stringify({
+          type: 'object',
+          properties: {
+            summary: { type: 'string', description: 'Brief summary of what was accomplished' },
+          },
+        }),
+      },
+    },
+    {
+      type: 'tool',
+      name: 'delete_dataverse_record',
+      data: {
+        jw_name: 'delete_dataverse_record',
+        jw_description: 'Delete a record from a Dataverse table. Only available when agent has allowDelete capability. Requires approval.',
+        jw_endpointtype: 100000002,
+        jw_requiresapproval: 1,
+        jw_inputschema: JSON.stringify({
+          type: 'object',
+          required: ['tablePluralName', 'recordId'],
+          properties: {
+            tablePluralName: { type: 'string', description: 'Plural API name of the table' },
+            recordId: { type: 'string', description: 'GUID of the record to delete' },
           },
         }),
       },
@@ -216,7 +263,7 @@ export function getGeneralAssistantSeedData(): SeedRecord[] {
         jw_name: 'query_sap',
         jw_description: 'Query SAP via OData (Power Automate proxy). GET for reads, POST/PATCH/DELETE for writes. Requires approval for all operations.',
         jw_endpointtype: 100000002,
-        jw_requiresapproval: true,
+        jw_requiresapproval: 1,
         jw_inputschema: JSON.stringify({
           type: 'object',
           required: ['relativePath'],
@@ -236,7 +283,7 @@ export function getGeneralAssistantSeedData(): SeedRecord[] {
         jw_name: 'analyze_document',
         jw_description: 'Analyze a document using Azure Document Intelligence (OCR + layout). Provide a URL or base64 content. Returns extracted text as markdown.',
         jw_endpointtype: 100000002,
-        jw_requiresapproval: false,
+        jw_requiresapproval: 0,
         jw_inputschema: JSON.stringify({
           type: 'object',
           properties: {
@@ -254,7 +301,7 @@ export function getGeneralAssistantSeedData(): SeedRecord[] {
         jw_name: 'start_playbook',
         jw_description: 'Start a playbook execution. Creates a case, links thread, loads instructions for step-by-step execution.',
         jw_endpointtype: 100000002,
-        jw_requiresapproval: true,
+        jw_requiresapproval: 1,
         jw_inputschema: JSON.stringify({
           type: 'object',
           required: ['playbookId', 'threadId'],
@@ -273,7 +320,7 @@ export function getGeneralAssistantSeedData(): SeedRecord[] {
         jw_name: 'complete_instruction',
         jw_description: 'Mark a playbook instruction as completed. Tracks progress in case context. Marks case complete when all instructions are done.',
         jw_endpointtype: 100000002,
-        jw_requiresapproval: false,
+        jw_requiresapproval: 0,
         jw_inputschema: JSON.stringify({
           type: 'object',
           required: ['caseId', 'instructionId'],
@@ -292,7 +339,7 @@ export function getGeneralAssistantSeedData(): SeedRecord[] {
         jw_name: 'save_artifact',
         jw_description: 'Save an artifact (report, analysis, extracted data) to Dataverse. Link to a case for audit trail. Types: Chart, Report, Invoice, SAP_Order, Document, Analysis, Summary.',
         jw_endpointtype: 100000002,
-        jw_requiresapproval: false,
+        jw_requiresapproval: 0,
         jw_inputschema: JSON.stringify({
           type: 'object',
           required: ['type'],
@@ -314,7 +361,7 @@ export function getGeneralAssistantSeedData(): SeedRecord[] {
       data: {
         jw_name: 'General Assistant',
         jw_systemprompt: GENERAL_ASSISTANT_PROMPT,
-        jw_allowmcp: true,
+        jw_allowmcp: 1,
         jw_modelconfig: JSON.stringify({
           temperature: 0.7,
           max_completion_tokens: 2000,
@@ -335,6 +382,8 @@ export function getGeneralAssistantSeedData(): SeedRecord[] {
     { type: 'agent_tool_link', name: 'General Assistant → start_playbook', data: {}, agentName: 'General Assistant', toolName: 'start_playbook' },
     { type: 'agent_tool_link', name: 'General Assistant → complete_instruction', data: {}, agentName: 'General Assistant', toolName: 'complete_instruction' },
     { type: 'agent_tool_link', name: 'General Assistant → save_artifact', data: {}, agentName: 'General Assistant', toolName: 'save_artifact' },
+    { type: 'agent_tool_link', name: 'General Assistant → exit', data: {}, agentName: 'General Assistant', toolName: 'exit' },
+    { type: 'agent_tool_link', name: 'General Assistant → delete_dataverse_record', data: {}, agentName: 'General Assistant', toolName: 'delete_dataverse_record' },
     // ─── Playbook + Instructions (sample) ─────────────────────────────
     {
       type: 'playbook',
@@ -347,6 +396,7 @@ export function getGeneralAssistantSeedData(): SeedRecord[] {
     {
       type: 'instruction',
       name: 'Step 1: Identify relevant tables',
+      playbookName: 'Data Exploration',
       data: {
         jw_name: 'Step 1: Identify relevant tables',
         jw_content: 'Use search_dataverse to find tables related to the user\'s question. Present a summary of matching tables.',
@@ -356,6 +406,7 @@ export function getGeneralAssistantSeedData(): SeedRecord[] {
     {
       type: 'instruction',
       name: 'Step 2: Inspect and query',
+      playbookName: 'Data Exploration',
       data: {
         jw_name: 'Step 2: Inspect and query',
         jw_content: 'Use get_table_schema to understand the data structure, then execute_dataverse_query to retrieve relevant records.',
@@ -365,6 +416,7 @@ export function getGeneralAssistantSeedData(): SeedRecord[] {
     {
       type: 'instruction',
       name: 'Step 3: Visualize findings',
+      playbookName: 'Data Exploration',
       data: {
         jw_name: 'Step 3: Visualize findings',
         jw_content: 'Use create_visual to present the data as a chart or table. Choose the visualization type that best communicates the insight.',
@@ -387,6 +439,7 @@ export async function executeSeed(
   const results = [...records];
   const agentIdMap = new Map<string, string>();
   const toolIdMap = new Map<string, string>();
+  const playbookIdMap = new Map<string, string>();
 
   for (let i = 0; i < results.length; i++) {
     const record = results[i];
@@ -442,16 +495,30 @@ export async function executeSeed(
             record.status = 'created';
             record.recordId = (result.data as unknown as Record<string, string>).jw_playbookid;
           }
+          if (record.recordId) playbookIdMap.set(record.data.jw_name as string, record.recordId);
           break;
         }
 
         case 'instruction': {
+          // Bind instruction to its playbook if playbookName is set
+          const instrData = { ...record.data };
+          if (record.playbookName) {
+            const pbId = playbookIdMap.get(record.playbookName);
+            if (pbId) {
+              instrData['jw_playbookid@odata.bind'] = lookupBind('jw_playbooks', pbId);
+            }
+          }
           const existing = await findByName(jwInstructions.getAll, record.data.jw_name as string);
           if (existing) {
             record.status = 'exists';
             record.recordId = (existing as unknown as Record<string, string>).jw_instructionid;
+            // Update to ensure playbook link is set
+            await jwInstructions.update(
+              record.recordId,
+              instrData as Parameters<typeof jwInstructions.update>[1]
+            );
           } else {
-            const result = await jwInstructions.create(record.data as Parameters<typeof jwInstructions.create>[0]);
+            const result = await jwInstructions.create(instrData as Parameters<typeof jwInstructions.create>[0]);
             if (!result.data) {
               throw new Error(`Instruction create returned no data — response: ${JSON.stringify(result)}`);
             }

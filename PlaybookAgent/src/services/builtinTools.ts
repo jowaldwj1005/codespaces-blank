@@ -9,7 +9,7 @@ import { createArtifact } from './dataverse';
 import type { IOperationResult } from '@microsoft/power-apps/data';
 import * as dv from './dataverse';
 import { sapOData, azureDocIntelligence } from './connectors';
-import { lookupBind } from './sdk';
+import { lookupBind, escapeOData } from './sdk';
 
 // ─── Tool Handler Type ───────────────────────────────────────────────────────
 
@@ -59,12 +59,12 @@ async function handleCreateVisual(args: Record<string, unknown>): Promise<unknow
 
   const visualId = `vis_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`;
 
-  // Optionally save as artifact
+  // Save as artifact when caseId is provided (default type: Chart)
   let artifactId: string | undefined;
-  if (input.caseId && input.artifactType) {
+  if (input.caseId) {
     try {
       const result = await createArtifact({
-        type: input.artifactType,
+        type: input.artifactType ?? 'Chart',
         name: input.artifactName ?? input.title,
         payload: JSON.stringify(input),
         caseId: input.caseId,
@@ -350,7 +350,7 @@ async function handleStartPlaybook(args: Record<string, unknown>): Promise<unkno
 
     // 4. Load instructions for the playbook
     const instrResult = await dv.jwInstructions.getAll({
-      filter: `_jw_playbookid_value eq '${playbookId}' and statecode eq 0`,
+      filter: `_jw_playbookid_value eq '${escapeOData(playbookId)}' and statecode eq 0`,
       orderBy: ['jw_name asc'],
     });
     const instructions = (instrResult.data ?? []).map(i => ({
@@ -405,11 +405,12 @@ async function handleCompleteInstruction(args: Record<string, unknown>): Promise
     // Mark instruction as completed
     const instructions = (contextData.instructions as Array<Record<string, unknown>>) ?? [];
     const found = instructions.find(i => i.id === instructionId);
-    if (found) {
-      found.completed = true;
-      found.completedAt = new Date().toISOString();
-      if (notes) found.notes = notes;
+    if (!found) {
+      return { error: `Instruction "${instructionId}" not found in case context. Available: ${instructions.map(i => i.id).join(', ') || '(none)'}` };
     }
+    found.completed = true;
+    found.completedAt = new Date().toISOString();
+    if (notes) found.notes = notes;
 
     const total = instructions.length;
     const completed = instructions.filter(i => i.completed).length;

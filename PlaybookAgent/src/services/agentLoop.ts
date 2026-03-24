@@ -84,7 +84,7 @@ export async function runAgentLoop(config: AgentLoopConfig): Promise<ChatMessage
     if (response.usage) {
       cumulativeTokens.promptTokens += response.usage.prompt_tokens ?? 0;
       cumulativeTokens.completionTokens += response.usage.completion_tokens ?? 0;
-      cumulativeTokens.totalTokens += (response.usage.prompt_tokens ?? 0) + (response.usage.completion_tokens ?? 0);
+      cumulativeTokens.totalTokens = cumulativeTokens.promptTokens + cumulativeTokens.completionTokens;
       onEvent({ type: 'token_update', usage: { ...cumulativeTokens } });
     }
 
@@ -163,15 +163,13 @@ export async function runAgentLoop(config: AgentLoopConfig): Promise<ChatMessage
     }
 
     // Loop back for next LLM call with tool responses
+    onEvent({ type: 'status_change', status: 'thinking' });
   }
 
-  // Safety limit reached
+  // Safety limit reached — always report
+  onEvent({ type: 'error', error: `Agent loop reached max iterations (${MAX_ITERATIONS})` });
+  onEvent({ type: 'status_change', status: 'error' });
   if (messages.length > 0) {
-    const lastMsg = messages[messages.length - 1];
-    if (lastMsg.role !== 'assistant' || lastMsg.tool_calls) {
-      onEvent({ type: 'error', error: `Agent loop reached max iterations (${MAX_ITERATIONS})` });
-      onEvent({ type: 'status_change', status: 'error' });
-    }
   }
 
   return messages;

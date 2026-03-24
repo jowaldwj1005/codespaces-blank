@@ -5,6 +5,52 @@
 
 ---
 
+## v0.8.1 — Bug Fix Sprint: Core Mechanics & Robustness (2026-03-24)
+
+### What Was Done
+
+**15 bugs fixed** across seed data, agent loop, tool execution, data persistence, and UI layers.
+
+**Seed Data Fixes:**
+- Instructions now linked to their playbook via `jw_playbookid@odata.bind` — `start_playbook` was finding 0 instructions
+- Choice fields (`jw_requiresapproval`, `jw_allowmcp`) now use `0`/`1` instead of `true`/`false`
+- Added missing tools: `exit`, `delete_dataverse_record`
+- `create_visual` schema expanded: `3d` chart type, `caseId`/`artifactType`/`artifactName` fields
+
+**Agent Loop Fixes:**
+- Token count was doubling (`+=` → `=`)
+- Max iterations safety check now unconditional
+- Added `thinking` status transition after tool execution (was missing)
+
+**Tool Execution Fixes:**
+- `complete_instruction` now returns error when instruction not found (was silent no-op)
+- `create_visual` artifact save relaxed — defaults artifactType to `'Chart'`
+- OData injection protection via `escapeOData()` on playbook filter
+- CloudFlow tools now throw explicit error instead of fake success
+
+**Data Persistence Fixes:**
+- Token fields stored as numbers, not strings
+- Cumulative token usage now persisted to last assistant message in Dataverse
+
+**UI Fixes:**
+- System messages visible as collapsible banners (were completely hidden)
+- AdminWorkspace AgentConfig no longer blocked in create mode
+
+### How to Test
+1. **Seed data**: Run seed → verify instructions appear in Debug Log with `_jw_playbookid_value` populated
+2. **Start playbook**: Use "start the Data Exploration playbook" → should find and load instructions (was broken before)
+3. **System prompt**: System message now appears as a collapsed "SYS" banner at top of chat
+4. **Token tracking**: After agent responds, check the message record in Dataverse — `jw_tokenprompt`/`jw_tokencompletion` should be populated
+5. **Complete instruction**: Try completing a non-existent instruction ID → should get an error message back
+
+### Questions for You
+1. **Doc Intelligence**: Confirmed the connector hardcodes `prebuilt-layout` in the swagger path. To support `prebuilt-invoice`/`prebuilt-receipt`, the connector definition needs to be edited in Power Platform (parameterize the model in the path). Want me to document the exact changes needed?
+2. **Drag-to-reorder playbook steps**: Interested in adding this to the next sprint?
+3. **Raw notes on cases / timeline**: Should we add a notes field to `jw_case` and a timeline component?
+4. **Next focus**: Ready to move into AI-assisted agent/playbook creation, or more stabilization first?
+
+---
+
 ## v0.8.0 — Make the Invisible Visible (2026-03-24)
 
 ### What Was Done

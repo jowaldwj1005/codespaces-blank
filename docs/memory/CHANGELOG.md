@@ -1,5 +1,27 @@
 # Changelog - Playbook Agent
 
+## v0.8.1 (2026-03-24)
+### Fixed — Bug Fix Sprint: Core Mechanics & Robustness
+- **Seed Data: Instructions linked to Playbooks** — Instructions now include `jw_playbookid@odata.bind`, fixing `start_playbook` returning 0 instructions
+- **Seed Data: Choice field values** — `jw_requiresapproval` and `jw_allowmcp` now use `0`/`1` instead of `true`/`false`
+- **Seed Data: Missing tools** — Added `exit` and `delete_dataverse_record` tools with agent-tool junction links
+- **Seed Data: create_visual schema** — Added `3d` chart type, `caseId`, `artifactType`, `artifactName` fields, expanded options properties
+- **Agent Loop: Token count fix** — `totalTokens` was using `+=` (doubling), now correctly uses `=`
+- **Agent Loop: Max iterations safety** — Error event now fires unconditionally when loop exhausts
+- **Agent Loop: Status transition** — Added `thinking` status change after tool execution before next LLM call
+- **builtinTools: complete_instruction** — Now returns explicit error when instruction ID not found (was silent no-op)
+- **builtinTools: create_visual artifact save** — Defaults `artifactType` to `'Chart'`, no longer requires both caseId AND artifactType
+- **builtinTools: OData injection** — Filter queries now use `escapeOData()` for playbook ID
+- **toolExecutor: CloudFlow tools** — Now throws explicit error instead of returning fake success object
+- **dataverse: Token fields** — Removed `.toString()` from `jw_tokenprompt`/`jw_tokencompletion` (now persisted as numbers)
+- **useAgentChat: Token persistence** — Cumulative token usage now saved to the last assistant message in Dataverse
+- **MessageList: System messages visible** — System messages rendered as collapsible banners instead of hidden
+- **AdminWorkspace: AgentConfig condition** — Removed redundant `formMode === 'edit'` check that blocked create mode
+
+### Changed
+- AppHeader version bump to 0.8.1
+- New CSS for `.system-message-banner` component
+
 ## v0.8.0 (2026-03-24)
 ### Added — "Make the Invisible Visible"
 - **SemanticRenderer** (`src/components/semantic/SemanticRenderer.tsx`): Registry mapping artifact `jw_type` strings to React components. Supports 12 types: Chart, Report, Analysis, Markdown, InvoiceTable, InvoiceData, Table, SapOrder, SapApprovalPayload, JSON, Dashboard, Summary. Type-colored badges, compact mode, bidirectional editing support (SAP form fields, JSON editor)

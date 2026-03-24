@@ -217,8 +217,8 @@ async function executeCloudFlowTool(
 ): Promise<unknown> {
   // CloudFlow tools will trigger Power Automate flows.
   // Future: use HTTP with Entra ID preauthorized connector
-  return {
-    status: 'not_implemented',
-    message: `Cloud flow tool "${tool.name}" execution not yet wired. Target: ${tool.executionTarget}`,
-  };
+  throw new Error(
+    `Cloud flow tool "${tool.name}" is not yet implemented. ` +
+    `Target: ${tool.executionTarget}. Power Automate flow integration is planned for a future release.`
+  );
 }

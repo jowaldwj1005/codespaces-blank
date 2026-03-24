@@ -1,8 +1,8 @@
 import { useState } from 'react';
 import type { RightPanel } from '../../App';
 
-export const APP_VERSION = '0.8.0';
-const VERSION_SUMMARY = 'SemanticRenderer, Artifact Browser, Case Dashboard, Playbook Progress, structured HitL approval forms.';
+export const APP_VERSION = '0.8.1';
+const VERSION_SUMMARY = 'Bug fix sprint: seed data links, agent loop fixes, system message visibility, token persistence.';
 
 interface AppHeaderProps {
   rightPanel: RightPanel;

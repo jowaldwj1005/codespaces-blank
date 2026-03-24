@@ -1,4 +1,4 @@
-import { useEffect, useRef } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import type { ChatMessage, AgentStatus, PendingToolCall } from '../../types/agent';
 import { MessageBubble } from './MessageBubble';
 import { ToolCallCard } from './ToolCallCard';
@@ -12,6 +12,28 @@ interface MessageListProps {
   onReject: (callId: string) => void;
 }
 
+/** Collapsible info banner for system messages */
+function SystemMessageBanner({ message }: { message: ChatMessage }) {
+  const [expanded, setExpanded] = useState(false);
+  const content = message.content ?? '';
+  const preview = content.length > 100 ? content.slice(0, 100) + '...' : content;
+
+  return (
+    <div className="system-message-banner" onClick={() => setExpanded(!expanded)}>
+      <div className="system-message-banner__header">
+        <span className="system-message-banner__icon">SYS</span>
+        <span className="system-message-banner__label">System Prompt</span>
+        <span className="system-message-banner__toggle">{expanded ? 'collapse' : 'expand'}</span>
+      </div>
+      {expanded ? (
+        <pre className="system-message-banner__content">{content}</pre>
+      ) : (
+        <div className="system-message-banner__preview">{preview}</div>
+      )}
+    </div>
+  );
+}
+
 export function MessageList({ messages, status, pendingApprovals, onApprove, onReject }: MessageListProps) {
   const bottomRef = useRef<HTMLDivElement>(null);
 
@@ -19,14 +41,20 @@ export function MessageList({ messages, status, pendingApprovals, onApprove, onR
     bottomRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [messages.length, pendingApprovals.length, status]);
 
-  // Filter out system messages from display (they're context, not conversation)
+  // Separate system messages for collapsed display, keep others as visible
   const visibleMessages = messages.filter(m => m.role !== 'system');
+  const systemMessages = messages.filter(m => m.role === 'system');
 
   return (
     <div className="chat-messages">
+      {/* System messages shown as collapsible banners */}
+      {systemMessages.map((msg, i) => (
+        <SystemMessageBanner key={`sys-${i}`} message={msg} />
+      ))}
+
       {visibleMessages.length === 0 && status === 'idle' && (
         <div className="chat-empty">
-          <div className="chat-empty__icon">{'💬'}</div>
+          <div className="chat-empty__icon">{'chat'}</div>
           <div className="chat-empty__text">Start a conversation</div>
         </div>
       )}
