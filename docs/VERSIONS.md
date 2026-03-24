@@ -56,9 +56,51 @@
 
 ### Questions for You
 1. **Doc Intelligence**: Confirmed the connector hardcodes `prebuilt-layout` in the swagger path. To support `prebuilt-invoice`/`prebuilt-receipt`, the connector definition needs to be edited in Power Platform (parameterize the model in the path). Want me to document the exact changes needed?
+# jo 
+you choose whether you give me swagger or conceptual or other instructions for the switch, but for now remind for later, not main prio now
 2. **Drag-to-reorder playbook steps**: Interested in adding this to the next sprint?
+# i have not seen anything around paybook steps yet. we need to move forward
 3. **Raw notes on cases / timeline**: Should we add a notes field to `jw_case` and a timeline component?
+# yes
 4. **Next focus**: Ready to move into AI-assisted agent/playbook creation, or more stabilization first?
+#see upper comment. while thinking about it, it would make sense to treat this as a whole feature as suggestions should be shown around all related entities and editable while chatting with the agent and sharing the same context
+
+### bugs / errors
+I see no jsons:
+index.html:1 Uncaught (in promise) EventisTrusted: truereturnValue: truesrcElement: scripttarget: scripttimeStamp: 73878.09999996424type: "error"[[Prototype]]: EventUnderstand this error
+2es6.apphost-runtime.js:36 ECS - Config fetch complete
+index-BFGJ3wyK.js:278 Monaco initialization: error: Event
+(anonymous) @ index-BFGJ3wyK.js:278Understand this error
+index.html:1 Uncaught (in promise) EventUnderstand this error
+index-BFGJ3wyK.js:278 Monaco initialization: error: Event
+(anonymous) @ index-BFGJ3wyK.js:278Understand this error
+index.html:1 Uncaught (in promise) EventUnderstand this error
+index-BFGJ3wyK.js:278 Monaco initialization: error: Event
+(anonymous) @ index-BFGJ3wyK.js:278Understand this error
+index.html:1 Uncaught (in promise) Event
+
+agent does not continue working if I switch to a different chat or config view. so if we have this big sidebar we should then also see different states for the threads, while we need a way to make sure they work as much as possible in the background or can be triggered to continue where left off.
+right now if i switched i am stuck, i cant send bcs it says agent working but i coudlnt see the tool calls that just started executing and became visual therefore.
+
+right now i did not see one ai generated visual or 
+
+*error in cases*
+{
+  "id": "73d2a7a5-ee26-f111-88b4-6045bd0aafb1"
+}
+Error
+{"message":"{\"error\":{\"code\":\"0x80040217\",\"message\":\"Entity 'jw_case' With Id = 73d2a7a5-ee26-f111-88b4-6045bd0aafb1 Does Not Exist\",\"@Microsoft.PowerApps.CDS.ErrorDetails.ApiExceptionSourceKey\":\"Plugin/Microsoft.Crm.ObjectModel.CustomBusinessEntityService\",\"@Microsoft.PowerApps.CDS.ErrorDetails.ApiStepKey\":\"63068d15-8726-f111-88b4-6045bd0aafb1\",\"@Microsoft.PowerApps.CDS.ErrorDetails.ApiDepthKey\":\"1\",\"@Microsoft.PowerApps.CDS.ErrorDetails.ApiActivityIdKey\":\"9d6284b0-2ea5-4b28-bd59-5e9a3f0b116b\",\"@Microsoft.PowerApps.CDS.ErrorDetails.ApiPluginSolutionNameKey\":\"System\",\"@Microsoft.PowerApps.CDS.ErrorDetails.ApiStepSolutionNameKey\":\"System\",\"@Microsoft.PowerApps.CDS.ErrorDetails.ApiExceptionCategory\":\"ClientError\",\"@Microsoft.PowerApps.CDS.ErrorDetails.ApiExceptionMessageName\":\"ObjectDoesNotExist\",\"@Microsoft.PowerApps.CDS.ErrorDetails.ApiExceptionHttpStatusCode\":\"404\",\"@Microsoft.PowerApps.CDS.HelpLink\":\"http://go.microsoft.com/fwlink/?LinkID=398563&error=Microsoft.Crm.CrmException%3a80040217&client=platform\",\"@Microsoft.PowerApps.CDS.InnerError.Message\":\"Entity 'jw_case' With Id = 73d2a7a5-ee26-f111-88b4-6045bd0aafb1 Does Not Exist\"}}","status":404,"requestId":"5092794b-fc3b-48b7-90bc-3a6de768cc61"}
+
+bug in the tabs, the count is always for every tab the count of records for the currently selected
+
+***important***
+### main layout and feature structure/binding must be reworked
+it does not make sense anymore how the layout is structured. we want to define and control and interact with agents on cases while playbooks define the way an agent processes a case so that an exploration agent can pull context data and a processing agent can work through transactions or work very human focused. both agents should be able to create artefacts that are stored in relation to the case and can be files and their processes stati while agents can control whats saved through other features. also approval step audit logs could be artefacts. but firstly visuals and tables etc.
+this also relates with the knowledge files that an agent can write and can be referenced in playbook instructions (visualize @ marks dynamically possible?) so agent knows in future runds what to load in
+therefore the left navigation bar does not make sense any more, it should rather be cases or agents or playbooks or n:n tables i guess? but I cant really recall the idea of the threat, was that soly for free chat or our main agent case processing engine?
+I am just thinking, if we have dataverse mcp. could we include in seed data an agent that can use dataverse mcp to create full playbooks, agents, demo cases and whatsever?
+fileupload is not possible as no upload options
+agent in chat answers with markdown but its not rendered as such (notice what i write per message to you regarding ideas)
 
 ---
 
