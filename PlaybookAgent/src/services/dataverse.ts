@@ -741,20 +741,32 @@ export function createThread(opts: {
   return jwThreads.create(record as unknown as Omit<Jw_threadsBase, 'jw_threadid'>);
 }
 
-/** Create a message in a thread. */
+/** Create a message in a thread.
+ *  For tool-role messages: toolCallId and name are required by OpenAI.
+ *  We store tool_call_id in jw_toolcalls (JSON) and tool name in jw_name.
+ *  For assistant messages: jw_toolcalls stores the tool_calls array JSON.
+ */
 export function createMessage(opts: {
   threadId: string;
   role: string;
   content?: string;
   toolCalls?: string;
+  toolCallId?: string;
+  name?: string;
   tokenPrompt?: number;
   tokenCompletion?: number;
 }) {
+  let toolCallsValue = opts.toolCalls;
+  // For tool-role messages, store tool_call_id in jw_toolcalls as JSON
+  if (opts.role === 'tool' && opts.toolCallId) {
+    toolCallsValue = JSON.stringify({ tool_call_id: opts.toolCallId });
+  }
   const record: Record<string, unknown> = {
     'jw_threadid@odata.bind': lookupBind('jw_threads', opts.threadId),
     jw_role: opts.role,
     jw_content: opts.content,
-    jw_toolcalls: opts.toolCalls,
+    jw_toolcalls: toolCallsValue,
+    jw_name: opts.name,
     jw_tokenprompt: opts.tokenPrompt?.toString(),
     jw_tokencompletion: opts.tokenCompletion?.toString(),
   };

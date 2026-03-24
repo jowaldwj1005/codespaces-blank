@@ -36,11 +36,14 @@ export async function runAgentLoop(config: AgentLoopConfig): Promise<ChatMessage
   const messages = [...config.messages];
   const cumulativeTokens: TokenUsage = { promptTokens: 0, completionTokens: 0, totalTokens: 0 };
 
-  // Ensure system prompt is first message
+  // Ensure system prompt is first message (replace stale prompts on reload)
   if (messages.length === 0 || messages[0].role !== 'system') {
     const systemMsg: ChatMessage = { role: 'system', content: agent.systemPrompt };
     messages.unshift(systemMsg);
     onEvent({ type: 'message_added', message: systemMsg });
+  } else if (messages[0].role === 'system') {
+    // Always use the latest system prompt from the agent definition
+    messages[0] = { role: 'system', content: agent.systemPrompt };
   }
 
   const openAITools = agent.tools.length > 0 ? toOpenAITools(agent.tools) : undefined;

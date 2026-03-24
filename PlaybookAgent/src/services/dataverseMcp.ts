@@ -331,7 +331,7 @@ const MCP_QUERY_MAX_RECORDS = 50;
  * Execute a read-only OData query against Dataverse via the SDK.
  * NOTE: FetchXML is the architecture target, but for MVP we use OData $filter.
  * The generated services support getAll with IGetAllOptions which includes
- * $top, $filter, $select, $orderby, and $expand.
+ * top, filter, select (string[]), orderBy (string[]).
  *
  * Security: This is READ-ONLY. All write operations must go through HitL.
  */
@@ -349,11 +349,10 @@ export async function executeDataverseQuery(
   const top = Math.min(options.top ?? MCP_QUERY_MAX_RECORDS, MCP_QUERY_MAX_RECORDS);
 
   const queryOptions: Record<string, unknown> = {};
-  if (options.select?.length) queryOptions.$select = options.select.join(',');
-  if (options.filter) queryOptions.$filter = options.filter;
-  if (options.orderBy) queryOptions.$orderby = options.orderBy;
-  if (options.expand) queryOptions.$expand = options.expand;
-  queryOptions.$top = top;
+  if (options.select?.length) queryOptions.select = options.select;
+  if (options.filter) queryOptions.filter = options.filter;
+  if (options.orderBy) queryOptions.orderBy = [options.orderBy];
+  queryOptions.top = top;
 
   const result = await tracedOperation(
     `MCP.query(${tablePluralName})`,

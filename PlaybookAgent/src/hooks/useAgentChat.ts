@@ -88,11 +88,24 @@ export function useAgentChat(threadId: string | null) {
     try {
       const result = await getThreadMessages(tid);
       const records = result.data ?? [];
-      const msgs: ChatMessage[] = records.map(r => ({
-        role: (r.jw_role ?? 'user') as ChatMessage['role'],
-        content: r.jw_content ?? null,
-        tool_calls: r.jw_toolcalls ? JSON.parse(r.jw_toolcalls) : undefined,
-      }));
+      const msgs: ChatMessage[] = records.map(r => {
+        const msg: ChatMessage = {
+          role: (r.jw_role ?? 'user') as ChatMessage['role'],
+          content: r.jw_content ?? null,
+        };
+        if (r.jw_role === 'tool' && r.jw_toolcalls) {
+          // tool messages store {tool_call_id} in jw_toolcalls
+          try {
+            const parsed = JSON.parse(r.jw_toolcalls);
+            msg.tool_call_id = parsed.tool_call_id;
+          } catch { /* ignore */ }
+          msg.name = r.jw_name ?? undefined;
+        } else if (r.jw_toolcalls) {
+          // assistant messages store tool_calls array
+          try { msg.tool_calls = JSON.parse(r.jw_toolcalls); } catch { /* ignore */ }
+        }
+        return msg;
+      });
       setState(prev => ({ ...prev, messages: msgs }));
       return msgs;
     } catch {
@@ -204,6 +217,8 @@ export function useAgentChat(threadId: string | null) {
               role: msg.role,
               content: msg.content ?? undefined,
               toolCalls: msg.tool_calls ? JSON.stringify(msg.tool_calls) : undefined,
+              toolCallId: msg.tool_call_id,
+              name: msg.name,
             });
           } catch {
             // Non-critical
