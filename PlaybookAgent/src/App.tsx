@@ -5,6 +5,8 @@ import { ThreadSidebar } from './components/layout/ThreadSidebar';
 import { ChatWorkspace } from './components/chat/ChatWorkspace';
 import { SeedPanel } from './components/admin/SeedPanel';
 import { AdminWorkspace } from './components/admin/AdminWorkspace';
+import { ArtifactBrowser } from './components/semantic/ArtifactBrowser';
+import { CaseDashboard } from './components/semantic/CaseDashboard';
 import { DataverseExplorer } from './components/DataverseExplorer';
 import { ConnectorTester } from './components/ConnectorTester';
 import { VisualizationPanel } from './components/VisualizationPanel';
@@ -107,16 +109,13 @@ function App() {
                   </div>
                 )}
                 {rightPanel === 'artifacts' && (
-                  <div className="placeholder-panel">
-                    <span className="placeholder-panel__icon">Artifacts</span>
-                    <span>Artifact browser coming soon</span>
-                  </div>
+                  <ArtifactBrowser threadId={threadManager.activeThreadId} />
                 )}
                 {rightPanel === 'case-detail' && (
-                  <div className="placeholder-panel">
-                    <span className="placeholder-panel__icon">Cases</span>
-                    <span>Case detail view coming soon</span>
-                  </div>
+                  <CaseDashboard
+                    threadId={threadManager.activeThreadId}
+                    onOpenArtifact={() => setRightPanel('artifacts')}
+                  />
                 )}
               </div>
             </aside>

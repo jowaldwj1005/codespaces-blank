@@ -1,8 +1,8 @@
 import { useState } from 'react';
 import type { RightPanel } from '../../App';
 
-export const APP_VERSION = '0.7.0';
-const VERSION_SUMMARY = 'Connector wiring (SAP/DocInt), Playbook execution, HitL audit trail, dynamic tool loading, enhanced debug console.';
+export const APP_VERSION = '0.8.0';
+const VERSION_SUMMARY = 'SemanticRenderer, Artifact Browser, Case Dashboard, Playbook Progress, structured HitL approval forms.';
 
 interface AppHeaderProps {
   rightPanel: RightPanel;

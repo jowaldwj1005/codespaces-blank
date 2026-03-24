@@ -1,5 +1,19 @@
 # Changelog - Playbook Agent
 
+## v0.8.0 (2026-03-24)
+### Added — "Make the Invisible Visible"
+- **SemanticRenderer** (`src/components/semantic/SemanticRenderer.tsx`): Registry mapping artifact `jw_type` strings to React components. Supports 12 types: Chart, Report, Analysis, Markdown, InvoiceTable, InvoiceData, Table, SapOrder, SapApprovalPayload, JSON, Dashboard, Summary. Type-colored badges, compact mode, bidirectional editing support (SAP form fields, JSON editor)
+- **Artifact Browser** (`src/components/semantic/ArtifactBrowser.tsx`): Right panel showing all artifacts for active case. Type filter chips, expand/collapse per artifact, auto-refresh every 10s, case auto-discovery from thread via jw_threadcases
+- **Case Dashboard** (`src/components/semantic/CaseDashboard.tsx`): Right panel showing case lifecycle. Status badge (Active/Completed/Cancelled), playbook progress bar with instruction checklist, linked artifacts list, expandable context data JSON viewer, case metadata
+- **Playbook Progress** (`src/components/semantic/PlaybookProgress.tsx`): Inline chat component showing playbook instruction checklist with progress bar. Auto-refreshes while case is active, collapsible, numbered steps with completion states
+- **Better Approval UX**: Rewritten `ApprovalForm.tsx` with structured forms for known tools (SAP, Dataverse, DocInt, artifacts). Field schemas with typed inputs (text, select, json, boolean). Form/JSON mode toggle. Tool category badges (sap/dataverse/docint/agent)
+
+### Changed
+- App.tsx: Artifact and Case-Detail right panels now render real components (was placeholders)
+- ChatWorkspace: PlaybookProgress inline component rendered below chat header
+- AppHeader version bump to 0.8.0
+- ~600 lines new CSS for SemanticRenderer, Artifact Browser, Case Dashboard, Playbook Progress, improved Approval Form
+
 ## v0.7.0 (2026-03-24)
 ### Added — Feature A: Connector Wiring
 - **SAP OData tool** (`query_sap`): Real SAP queries via Power Automate proxy connector, method routing (GET/POST/PATCH/DELETE)

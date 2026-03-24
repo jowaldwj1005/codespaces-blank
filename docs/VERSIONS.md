@@ -5,6 +5,62 @@
 
 ---
 
+## v0.8.0 — Make the Invisible Visible (2026-03-24)
+
+### What Was Done
+
+**The core architectural concept of the meta-app is now real.** 5 features making the agent's work visible:
+
+**A. SemanticRenderer** — THE foundational component:
+- Registry maps artifact `jw_type` strings → React components
+- 12 supported types: Chart (reuses VisualizationCard), Report/Analysis/Markdown (markdown renderer), InvoiceTable/InvoiceData/Table (InteractiveTable), SapOrder (structured form), JSON (tree viewer), Dashboard, Summary
+- Type-colored badges for visual identification
+- Compact mode for list views
+- Bidirectional editing: SAP form fields editable, JSON editable
+
+**B. Artifact Browser** — Right panel, replaces placeholder:
+- Loads all artifacts for the active case (auto-discovers case from thread via jw_threadcases)
+- Type filter chips for quick filtering
+- Click to expand/collapse with full SemanticRenderer rendering
+- Auto-refreshes every 10 seconds for live updates
+
+**C. Case Dashboard** — Right panel, replaces placeholder:
+- Case header with status badge (Active/Completed/Cancelled)
+- Playbook section: progress bar + instruction checklist with completion tracking
+- Linked artifacts list with type badges (click to switch to Artifact Browser)
+- Expandable context data JSON viewer
+- Metadata (created/modified timestamps)
+
+**D. Playbook Progress** — Inline in chat area:
+- Shows below chat header when a playbook is active on the thread's case
+- Progress bar + numbered instruction checklist
+- Completed steps show checkmark + strikethrough
+- Collapsible, auto-refreshes while case is active
+
+**E. Better Approval UX** — Structured HitL forms:
+- Tool-specific field schemas: `query_sap` (method select, endpoint, query, body), `create_dataverse_record` (table, data), `save_artifact` (type, name, payload, caseId), etc.
+- Form/JSON mode toggle — power users can switch to raw JSON anytime
+- Tool category badges: sap (yellow), dataverse (purple), docint (blue), agent (green)
+- Typed field inputs: text, number, select, boolean, json (textarea)
+
+### How to Test
+
+1. **Artifact Browser**: Click "Artifacts" button in header → should show all artifacts (or "No artifacts yet" if none)
+2. **Case Dashboard**: Click "Cases" button in header → shows case details if a playbook was started in the active thread
+3. **SemanticRenderer**: Start a playbook, use `save_artifact` tool to create artifacts of different types → they should render with type-appropriate UIs in the Artifact Browser
+4. **Playbook Progress**: Start a playbook via `start_playbook` → inline progress bar + checklist appears below chat header
+5. **Approval Form**: Trigger any tool with `requiresApproval: true` → structured form should appear instead of raw JSON textarea
+
+### Questions for You
+
+1. **Artifact types**: Which artifact types are most important for your demo? Should I add more specialized renderers (e.g., a dedicated InvoiceViewer with line items, totals)?
+2. **Bidirectional editing**: The SAP form fields are editable and the changes propagate back. Should this also persist to Dataverse automatically, or require explicit "Save" action?
+3. **Auto-refresh interval**: Artifact Browser and Case Dashboard refresh every 10s. Too fast? Too slow? Should it be configurable?
+4. **Playbook Progress location**: Currently renders below the chat header. Would you prefer it in the sidebar, in the Case Dashboard panel, or as a floating widget?
+5. **Design**: First impression of the CSS? The type-colored badges, progress bars, and structured forms — does this feel like the "modern SaaS" direction you want?
+
+---
+
 ## v0.7.0 — Full Agent Toolkit (2026-03-24)
 
 ### What Was Done

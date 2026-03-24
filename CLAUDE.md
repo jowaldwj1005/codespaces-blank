@@ -1,7 +1,7 @@
 # CLAUDE.md - Playbook Agent
 
-**App Version:** 0.7.0
-**Phase:** Full Agent Toolkit — Connector wiring, playbook execution, HitL audit, dynamic tools, enhanced debug
+**App Version:** 0.8.0
+**Phase:** Make the Invisible Visible — SemanticRenderer, Artifact Browser, Case Dashboard, Playbook Progress, structured HitL approval
 
 ## Quick Context
 
@@ -88,7 +88,8 @@ src/services/toolExecutor.ts → Tool routing (builtin/connector/flow) + HitL ga
 src/services/builtinTools.ts → InternalReact tool handlers + tool definitions
 src/services/seedData.ts     → General Assistant seed data + idempotent executor
 src/hooks/                   → useAgentChat, useThreadManager, useDataverse, useConnectors, useDebugLog, useMcp
-src/components/chat/         → ChatWorkspace, MessageList, ToolCallCard, ApprovalForm, VisualizationCard, etc.
+src/components/chat/         → ChatWorkspace, MessageList, ToolCallCard, ApprovalForm (structured), VisualizationCard, etc.
+src/components/semantic/     → SemanticRenderer, ArtifactBrowser, CaseDashboard, PlaybookProgress
 src/components/layout/       → ThreadSidebar, AppHeader (with panel toggle buttons)
 src/components/admin/        → AdminWorkspace, AgentConfig, RecordList, RecordForm, EntityRegistry, SeedPanel
 src/components/              → DataverseExplorer, ConnectorTester, VisualizationPanel, McpExplorer, DebugPanel
@@ -127,12 +128,12 @@ cd PlaybookAgent && npm run build  # Type-check + build
 cd PlaybookAgent && npm run lint   # ESLint
 ```
 
-## What's Next
+## What's Next (v0.9.0 — Intelligence & Memory)
 
-1. Build Artifact Browser panel with SemanticRenderer mapping
-2. Case dashboard: linked threads/artifacts/status lifecycle
-3. Sub-agent delegation (delegate_to_agent) with parent-child thread linking
-4. Agentic Learning Loop (save_learning → jw_instruction records)
-5. Bounded History with Smart Summarization (token-budget management)
-6. Cross-Thread Context (search other threads for relevant context)
+1. Agentic Learning Loop (save_learning → jw_instruction records, autonomy settings per agent)
+2. Bounded History with Smart Summarization (token-budget management)
+3. Cross-Thread Context (search other threads for relevant context)
+4. Conditional Auto-Approval (rules in jw_agenttool.jw_data, hard vs soft HitL)
+5. Annotation Layer (annotations on messages/artifacts, feedback loop for learning)
+6. Sub-agent delegation (delegate_to_agent) with parent-child thread linking
 7. Cost Dashboard: token usage per agent/case/user with trends

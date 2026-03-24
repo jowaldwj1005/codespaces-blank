@@ -4,6 +4,7 @@ import { MessageList } from './MessageList';
 import { ChatInputBar } from './ChatInputBar';
 import { TokenCounter } from './TokenCounter';
 import { VisualizationCard } from './VisualizationCard';
+import { PlaybookProgress } from '../semantic/PlaybookProgress';
 import type { useAgentChat } from '../../hooks/useAgentChat';
 
 type AgentChatReturn = ReturnType<typeof useAgentChat>;
@@ -68,6 +69,8 @@ export function ChatWorkspace({ chat, threadId, agentId }: ChatWorkspaceProps) {
           </div>
         </div>
       </div>
+
+      {threadId && <PlaybookProgress threadId={threadId} />}
 
       {error && (
         <div style={{
