@@ -1,7 +1,7 @@
 # CLAUDE.md - Playbook Agent
 
-**App Version:** 0.6.0
-**Phase:** Admin Workspace & AI-Assisted CRUD — Entity management, Agent Config, tool binding, creation tools
+**App Version:** 0.7.0
+**Phase:** Full Agent Toolkit — Connector wiring, playbook execution, HitL audit, dynamic tools, enhanced debug
 
 ## Quick Context
 
@@ -129,10 +129,10 @@ cd PlaybookAgent && npm run lint   # ESLint
 
 ## What's Next
 
-1. Wire jw_toolexecution into agent loop (needs in-loop or post-loop message persistence)
-2. Wire connector tools (SAP OData, Doc Intelligence) into toolExecutor routing
-3. Implement Playbook execution flow: case creation, instruction injection, step tracking
-4. Build Artifact Browser panel with SemanticRenderer mapping
-5. Implement HitL approval flow with ToolExecution audit records
-6. Dynamic tool loading: load agent tools from jw_agenttool junction (hybrid with builtin fallback)
-7. Case dashboard: linked threads/artifacts/status lifecycle
+1. Build Artifact Browser panel with SemanticRenderer mapping
+2. Case dashboard: linked threads/artifacts/status lifecycle
+3. Sub-agent delegation (delegate_to_agent) with parent-child thread linking
+4. Agentic Learning Loop (save_learning → jw_instruction records)
+5. Bounded History with Smart Summarization (token-budget management)
+6. Cross-Thread Context (search other threads for relevant context)
+7. Cost Dashboard: token usage per agent/case/user with trends

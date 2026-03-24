@@ -31,29 +31,46 @@ export type SeedProgress = (record: SeedRecord, index: number, total: number) =>
 
 // ─── General Assistant Seed Data ────────────────────────────────────────────
 
-const GENERAL_ASSISTANT_PROMPT = `You are the Playbook Agent General Assistant. You help users explore and work with Dataverse data, create visualizations, and answer questions.
+const GENERAL_ASSISTANT_PROMPT = `You are the Playbook Agent General Assistant. You help users explore Dataverse data, query SAP systems, analyze documents, manage cases, and create visualizations.
 
 ## Your Capabilities
-- **search_dataverse**: Find relevant tables by describing what you're looking for
+
+### Data Exploration
+- **search_dataverse**: Find relevant tables by natural language intent
 - **get_table_schema**: Inspect table structure (columns, types, keys)
-- **execute_dataverse_query**: Run OData queries to retrieve data
-- **create_visual**: Create inline charts and tables from data
-- **create_dataverse_record**: Create new agents, tools, playbooks, instructions (requires approval)
-- **update_dataverse_record**: Update existing records (requires approval)
+- **execute_dataverse_query**: Run OData queries (max 50 records)
+- **create_visual**: Charts (bar/line/pie/area/scatter/radar) and tables from data
+
+### Connectors
+- **query_sap**: Query SAP via OData — GET for reads, POST/PATCH for writes (requires approval)
+- **analyze_document**: Extract text from documents (PDF, images, Office) via Azure Doc Intelligence
+
+### Entity Management (requires approval)
+- **create_dataverse_record**: Create agents, tools, playbooks, instructions, cases, artifacts
+- **update_dataverse_record**: Update any Dataverse record
 - **link_agent_tool**: Connect tools to agents
+
+### Playbook Execution
+- **start_playbook**: Start a playbook — creates a case, links thread, loads instructions
+- **complete_instruction**: Mark a playbook step as done (tracks progress in case context)
+
+### Artifacts
+- **save_artifact**: Save reports, analyses, extracted data linked to a case (for audit trail)
 
 ## How to Work
 1. When asked about data, first search for relevant tables
 2. Inspect the schema to understand available columns
 3. Query the data with appropriate filters
-4. Visualize results when it makes sense — prefer charts for trends, tables for details
-5. Always explain what you found and what it means
+4. Visualize results when it makes sense — charts for trends, tables for details
+5. When working on a playbook, follow instructions step by step and mark each complete
+6. Save important outputs as artifacts linked to the active case
+7. Always explain what you found and what it means
 
 ## Communication Style
-- Clear and concise
-- Bilingual: respond in the language the user writes in (German or English)
+- Clear, concise, bilingual (respond in user's language: German or English)
 - Show your reasoning — explain which tables you're querying and why
-- Proactively suggest follow-up analyses when you spot interesting patterns`;
+- Proactively suggest follow-up analyses when you spot interesting patterns
+- When using SAP tools, explain the OData path and what data you're requesting`;
 
 export function getGeneralAssistantSeedData(): SeedRecord[] {
   return [
@@ -191,6 +208,105 @@ export function getGeneralAssistantSeedData(): SeedRecord[] {
         }),
       },
     },
+    // ─── Connector Tools ─────────────────────────────────────────────
+    {
+      type: 'tool',
+      name: 'query_sap',
+      data: {
+        jw_name: 'query_sap',
+        jw_description: 'Query SAP via OData (Power Automate proxy). GET for reads, POST/PATCH/DELETE for writes. Requires approval for all operations.',
+        jw_endpointtype: 100000002,
+        jw_requiresapproval: true,
+        jw_inputschema: JSON.stringify({
+          type: 'object',
+          required: ['relativePath'],
+          properties: {
+            method: { type: 'string', enum: ['GET', 'POST', 'PATCH', 'DELETE'], description: 'HTTP method (default: GET)' },
+            relativePath: { type: 'string', description: 'SAP path, e.g. "/API_SALES_ORDER_SRV/A_SalesOrder"' },
+            queryString: { type: 'string', description: 'OData query string' },
+            body: { type: 'object', description: 'Request body for POST/PATCH' },
+          },
+        }),
+      },
+    },
+    {
+      type: 'tool',
+      name: 'analyze_document',
+      data: {
+        jw_name: 'analyze_document',
+        jw_description: 'Analyze a document using Azure Document Intelligence (OCR + layout). Provide a URL or base64 content. Returns extracted text as markdown.',
+        jw_endpointtype: 100000002,
+        jw_requiresapproval: false,
+        jw_inputschema: JSON.stringify({
+          type: 'object',
+          properties: {
+            urlSource: { type: 'string', description: 'Public URL of the document' },
+            base64Source: { type: 'string', description: 'Base64-encoded document' },
+          },
+        }),
+      },
+    },
+    // ─── Playbook & Case Tools ────────────────────────────────────────
+    {
+      type: 'tool',
+      name: 'start_playbook',
+      data: {
+        jw_name: 'start_playbook',
+        jw_description: 'Start a playbook execution. Creates a case, links thread, loads instructions for step-by-step execution.',
+        jw_endpointtype: 100000002,
+        jw_requiresapproval: true,
+        jw_inputschema: JSON.stringify({
+          type: 'object',
+          required: ['playbookId', 'threadId'],
+          properties: {
+            playbookId: { type: 'string', description: 'GUID of the playbook' },
+            threadId: { type: 'string', description: 'Current thread GUID' },
+            title: { type: 'string', description: 'Optional case title' },
+          },
+        }),
+      },
+    },
+    {
+      type: 'tool',
+      name: 'complete_instruction',
+      data: {
+        jw_name: 'complete_instruction',
+        jw_description: 'Mark a playbook instruction as completed. Tracks progress in case context. Marks case complete when all instructions are done.',
+        jw_endpointtype: 100000002,
+        jw_requiresapproval: false,
+        jw_inputschema: JSON.stringify({
+          type: 'object',
+          required: ['caseId', 'instructionId'],
+          properties: {
+            caseId: { type: 'string', description: 'Active case GUID' },
+            instructionId: { type: 'string', description: 'Instruction GUID to mark complete' },
+            notes: { type: 'string', description: 'Completion notes' },
+          },
+        }),
+      },
+    },
+    {
+      type: 'tool',
+      name: 'save_artifact',
+      data: {
+        jw_name: 'save_artifact',
+        jw_description: 'Save an artifact (report, analysis, extracted data) to Dataverse. Link to a case for audit trail. Types: Chart, Report, Invoice, SAP_Order, Document, Analysis, Summary.',
+        jw_endpointtype: 100000002,
+        jw_requiresapproval: false,
+        jw_inputschema: JSON.stringify({
+          type: 'object',
+          required: ['type'],
+          properties: {
+            type: { type: 'string', description: 'Artifact type' },
+            name: { type: 'string', description: 'Display name' },
+            payload: { description: 'Artifact content (string or JSON)' },
+            caseId: { type: 'string', description: 'Optional case link' },
+            parentArtifactId: { type: 'string', description: 'Parent artifact (versioning)' },
+            referenceKey: { type: 'string', description: 'External reference key' },
+          },
+        }),
+      },
+    },
     // ─── Agent ────────────────────────────────────────────────────────
     {
       type: 'agent',
@@ -214,6 +330,11 @@ export function getGeneralAssistantSeedData(): SeedRecord[] {
     { type: 'agent_tool_link', name: 'General Assistant → create_dataverse_record', data: {}, agentName: 'General Assistant', toolName: 'create_dataverse_record' },
     { type: 'agent_tool_link', name: 'General Assistant → update_dataverse_record', data: {}, agentName: 'General Assistant', toolName: 'update_dataverse_record' },
     { type: 'agent_tool_link', name: 'General Assistant → link_agent_tool', data: {}, agentName: 'General Assistant', toolName: 'link_agent_tool' },
+    { type: 'agent_tool_link', name: 'General Assistant → query_sap', data: {}, agentName: 'General Assistant', toolName: 'query_sap' },
+    { type: 'agent_tool_link', name: 'General Assistant → analyze_document', data: {}, agentName: 'General Assistant', toolName: 'analyze_document' },
+    { type: 'agent_tool_link', name: 'General Assistant → start_playbook', data: {}, agentName: 'General Assistant', toolName: 'start_playbook' },
+    { type: 'agent_tool_link', name: 'General Assistant → complete_instruction', data: {}, agentName: 'General Assistant', toolName: 'complete_instruction' },
+    { type: 'agent_tool_link', name: 'General Assistant → save_artifact', data: {}, agentName: 'General Assistant', toolName: 'save_artifact' },
     // ─── Playbook + Instructions (sample) ─────────────────────────────
     {
       type: 'playbook',

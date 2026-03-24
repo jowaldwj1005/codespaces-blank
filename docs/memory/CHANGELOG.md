@@ -1,5 +1,43 @@
 # Changelog - Playbook Agent
 
+## v0.7.0 (2026-03-24)
+### Added — Feature A: Connector Wiring
+- **SAP OData tool** (`query_sap`): Real SAP queries via Power Automate proxy connector, method routing (GET/POST/PATCH/DELETE)
+- **Document Intelligence tool** (`analyze_document`): Full async flow (submit → poll → result), returns markdown extracted text
+- **Connector tool routing** in `toolExecutor.ts`: `CONNECTOR_HANDLERS` map routes `executionTarget` to actual connector wrappers
+- Debug events emitted for every connector tool execution
+
+### Added — Feature B: Playbook Execution Engine
+- **`start_playbook` tool**: Creates jw_case linked to playbook, links thread via jw_threadcases junction, loads all instructions, initializes case context JSON with instruction tracking
+- **`complete_instruction` tool**: Marks instructions complete in case context, auto-completes case when all instructions done
+- **`save_artifact` tool**: Saves typed artifacts (Report/Analysis/Invoice/etc.) to jw_artifacts, optional case linking + versioning via parentArtifactId
+
+### Added — Feature C: HitL Audit Trail
+- `ToolExecutionRecord` interface in toolExecutor.ts: captures callId, toolName, args, response, approvalState, durationMs
+- `onToolExecuted` callback in `ToolExecutorConfig`: collects audit data during agent loop
+- Post-loop jw_toolexecution record creation in useAgentChat.ts: links to persisted assistant message IDs
+- Approval states: Pending → Approved/Rejected/AutoExecuted persisted as Dataverse choice values
+
+### Added — Feature D: Dynamic Tool Loading
+- `getAgentWithTools()` + expand `jw_agent_jw_agenttool($expand=jw_toolid)` in useAgentChat.ts
+- `dvToolToDefinition()`: converts Dataverse jw_tool records to ToolDefinition (maps endpointType enum, parses JSON inputSchema, normalizes boolean requiresApproval)
+- Hybrid fallback: uses dynamic tools from Dataverse if available, falls back to BUILTIN_TOOL_DEFINITIONS
+- InternalReact tools validated against BUILTIN_TOOLS handler registry
+
+### Added — Feature E: Debug Console Upgrade
+- **Source filter buttons**: All / Dataverse / Connectors / Agent Loop
+- **Status filter buttons**: All / Success / Error / Pending
+- **Search box**: Filter by operation name or input content
+- **Stats bar**: Total events, error count, avg duration, per-source breakdown
+- **Collapsible JSON blocks**: Request, Response, Error, Raw Result — each with line count, styled backgrounds
+- **Event cards**: Colored status/source badges, duration display, expand/collapse
+- `agent-loop` added as debug event source type
+
+### Changed
+- Seed data: 12 tools (was 7), 12 agent-tool links (was 7), updated system prompt with all new capabilities
+- General Assistant system prompt: documents SAP, DocInt, playbook, artifact, and instruction tools
+- AppHeader version bump to 0.7.0
+
 ## v0.6.0 (2026-03-24)
 ### Added
 - **Admin Workspace** (`src/components/admin/AdminWorkspace.tsx`): Full entity management view with entity tabs, split-panel layout (record list + detail form), search, sort, CRUD for all 6 admin entities

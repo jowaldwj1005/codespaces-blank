@@ -8,6 +8,8 @@ import { searchDataverseTables, getTableSchema, executeDataverseQuery } from './
 import { createArtifact } from './dataverse';
 import type { IOperationResult } from '@microsoft/power-apps/data';
 import * as dv from './dataverse';
+import { sapOData, azureDocIntelligence } from './connectors';
+import { lookupBind } from './sdk';
 
 // ─── Tool Handler Type ───────────────────────────────────────────────────────
 
@@ -25,6 +27,14 @@ export const BUILTIN_TOOLS: Record<string, ToolHandler> = {
   create_dataverse_record: handleCreateDataverseRecord,
   update_dataverse_record: handleUpdateDataverseRecord,
   link_agent_tool: handleLinkAgentTool,
+  // Connector tools
+  query_sap: handleQuerySap,
+  analyze_document: handleAnalyzeDocument,
+  // Playbook & Case tools
+  start_playbook: handleStartPlaybook,
+  complete_instruction: handleCompleteInstruction,
+  // Artifact tools
+  save_artifact: handleSaveArtifact,
 };
 
 // ─── Capability-Gated Tools ────────────────────────────────────────────────
@@ -245,6 +255,224 @@ async function handleLinkAgentTool(args: Record<string, unknown>): Promise<unkno
   }
 }
 
+// ─── Connector Tool Handlers ─────────────────────────────────────────────────
+
+async function handleQuerySap(args: Record<string, unknown>): Promise<unknown> {
+  const method = ((args.method ?? 'GET') as string).toUpperCase() as 'GET' | 'POST' | 'PATCH' | 'DELETE';
+  const relativePath = (args.relativePath ?? args.path ?? '') as string;
+  if (!relativePath) return { error: 'Missing relativePath parameter' };
+
+  const queryString = (args.queryString ?? args.query ?? '') as string;
+  const body = args.body as unknown;
+  const headers = args.headers as Record<string, string> | undefined;
+
+  try {
+    const result = await sapOData.execute({
+      method,
+      relativePath,
+      queryString: queryString || undefined,
+      body: body || undefined,
+      headers,
+    });
+    return { success: true, data: result.normalized };
+  } catch (err) {
+    return { error: err instanceof Error ? err.message : String(err) };
+  }
+}
+
+async function handleAnalyzeDocument(args: Record<string, unknown>): Promise<unknown> {
+  const urlSource = (args.urlSource ?? args.url ?? '') as string;
+  const base64Source = (args.base64Source ?? args.base64 ?? '') as string;
+
+  if (!urlSource && !base64Source) {
+    return { error: 'Provide either urlSource (URL) or base64Source (base64-encoded document)' };
+  }
+
+  try {
+    const result = await azureDocIntelligence.analyzeAndWait({
+      urlSource: urlSource || undefined,
+      base64Source: base64Source || undefined,
+    });
+
+    if (result.status === 'succeeded') {
+      return {
+        success: true,
+        status: result.status,
+        content: result.content,
+        pageCount: (result.analyzeResult as Record<string, unknown>)?.pages
+          ? ((result.analyzeResult as Record<string, unknown>).pages as unknown[]).length
+          : undefined,
+      };
+    }
+    return {
+      success: false,
+      status: result.status,
+      error: result.status === 'timeout' ? 'Analysis timed out after 60s' : 'Analysis failed',
+    };
+  } catch (err) {
+    return { error: err instanceof Error ? err.message : String(err) };
+  }
+}
+
+// ─── Playbook & Case Handlers ────────────────────────────────────────────────
+
+async function handleStartPlaybook(args: Record<string, unknown>): Promise<unknown> {
+  const playbookId = (args.playbookId ?? '') as string;
+  const threadId = (args.threadId ?? '') as string;
+  const title = (args.title ?? '') as string;
+
+  if (!playbookId) return { error: 'Missing playbookId parameter' };
+  if (!threadId) return { error: 'Missing threadId parameter — pass the current thread ID' };
+
+  try {
+    // 1. Load playbook
+    const playbookResult = await dv.jwPlaybooks.get(playbookId);
+    const playbook = playbookResult.data;
+    if (!playbook) return { error: `Playbook ${playbookId} not found` };
+
+    // 2. Create case linked to playbook
+    const caseRecord: Record<string, unknown> = {
+      jw_title: title || `${playbook.jw_name} — Case`,
+      jw_status: 100000000, // Active
+      'jw_playbookid@odata.bind': lookupBind('jw_playbooks', playbookId),
+    };
+    const caseResult = await dv.jwCases.create(caseRecord as never);
+    const caseId = (caseResult.data as unknown as Record<string, unknown>)?.jw_caseid as string;
+    if (!caseId) return { error: 'Failed to create case — no ID returned' };
+
+    // 3. Link thread to case via jw_threadcases
+    const threadCaseRecord: Record<string, unknown> = {
+      'jw_threadid@odata.bind': lookupBind('jw_threads', threadId),
+      'jw_caseid@odata.bind': lookupBind('jw_cases', caseId),
+      jw_name: `${playbook.jw_name} link`,
+    };
+    await dv.jwThreadCases.create(threadCaseRecord as never);
+
+    // 4. Load instructions for the playbook
+    const instrResult = await dv.jwInstructions.getAll({
+      filter: `_jw_playbookid_value eq '${playbookId}' and statecode eq 0`,
+      orderBy: ['jw_name asc'],
+    });
+    const instructions = (instrResult.data ?? []).map(i => ({
+      id: i.jw_instructionid,
+      name: i.jw_name,
+      type: i.jw_type,
+      content: i.jw_content,
+      tags: i.jw_tags,
+    }));
+
+    // 5. Initialize case context with instruction tracking
+    const contextData = {
+      playbookId,
+      playbookName: playbook.jw_name,
+      instructions: instructions.map(i => ({ ...i, completed: false })),
+      startedAt: new Date().toISOString(),
+    };
+    await dv.jwCases.update(caseId, { jw_contextdata: JSON.stringify(contextData) } as never);
+
+    return {
+      success: true,
+      caseId,
+      playbookName: playbook.jw_name,
+      instructionCount: instructions.length,
+      instructions,
+      message: `Started playbook "${playbook.jw_name}" with ${instructions.length} instructions. Case created.`,
+    };
+  } catch (err) {
+    return { error: err instanceof Error ? err.message : String(err) };
+  }
+}
+
+async function handleCompleteInstruction(args: Record<string, unknown>): Promise<unknown> {
+  const caseId = (args.caseId ?? '') as string;
+  const instructionId = (args.instructionId ?? '') as string;
+  const notes = (args.notes ?? '') as string;
+
+  if (!caseId) return { error: 'Missing caseId parameter' };
+  if (!instructionId) return { error: 'Missing instructionId parameter' };
+
+  try {
+    // Load current case context
+    const caseResult = await dv.jwCases.get(caseId);
+    const caseRecord = caseResult.data as unknown as Record<string, unknown>;
+    if (!caseRecord) return { error: 'Case not found' };
+
+    let contextData: Record<string, unknown> = {};
+    try {
+      contextData = JSON.parse((caseRecord.jw_contextdata as string) ?? '{}');
+    } catch { /* start fresh */ }
+
+    // Mark instruction as completed
+    const instructions = (contextData.instructions as Array<Record<string, unknown>>) ?? [];
+    const found = instructions.find(i => i.id === instructionId);
+    if (found) {
+      found.completed = true;
+      found.completedAt = new Date().toISOString();
+      if (notes) found.notes = notes;
+    }
+
+    const total = instructions.length;
+    const completed = instructions.filter(i => i.completed).length;
+
+    // Update case context
+    contextData.instructions = instructions;
+    contextData.lastUpdated = new Date().toISOString();
+    await dv.jwCases.update(caseId, { jw_contextdata: JSON.stringify(contextData) } as never);
+
+    // If all instructions completed, update case status
+    if (completed === total && total > 0) {
+      await dv.jwCases.update(caseId, { jw_status: 100000001 } as never); // Completed
+    }
+
+    return {
+      success: true,
+      instructionId,
+      completed,
+      total,
+      allDone: completed === total,
+      message: `Instruction completed (${completed}/${total})${completed === total ? ' — all instructions done, case marked complete' : ''}`,
+    };
+  } catch (err) {
+    return { error: err instanceof Error ? err.message : String(err) };
+  }
+}
+
+// ─── Artifact Handler ────────────────────────────────────────────────────────
+
+async function handleSaveArtifact(args: Record<string, unknown>): Promise<unknown> {
+  const type = (args.type ?? '') as string;
+  const name = (args.name ?? args.title ?? '') as string;
+  const payload = args.payload;
+  const caseId = (args.caseId ?? '') as string;
+  const parentArtifactId = (args.parentArtifactId ?? '') as string;
+  const referenceKey = (args.referenceKey ?? '') as string;
+
+  if (!type) return { error: 'Missing type parameter (e.g. "Chart", "Report", "Invoice", "SAP_Order", "Document")' };
+
+  const payloadStr = typeof payload === 'string' ? payload : JSON.stringify(payload);
+
+  try {
+    const result = await createArtifact({
+      type,
+      name: name || `${type} artifact`,
+      payload: payloadStr,
+      caseId: caseId || undefined,
+      parentArtifactId: parentArtifactId || undefined,
+      referenceKey: referenceKey || undefined,
+    });
+    const artifactId = (result.data as unknown as Record<string, unknown>)?.jw_artifactid;
+    return {
+      success: true,
+      artifactId,
+      type,
+      name,
+      message: `Artifact "${name || type}" saved${caseId ? ' and linked to case' : ''}`,
+    };
+  } catch (err) {
+    return { error: err instanceof Error ? err.message : String(err) };
+  }
+}
+
 // ─── Built-in Tool Definitions (for agent config) ────────────────────────────
 
 export const BUILTIN_TOOL_DEFINITIONS: ToolDefinition[] = [
@@ -398,6 +626,92 @@ export const BUILTIN_TOOL_DEFINITIONS: ToolDefinition[] = [
       properties: {
         agentId: { type: 'string', description: 'GUID of the agent' },
         toolId: { type: 'string', description: 'GUID of the tool' },
+      },
+    },
+    requiresApproval: false,
+    endpointType: 'InternalReact',
+  },
+  // ─── Connector Tools ────────────────────────────────────────────────────────
+  {
+    id: 'builtin_query_sap',
+    name: 'query_sap',
+    description: 'Query SAP via OData. Uses the SAP OData custom connector (Power Automate proxy flow). Default method: GET. For write operations (POST/PATCH/DELETE), requires HitL approval.',
+    inputSchema: {
+      type: 'object',
+      required: ['relativePath'],
+      properties: {
+        method: { type: 'string', enum: ['GET', 'POST', 'PATCH', 'DELETE'], description: 'HTTP method (default: GET)' },
+        relativePath: { type: 'string', description: 'SAP relative path, e.g. "/API_SALES_ORDER_SRV/A_SalesOrder"' },
+        queryString: { type: 'string', description: 'OData query, e.g. "$top=10&$filter=SalesOrder eq \'123\'"' },
+        body: { type: 'object', description: 'Request body for POST/PATCH' },
+        headers: { type: 'object', description: 'Custom request headers' },
+      },
+    },
+    requiresApproval: true,
+    endpointType: 'InternalReact',
+  },
+  {
+    id: 'builtin_analyze_document',
+    name: 'analyze_document',
+    description: 'Analyze a document using Azure Document Intelligence (OCR + layout). Provide a URL or base64-encoded content. Returns extracted text as markdown. Supports PDF, images, Office docs.',
+    inputSchema: {
+      type: 'object',
+      properties: {
+        urlSource: { type: 'string', description: 'Public URL of the document to analyze' },
+        base64Source: { type: 'string', description: 'Base64-encoded document content' },
+      },
+    },
+    requiresApproval: false,
+    endpointType: 'InternalReact',
+  },
+  // ─── Playbook & Case Tools ──────────────────────────────────────────────────
+  {
+    id: 'builtin_start_playbook',
+    name: 'start_playbook',
+    description: 'Start a playbook execution. Creates a case linked to the playbook, links the current thread to the case, and loads all instructions. Returns the instruction list for step-by-step execution.',
+    inputSchema: {
+      type: 'object',
+      required: ['playbookId', 'threadId'],
+      properties: {
+        playbookId: { type: 'string', description: 'GUID of the playbook to execute' },
+        threadId: { type: 'string', description: 'GUID of the current thread' },
+        title: { type: 'string', description: 'Optional case title (defaults to playbook name)' },
+      },
+    },
+    requiresApproval: true,
+    endpointType: 'InternalReact',
+  },
+  {
+    id: 'builtin_complete_instruction',
+    name: 'complete_instruction',
+    description: 'Mark a playbook instruction as completed. Updates the case context data with completion status. When all instructions are done, marks the case as completed.',
+    inputSchema: {
+      type: 'object',
+      required: ['caseId', 'instructionId'],
+      properties: {
+        caseId: { type: 'string', description: 'GUID of the active case' },
+        instructionId: { type: 'string', description: 'GUID of the instruction to mark complete' },
+        notes: { type: 'string', description: 'Optional completion notes or findings' },
+      },
+    },
+    requiresApproval: false,
+    endpointType: 'InternalReact',
+  },
+  // ─── Artifact Tools ─────────────────────────────────────────────────────────
+  {
+    id: 'builtin_save_artifact',
+    name: 'save_artifact',
+    description: 'Save an artifact (report, analysis, extracted data, generated content) to Dataverse. Optionally link to a case. Artifacts are versioned — set parentArtifactId for updates. Types: Chart, Report, Invoice, SAP_Order, Document, Analysis, Summary, Custom.',
+    inputSchema: {
+      type: 'object',
+      required: ['type'],
+      properties: {
+        type: { type: 'string', description: 'Artifact type (e.g. "Chart", "Report", "Invoice", "SAP_Order", "Document", "Analysis")' },
+        name: { type: 'string', description: 'Display name for the artifact' },
+        payload: { description: 'Artifact content — string or JSON object' },
+        caseId: { type: 'string', description: 'Optional: link to a jw_case' },
+        parentArtifactId: { type: 'string', description: 'Optional: parent artifact (for versioning)' },
+        referenceKey: { type: 'string', description: 'Optional: external reference key' },
       },
     },
     requiresApproval: false,

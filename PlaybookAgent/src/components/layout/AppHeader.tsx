@@ -1,8 +1,8 @@
 import { useState } from 'react';
 import type { RightPanel } from '../../App';
 
-export const APP_VERSION = '0.6.0';
-const VERSION_SUMMARY = 'Admin Workspace: CRUD for all entities, Agent Config with tool binding, Monaco editors, AI-assisted creation tools.';
+export const APP_VERSION = '0.7.0';
+const VERSION_SUMMARY = 'Connector wiring (SAP/DocInt), Playbook execution, HitL audit trail, dynamic tool loading, enhanced debug console.';
 
 interface AppHeaderProps {
   rightPanel: RightPanel;

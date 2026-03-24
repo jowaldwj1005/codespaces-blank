@@ -1,6 +1,8 @@
 /**
  * useAgentChat — React hook wrapping the Custom Agent Loop.
  * Manages chat state, tool approvals, visualizations, and Dataverse persistence.
+ * Supports dynamic tool loading from jw_agenttool junction (hybrid with builtins).
+ * Creates jw_toolexecution audit records for HitL traceability.
  */
 
 import { useState, useCallback, useRef } from 'react';
@@ -13,11 +15,13 @@ import type {
   PendingToolCall,
   TokenUsage,
   ToolDefinition,
+  EndpointType,
 } from '../types/agent';
 import { runAgentLoop } from '../services/agentLoop';
 import { createToolExecutor } from '../services/toolExecutor';
-import { jwAgents, createMessage, getThreadMessages } from '../services/dataverse';
-import { BUILTIN_TOOL_DEFINITIONS } from '../services/builtinTools';
+import type { ToolExecutionRecord } from '../services/toolExecutor';
+import { jwAgents, getAgentWithTools, createMessage, getThreadMessages, createToolExecution } from '../services/dataverse';
+import { BUILTIN_TOOLS, BUILTIN_TOOL_DEFINITIONS } from '../services/builtinTools';
 
 interface AgentChatState {
   messages: ChatMessage[];
@@ -30,6 +34,51 @@ interface AgentChatState {
 
 interface ApprovalResolver {
   resolve: (decision: { approved: boolean; editedArgs?: Record<string, unknown> }) => void;
+}
+
+// Map jw_endpointtype enum values to EndpointType strings
+const ENDPOINT_TYPE_MAP: Record<number, EndpointType> = {
+  100000000: 'CloudFlow',
+  100000001: 'CustomConnector',
+  100000002: 'InternalReact',
+};
+
+// Map approval state strings to Dataverse choice values
+const APPROVAL_STATE_MAP: Record<string, 100000000 | 100000001 | 100000002 | 100000003> = {
+  'Pending': 100000000,
+  'Approved': 100000001,
+  'Rejected': 100000002,
+  'AutoExecuted': 100000003,
+};
+
+/**
+ * Convert a jw_tool Dataverse record (from expanded jw_agenttool) to a ToolDefinition.
+ */
+function dvToolToDefinition(dvTool: Record<string, unknown>): ToolDefinition {
+  let inputSchema: Record<string, unknown> = {};
+  try {
+    if (dvTool.jw_inputschema) {
+      inputSchema = JSON.parse(dvTool.jw_inputschema as string);
+    }
+  } catch { /* empty schema */ }
+
+  const endpointTypeNum = dvTool.jw_endpointtype as number | undefined;
+  const endpointType: EndpointType = ENDPOINT_TYPE_MAP[endpointTypeNum ?? 100000002] ?? 'InternalReact';
+
+  // Boolean: Dataverse may return true/false or 0/1
+  const requiresApproval = dvTool.jw_requiresapproval === true ||
+    dvTool.jw_requiresapproval === 1 ||
+    dvTool.jw_requiresapproval === '1';
+
+  return {
+    id: dvTool.jw_toolid as string,
+    name: dvTool.jw_name as string,
+    description: (dvTool.jw_description as string) ?? '',
+    inputSchema,
+    requiresApproval,
+    endpointType,
+    executionTarget: (dvTool.jw_executiontarget as string) ?? undefined,
+  };
 }
 
 export function useAgentChat(threadId: string | null) {
@@ -45,32 +94,62 @@ export function useAgentChat(threadId: string | null) {
   const abortRef = useRef<AbortController | null>(null);
   const approvalResolvers = useRef<Map<string, ApprovalResolver>>(new Map());
 
-  /** Load agent definition from Dataverse including tools. */
+  /**
+   * Load agent definition from Dataverse including tools.
+   * DYNAMIC TOOL LOADING: Attempts to load tools from jw_agenttool junction.
+   * Falls back to BUILTIN_TOOL_DEFINITIONS if no tools are linked in Dataverse.
+   * InternalReact tools from Dataverse must have a matching handler in BUILTIN_TOOLS.
+   */
   const loadAgent = useCallback(async (agentId: string) => {
     try {
-      const result = await jwAgents.get(agentId);
-      const agentRecord = result.data;
+      // Try loading with expanded tools first
+      let agentRecord: Record<string, unknown> | null = null;
+      let dynamicTools: ToolDefinition[] = [];
+
+      try {
+        const expandedResult = await getAgentWithTools(agentId);
+        agentRecord = expandedResult.data as unknown as Record<string, unknown>;
+
+        // Extract tools from expanded junction records
+        const junctionRecords = (agentRecord?.jw_agent_jw_agenttool ?? []) as Array<Record<string, unknown>>;
+        for (const junction of junctionRecords) {
+          const expandedTool = junction.jw_toolid as Record<string, unknown> | undefined;
+          if (expandedTool?.jw_toolid && expandedTool?.jw_name) {
+            const toolDef = dvToolToDefinition(expandedTool);
+
+            // For InternalReact tools, verify handler exists
+            if (toolDef.endpointType === 'InternalReact' && !BUILTIN_TOOLS[toolDef.name]) {
+              continue; // Skip tools without handlers
+            }
+            dynamicTools.push(toolDef);
+          }
+        }
+      } catch {
+        // Expand failed — fall back to simple get
+        const simpleResult = await jwAgents.get(agentId);
+        agentRecord = simpleResult.data as unknown as Record<string, unknown>;
+      }
+
       if (!agentRecord) throw new Error('Agent not found');
 
       // Parse model config
       let modelConfig = {};
       try {
-        if (agentRecord.jw_modelconfig) {
-          modelConfig = JSON.parse(agentRecord.jw_modelconfig);
-        }
-      } catch {
-        // Use defaults
-      }
+        const configStr = agentRecord.jw_modelconfig as string;
+        if (configStr) modelConfig = JSON.parse(configStr);
+      } catch { /* defaults */ }
 
-      // For now, use builtin tools. Later: load from jw_agenttool junction
-      const tools: ToolDefinition[] = [...BUILTIN_TOOL_DEFINITIONS];
+      // Hybrid: use dynamic tools if available, otherwise fall back to builtins
+      const tools: ToolDefinition[] = dynamicTools.length > 0
+        ? dynamicTools
+        : [...BUILTIN_TOOL_DEFINITIONS];
 
       const agentDef: AgentDefinition = {
-        id: agentRecord.jw_agentid,
-        name: agentRecord.jw_name,
-        systemPrompt: agentRecord.jw_systemprompt ?? 'You are a helpful assistant.',
+        id: agentRecord.jw_agentid as string,
+        name: agentRecord.jw_name as string,
+        systemPrompt: (agentRecord.jw_systemprompt as string) ?? 'You are a helpful assistant.',
         modelConfig: modelConfig as AgentDefinition['modelConfig'],
-        allowMcp: agentRecord.jw_allowmcp === 1,
+        allowMcp: agentRecord.jw_allowmcp === true || agentRecord.jw_allowmcp === 1,
         tools,
       };
 
@@ -186,14 +265,19 @@ export function useAgentChat(threadId: string | null) {
     // Create abort controller
     abortRef.current = new AbortController();
 
-    // Create tool executor with HitL
+    // Collect tool execution records for post-loop audit
+    const toolExecutionRecords: ToolExecutionRecord[] = [];
+
+    // Create tool executor with HitL + audit collection
     const executor = createToolExecutor({
       onEvent: handleEvent,
       onApprovalRequired: (toolCall) => {
         return new Promise<{ approved: boolean; editedArgs?: Record<string, unknown> }>((resolve) => {
           approvalResolvers.current.set(toolCall.callId, { resolve });
-          // The UI will show ApprovalForm and call approveToolCall/rejectToolCall
         });
+      },
+      onToolExecuted: (record) => {
+        toolExecutionRecords.push(record);
       },
     });
 
@@ -207,12 +291,15 @@ export function useAgentChat(threadId: string | null) {
         signal: abortRef.current.signal,
       });
 
-      // Persist assistant messages to Dataverse
+      // Persist new messages and create tool execution audit records
       const newMessages = resultMessages.slice(allMessages.length);
-      for (const msg of newMessages) {
+      const persistedMessageIds: Map<number, string> = new Map(); // index → messageId
+
+      for (let i = 0; i < newMessages.length; i++) {
+        const msg = newMessages[i];
         if (msg.role === 'assistant' || msg.role === 'tool') {
           try {
-            await createMessage({
+            const msgResult = await createMessage({
               threadId,
               role: msg.role,
               content: msg.content ?? undefined,
@@ -220,9 +307,42 @@ export function useAgentChat(threadId: string | null) {
               toolCallId: msg.tool_call_id,
               name: msg.name,
             });
+            const msgId = (msgResult.data as unknown as Record<string, unknown>)?.jw_messageid as string;
+            if (msgId) persistedMessageIds.set(i, msgId);
           } catch {
             // Non-critical
           }
+        }
+      }
+
+      // Create tool execution audit records (post-loop linkage)
+      // Link each tool execution to the assistant message that triggered it
+      for (const execRecord of toolExecutionRecords) {
+        try {
+          // Find the assistant message that contains this tool call
+          let messageId: string | undefined;
+          for (let i = 0; i < newMessages.length; i++) {
+            const msg = newMessages[i];
+            if (msg.role === 'assistant' && msg.tool_calls?.some(tc => tc.id === execRecord.callId)) {
+              messageId = persistedMessageIds.get(i);
+              break;
+            }
+          }
+
+          if (messageId) {
+            await createToolExecution({
+              messageId,
+              toolId: execRecord.toolId ?? 'unknown',
+              callId: execRecord.callId,
+              requestPayload: JSON.stringify(execRecord.requestPayload),
+              approvalState: APPROVAL_STATE_MAP[execRecord.approvalState] ?? 100000003,
+              responsePayload: execRecord.responsePayload
+                ? JSON.stringify(execRecord.responsePayload)
+                : undefined,
+            });
+          }
+        } catch {
+          // Non-critical — audit record creation should not break the chat
         }
       }
     } catch (err) {

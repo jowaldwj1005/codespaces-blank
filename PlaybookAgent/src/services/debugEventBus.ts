@@ -7,7 +7,7 @@ export interface DebugEvent {
   id: string;
   timestamp: number;
   operation: string;
-  source: 'dataverse' | 'connector';
+  source: 'dataverse' | 'connector' | 'agent-loop';
   status: 'pending' | 'success' | 'error';
   durationMs?: number;
   input?: unknown;

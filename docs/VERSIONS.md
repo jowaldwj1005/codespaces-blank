@@ -5,6 +5,69 @@
 
 ---
 
+## v0.7.0 — Full Agent Toolkit (2026-03-24)
+
+### What Was Done
+
+**5 major features implemented in one sprint:**
+
+**A. Connector Wiring** — SAP + Doc Intelligence as real agent tools:
+- `query_sap`: Calls SAP OData via Power Automate proxy (GET/POST/PATCH/DELETE)
+- `analyze_document`: Azure Doc Intelligence full async flow → returns markdown
+- `toolExecutor.ts`: `CONNECTOR_HANDLERS` routing map — CustomConnector tools now execute real connectors instead of returning placeholders
+- Every connector tool execution emits debug events
+
+**B. Playbook Execution Engine** — Full playbook lifecycle:
+- `start_playbook`: Creates case → links to playbook → links thread to case via jw_threadcases → loads all instructions → initializes case context JSON
+- `complete_instruction`: Marks instructions done in case context → auto-completes case when all instructions finished
+- `save_artifact`: Saves typed artifacts (Report, Analysis, Invoice, SAP_Order, Document) linked to case with versioning support (parentArtifactId)
+
+**C. HitL Audit Trail** — Every tool call gets a Dataverse record:
+- `ToolExecutionRecord` collected during agent loop (callId, args, response, approvalState, duration)
+- Post-loop: creates `jw_toolexecution` records linked to the persisted assistant messages
+- Approval states: Pending/Approved/Rejected/AutoExecuted
+
+**D. Dynamic Tool Loading** — Tools loaded from Dataverse, not hardcoded:
+- `useAgentChat.loadAgent()` now calls `getAgentWithTools()` to expand jw_agenttool junction
+- Maps jw_tool Dataverse records to ToolDefinition (endpointType enum → string, JSON inputSchema parsing)
+- Hybrid fallback: if agent has tools linked in Dataverse → use those; if not → BUILTIN_TOOL_DEFINITIONS
+- InternalReact tools validated against BUILTIN_TOOLS handler map
+
+**E. Debug Console Upgrade** — Modern debug experience:
+- Source filters: All / Dataverse / Connectors / Agent Loop
+- Status filters: All / Success / Error / Pending
+- Search box (filter by operation name or input)
+- Stats bar: total events, errors, avg latency, per-source breakdown
+- Collapsible JSON blocks (Request/Response/Error/Raw) with line counts
+- Event cards with colored badges, duration
+
+**Seed Data**: 12 tools (was 7), 12 agent-tool links, updated General Assistant prompt with all new capabilities.
+
+### How to Test
+
+1. **Run Seed**: Seed panel → run → creates all 12 tools + links
+2. **Dynamic tools**: Start a new thread → General Assistant loads tools from Dataverse (check Debug panel for expand query)
+3. **SAP query**: In chat: "Query SAP sales orders at /API_SALES_ORDER_SRV/A_SalesOrder" → approval form → executes
+4. **Doc Intelligence**: "Analyze the document at https://example.com/invoice.pdf" → full async flow
+5. **Start Playbook**: "Start the Data Exploration playbook" → creates case + loads instructions
+6. **Complete Instructions**: Follow each step → agent marks complete → case auto-completes
+7. **Save Artifact**: "Save the analysis as a Report artifact" → creates jw_artifact linked to case
+8. **HitL Audit**: After any approved tool call, check jw_toolexecutions table in Debug/Explorer
+9. **Debug Console**: Switch to Debug tab → use filters/search → expand events to see request/response JSON
+
+### Questions for You
+
+**Q1: SAP query_sap — should GET requests also require approval?**
+Currently all SAP operations require HitL approval. For read-only GETs, should we auto-execute and only gate writes (POST/PATCH/DELETE)? Could be a jw_agenttool.jw_data config.
+
+**Q2: Playbook step ordering**
+Instructions are currently sorted by `jw_name asc`. Should we add a `jw_ordernumber` field to jw_instruction for explicit ordering? (Would need a Dataverse schema change.)
+
+**Q3: Artifact versioning UX**
+When `parentArtifactId` is set, we have a version chain. Should v0.8.0 include a version diff viewer in the Artifact panel?
+
+---
+
 ## v0.6.0 — Admin Workspace & AI-Assisted CRUD (2026-03-24)
 
 ### What Was Done
