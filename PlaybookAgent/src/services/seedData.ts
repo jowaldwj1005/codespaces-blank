@@ -286,9 +286,10 @@ export function getGeneralAssistantSeedData(): SeedRecord[] {
         jw_requiresapproval: 0,
         jw_inputschema: JSON.stringify({
           type: 'object',
+          description: 'Provide either urlSource OR base64Source (at least one required)',
           properties: {
             urlSource: { type: 'string', description: 'Public URL of the document' },
-            base64Source: { type: 'string', description: 'Base64-encoded document' },
+            base64Source: { type: 'string', description: 'Base64-encoded document content' },
           },
         }),
       },

@@ -61,6 +61,7 @@ async function handleCreateVisual(args: Record<string, unknown>): Promise<unknow
 
   // Save as artifact when caseId is provided (default type: Chart)
   let artifactId: string | undefined;
+  let artifactError: string | undefined;
   if (input.caseId) {
     try {
       const result = await createArtifact({
@@ -70,12 +71,12 @@ async function handleCreateVisual(args: Record<string, unknown>): Promise<unknow
         caseId: input.caseId,
       });
       artifactId = result.data?.jw_artifactid;
-    } catch {
-      // Non-critical — visual still renders even if artifact save fails
+    } catch (err) {
+      artifactError = err instanceof Error ? err.message : String(err);
     }
   }
 
-  return { visualId, artifactId, chartType: input.chartType, title: input.title };
+  return { visualId, artifactId, artifactError, chartType: input.chartType, title: input.title };
 }
 
 async function handleExit(args: Record<string, unknown>): Promise<unknown> {
@@ -332,7 +333,7 @@ async function handleStartPlaybook(args: Record<string, unknown>): Promise<unkno
 
     // 2. Create case linked to playbook
     const caseRecord: Record<string, unknown> = {
-      jw_title: title || `${playbook.jw_name} — Case`,
+      jw_title: title || `${playbook.jw_name || 'Unnamed Playbook'} — Case`,
       jw_status: 100000000, // Active
       'jw_playbookid@odata.bind': lookupBind('jw_playbooks', playbookId),
     };
@@ -344,7 +345,7 @@ async function handleStartPlaybook(args: Record<string, unknown>): Promise<unkno
     const threadCaseRecord: Record<string, unknown> = {
       'jw_threadid@odata.bind': lookupBind('jw_threads', threadId),
       'jw_caseid@odata.bind': lookupBind('jw_cases', caseId),
-      jw_name: `${playbook.jw_name} link`,
+      jw_name: `${playbook.jw_name || 'Playbook'} link`,
     };
     await dv.jwThreadCases.create(threadCaseRecord as never);
 
