@@ -85,7 +85,7 @@ export function getGeneralAssistantSeedData(): SeedRecord[] {
         jw_name: 'search_dataverse',
         jw_description: 'Search for Dataverse tables by intent. Returns matching tables with schema info.',
         jw_endpointtype: 100000002, // InternalReact
-        jw_requiresapproval: 0,
+        jw_requiresapproval: false,
         jw_inputschema: JSON.stringify({
           type: 'object',
           required: ['intent'],
@@ -102,7 +102,7 @@ export function getGeneralAssistantSeedData(): SeedRecord[] {
         jw_name: 'get_table_schema',
         jw_description: 'Get the schema (columns, types, keys) of a Dataverse table.',
         jw_endpointtype: 100000002,
-        jw_requiresapproval: 0,
+        jw_requiresapproval: false,
         jw_inputschema: JSON.stringify({
           type: 'object',
           required: ['logicalName'],
@@ -119,7 +119,7 @@ export function getGeneralAssistantSeedData(): SeedRecord[] {
         jw_name: 'execute_dataverse_query',
         jw_description: 'Execute an OData query against a Dataverse table. Returns up to 50 records.',
         jw_endpointtype: 100000002,
-        jw_requiresapproval: 0,
+        jw_requiresapproval: false,
         jw_inputschema: JSON.stringify({
           type: 'object',
           required: ['tablePluralName'],
@@ -140,7 +140,7 @@ export function getGeneralAssistantSeedData(): SeedRecord[] {
         jw_name: 'create_visual',
         jw_description: 'Create a visualization (chart or table) from data. Supports bar, line, pie, area, scatter, radar, treemap, table, 3d types. Rendered inline in chat. Optionally saves as artifact when caseId is provided.',
         jw_endpointtype: 100000002,
-        jw_requiresapproval: 0,
+        jw_requiresapproval: false,
         jw_inputschema: JSON.stringify({
           type: 'object',
           required: ['chartType', 'title', 'data'],
@@ -173,7 +173,7 @@ export function getGeneralAssistantSeedData(): SeedRecord[] {
         jw_name: 'create_dataverse_record',
         jw_description: 'Create a new record in a Dataverse table (agents, tools, playbooks, instructions, cases, artifacts). For boolean fields use true/false. For lookups use @odata.bind syntax.',
         jw_endpointtype: 100000002,
-        jw_requiresapproval: 1,
+        jw_requiresapproval: true,
         jw_inputschema: JSON.stringify({
           type: 'object',
           required: ['tablePluralName', 'data'],
@@ -191,7 +191,7 @@ export function getGeneralAssistantSeedData(): SeedRecord[] {
         jw_name: 'update_dataverse_record',
         jw_description: 'Update an existing Dataverse record. Only include fields you want to change.',
         jw_endpointtype: 100000002,
-        jw_requiresapproval: 1,
+        jw_requiresapproval: true,
         jw_inputschema: JSON.stringify({
           type: 'object',
           required: ['tablePluralName', 'recordId', 'data'],
@@ -210,7 +210,7 @@ export function getGeneralAssistantSeedData(): SeedRecord[] {
         jw_name: 'link_agent_tool',
         jw_description: 'Link a tool to an agent by creating a junction record. Makes the tool available to the agent in conversations.',
         jw_endpointtype: 100000002,
-        jw_requiresapproval: 0,
+        jw_requiresapproval: false,
         jw_inputschema: JSON.stringify({
           type: 'object',
           required: ['agentId', 'toolId'],
@@ -228,7 +228,7 @@ export function getGeneralAssistantSeedData(): SeedRecord[] {
         jw_name: 'exit',
         jw_description: 'End the conversation loop. Call this when the task is complete or the user says goodbye.',
         jw_endpointtype: 100000002,
-        jw_requiresapproval: 0,
+        jw_requiresapproval: false,
         jw_inputschema: JSON.stringify({
           type: 'object',
           properties: {
@@ -244,7 +244,7 @@ export function getGeneralAssistantSeedData(): SeedRecord[] {
         jw_name: 'delete_dataverse_record',
         jw_description: 'Delete a record from a Dataverse table. Only available when agent has allowDelete capability. Requires approval.',
         jw_endpointtype: 100000002,
-        jw_requiresapproval: 1,
+        jw_requiresapproval: true,
         jw_inputschema: JSON.stringify({
           type: 'object',
           required: ['tablePluralName', 'recordId'],
@@ -263,7 +263,7 @@ export function getGeneralAssistantSeedData(): SeedRecord[] {
         jw_name: 'query_sap',
         jw_description: 'Query SAP via OData (Power Automate proxy). GET for reads, POST/PATCH/DELETE for writes. Requires approval for all operations.',
         jw_endpointtype: 100000002,
-        jw_requiresapproval: 1,
+        jw_requiresapproval: true,
         jw_inputschema: JSON.stringify({
           type: 'object',
           required: ['relativePath'],
@@ -283,7 +283,7 @@ export function getGeneralAssistantSeedData(): SeedRecord[] {
         jw_name: 'analyze_document',
         jw_description: 'Analyze a document using Azure Document Intelligence (OCR + layout). Provide a URL or base64 content. Returns extracted text as markdown.',
         jw_endpointtype: 100000002,
-        jw_requiresapproval: 0,
+        jw_requiresapproval: false,
         jw_inputschema: JSON.stringify({
           type: 'object',
           description: 'Provide either urlSource OR base64Source (at least one required)',
@@ -302,7 +302,7 @@ export function getGeneralAssistantSeedData(): SeedRecord[] {
         jw_name: 'start_playbook',
         jw_description: 'Start a playbook execution. Creates a case, links thread, loads instructions for step-by-step execution.',
         jw_endpointtype: 100000002,
-        jw_requiresapproval: 1,
+        jw_requiresapproval: true,
         jw_inputschema: JSON.stringify({
           type: 'object',
           required: ['playbookId', 'threadId'],
@@ -321,7 +321,7 @@ export function getGeneralAssistantSeedData(): SeedRecord[] {
         jw_name: 'complete_instruction',
         jw_description: 'Mark a playbook instruction as completed. Tracks progress in case context. Marks case complete when all instructions are done.',
         jw_endpointtype: 100000002,
-        jw_requiresapproval: 0,
+        jw_requiresapproval: false,
         jw_inputschema: JSON.stringify({
           type: 'object',
           required: ['caseId', 'instructionId'],
@@ -340,7 +340,7 @@ export function getGeneralAssistantSeedData(): SeedRecord[] {
         jw_name: 'save_artifact',
         jw_description: 'Save an artifact (report, analysis, extracted data) to Dataverse. Link to a case for audit trail. Types: Chart, Report, Invoice, SAP_Order, Document, Analysis, Summary.',
         jw_endpointtype: 100000002,
-        jw_requiresapproval: 0,
+        jw_requiresapproval: false,
         jw_inputschema: JSON.stringify({
           type: 'object',
           required: ['type'],
@@ -362,7 +362,7 @@ export function getGeneralAssistantSeedData(): SeedRecord[] {
       data: {
         jw_name: 'General Assistant',
         jw_systemprompt: GENERAL_ASSISTANT_PROMPT,
-        jw_allowmcp: 1,
+        jw_allowmcp: true,
         jw_modelconfig: JSON.stringify({
           temperature: 0.7,
           max_completion_tokens: 2000,
