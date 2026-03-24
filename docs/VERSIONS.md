@@ -5,6 +5,64 @@
 
 ---
 
+## v0.5.3 — Bug Fixes + Design Sprint Results (2026-03-24)
+
+### Bug Fixes (3 of 5 confirmed bugs resolved)
+
+| Bug | Fix | File |
+|-----|-----|------|
+| MCP query options malformed | Changed `$select`/`$filter`/`$orderby`/`$top` to SDK-style `select`/`filter`/`orderBy`/`top`. Fixed `orderBy` to `string[]`. | dataverseMcp.ts:351-356 |
+| Tool-call replay broken | `tool_call_id` and `name` now persisted (in `jw_toolcalls` JSON + `jw_name`) and reconstructed on thread reload. | dataverse.ts, useAgentChat.ts |
+| System message duplication | Agent loop now always replaces system message with latest `agent.systemPrompt` instead of blindly prepending. | agentLoop.ts:39-47 |
+
+**Deferred bugs:**
+- **jw_toolexecution not wired** — needs arch change: messages are persisted AFTER the loop, so messageId isn't available during tool execution. Fix requires either in-loop persistence or post-loop linkage.
+- **SAP/Connector tool routing** — placeholder only. Needs connector tools defined in Dataverse first.
+
+### Design Sprint — v0.6.0 Scope: Dataverse CRUD MVP
+
+**Goal:** Enable creating/editing/deleting agents, tools, playbooks, instructions directly in the app — no Dataverse browser needed.
+
+**Architecture Decision: Generic CRUD + Specialized Views**
+
+The app is meta-data driven. Instead of hardcoding forms per entity, we build:
+
+1. **DataverseCrudPanel** — generic right-panel component that renders create/edit forms based on entity schema metadata (reuses STATIC_SCHEMAS from dataverseMcp.ts). Supports String, Memo, Boolean, Choice fields. Lookup fields rendered as searchable dropdowns.
+
+2. **Agent Config View** (specialized) — uses CRUD panel but adds:
+   - Tool binding UI (checkboxes from jw_tools, creates/deletes jw_agenttool junction records)
+   - System prompt editor (multiline with preview)
+   - Model config JSON editor
+   - "Test in Chat" button → opens thread with this agent
+
+3. **Record List View** — reusable list component (used in ThreadSidebar pattern) showing records with type badges, status, quick actions (edit/delete/duplicate).
+
+**Key Open Questions for You (jo):**
+
+**Q1: Agent vs Playbook distinction — still clear?**
+Current model: Agent = who (persona + tools + prompt), Playbook = what (workflow recipe with instructions). A case links a thread to a playbook. Does this still feel right, or do you want to merge/restructure?
+
+**Q2: Where should CRUD live in the UI?**
+- Option A: Right panels only (click entity in sidebar → edit in right panel)
+- Option B: Dedicated "Admin" workspace view (like DataverseExplorer but with edit capabilities)
+- Option C: Both — quick edit in right panel, full admin in dedicated view
+
+**Q3: AI-assisted entity creation — scope for v0.6.0?**
+You mentioned wanting an agent that helps create agents/tools/playbooks via chat. Should v0.6.0 include a basic `create_agent` / `create_tool` builtin tool, or is that v0.7.0?
+
+**Q4: Seed panel evolution**
+Currently hardcoded in seedData.ts. With CRUD in place, should the seed panel become a "template gallery" where you pick from predefined agent templates and customize before creating?
+
+### Remaining Bug Investigation Notes
+
+The codebase research confirmed:
+- `builtinTools.ts` has 6 tools, TABLE_GETALL_MAP covers all 15 tables
+- `connectors.ts` has working wrappers for Azure OpenAI, Doc Intelligence, SAP OData — but none are called from toolExecutor
+- `createToolExecution()` helper exists in dataverse.ts but requires messageId+toolId which aren't available in the current execution flow
+- Agent loop correctly passes tool_call_id/name to Azure OpenAI API (agentLoop.ts:64-65) — the bug was only in persistence
+
+---
+
 ## v0.5.1 — Critical Bugfixes: Boolean Fields & Error Handling (2026-03-23)
 
 ### What Was Done
