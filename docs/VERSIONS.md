@@ -5,6 +5,51 @@
 
 ---
 
+## v0.10.0 — Responses API Migration (2026-03-25)
+
+### What Was Done
+
+**Complete migration** from Chat Completions API to Azure OpenAI Responses API. New connector, new request/response format, web search support.
+
+**Azure OpenAI Responses API:**
+- Switched to `CustCon_AzureOpenAI_ResponsesService` connector (POST `/openai/responses`)
+- API version `2025-04-01-preview`
+- Request uses `input` array + `instructions` field instead of `messages`
+- Response uses typed `output` items: `reasoning`, `message`, `function_call`, `web_search_call`
+- Multi-turn via `previous_response_id` — avoids resending full conversation
+- **Web search**: Built-in `{ type: 'web_search' }` tool, toggle via `ModelConfig.web_search`
+- URL citations extracted from `output_text` annotations and shown in messages
+- Default model: `gpt-5.2`, `max_output_tokens: 4096`
+
+**Bug Fixes:**
+- `jw_status` string type fix — case creation was broken
+- Seed data N:N dedup — queries before creating agent-tool links
+- `reasoning_effort` default `undefined` instead of `'medium'` — was blocking temperature for GPT 5.2
+- CloudFlow tools now throw explicit errors instead of fake success
+- Doc Intelligence saves full `analyzeResult` as artifact
+
+### Connector Setup
+
+- **New connector required**: `CustCon_AzureOpenAI_Responses` pointing to `/openai/responses` endpoint
+- Sample payloads in `ContextFiles/customconnectorinformation/azureopenai_responses.txt`
+- The **old** `CustomConnector_AzureOpenAIService` (Chat Completions) is no longer used
+
+### How to Test
+
+1. **Basic chat**: Open a thread, send a message. Should get a response via Responses API.
+2. **Web search**: If agent has `web_search: true` in ModelConfig, search results appear as tool calls in the UI.
+3. **Reasoning**: With o-series model and `reasoning_effort` set, thought bubbles should appear.
+4. **Tool calls**: Function calls should work as before — same tool execution pipeline.
+5. **Token counter**: Shows Input/Output/Total (was Prompt/Completion/Total).
+
+### Questions for User
+
+1. Should we keep the old Chat Completions connector as a fallback, or fully remove it?
+2. Web search toggle — should this be per-agent in AdminWorkspace, or a global setting?
+3. The ConnectorTester now uses Responses API format. Do you want to keep a Chat Completions test mode?
+
+---
+
 ## v0.9.0 — Intelligence & Rich Output (2026-03-25)
 
 ### What Was Done

@@ -4,7 +4,7 @@
  * patterns (body, data, result, raw.success.data) and emits debug events.
  */
 
-import { CustomConnector_AzureOpenAIService } from '../generated/services/CustomConnector_AzureOpenAIService';
+import { CustCon_AzureOpenAI_ResponsesService } from '../generated/services/CustCon_AzureOpenAI_ResponsesService';
 import { CustCon_AzureDocIntService } from '../generated/services/CustCon_AzureDocIntService';
 import { CustCon_SAP_OdataService } from '../generated/services/CustCon_SAP_OdataService';
 import { tracedOperation } from './sdk';
@@ -73,120 +73,276 @@ function extractOperationId(raw: unknown): string | null {
   return null;
 }
 
-// ─── Azure OpenAI ────────────────────────────────────────────────────────────
+// ─── Azure OpenAI Responses API ─────────────────────────────────────────────
+// Uses the new CustCon_AzureOpenAI_Responses connector (POST /openai/responses)
+// This is the Responses API — NOT Chat Completions. Format is completely different.
 
-/** Central defaults for OpenAI parameters. Change here to affect all calls. */
 export type ReasoningEffort = 'low' | 'medium' | 'high';
 
 export const OPENAI_DEFAULTS = {
-  apiVersion: '2025-03-01-preview',
-  max_completion_tokens: 4096,
+  apiVersion: '2025-04-01-preview',
+  model: 'gpt-5.2',
+  max_output_tokens: 4096,
   temperature: 0.7,
   /** Reasoning effort — undefined means no reasoning (GPT models). Set per-agent for o-series. */
   reasoningEffort: undefined as ReasoningEffort | undefined,
+  /** Reasoning summary — 'auto' | 'detailed' | 'none'. Only used when reasoning is active. */
+  reasoningSummary: 'auto' as 'auto' | 'detailed' | 'none',
+  store: true,
 } as const;
 
-export interface ChatCompletionRequest {
-  messages: Array<{ role: string; content: string | ContentPart[] }>;
-  /** Model deployment name — e.g. 'gpt-5.2', 'o4-mini'. Sent in body for Responses API. */
-  model?: string;
-  temperature?: number;
-  max_completion_tokens?: number;
-  tools?: unknown[];
-  tool_choice?: string | object;
-  /** Reasoning configuration for o-series models (o4-mini, o3, etc.) */
-  reasoning?: {
-    effort?: ReasoningEffort;
-  };
-  /** Store the conversation for later retrieval (Responses API) */
-  store?: boolean;
-}
+// ─── Responses API Request Types ────────────────────────────────────────────
 
-/** Structured content parts for multimodal messages */
-export interface ContentPart {
-  type: 'text' | 'image_url';
+/** Input item for the Responses API `input` array */
+export type ResponseInputItem =
+  | { type: 'message'; role: 'user' | 'system' | 'developer'; content: ResponseInputContent[] | string }
+  | { type: 'function_call_output'; call_id: string; output: string };
+
+export interface ResponseInputContent {
+  type: 'input_text' | 'input_image';
   text?: string;
-  image_url?: { url: string; detail?: 'auto' | 'low' | 'high' };
+  image_url?: string;
+  detail?: 'auto' | 'low' | 'high';
 }
 
-export interface ChatCompletionResponse {
-  id?: string;
-  choices?: Array<{
-    message?: {
-      role?: string;
-      content?: string | null;
-      tool_calls?: Array<{
-        id: string;
-        type: string;
-        function: { name: string; arguments: string };
-      }>;
-      /** Reasoning content returned by o-series models (chain-of-thought summary) */
-      reasoning_content?: string | null;
-    };
-    finish_reason?: string;
-  }>;
-  usage?: {
-    prompt_tokens?: number;
-    completion_tokens?: number;
-    total_tokens?: number;
-    /** Detailed completion token breakdown (reasoning, cached, etc.) */
-    completion_tokens_details?: {
-      reasoning_tokens?: number;
-      accepted_prediction_tokens?: number;
-      rejected_prediction_tokens?: number;
-    };
-    /** Prompt token breakdown — cached_tokens shows cache hits */
-    prompt_tokens_details?: {
-      cached_tokens?: number;
-    };
+/** Tool definition for the Responses API */
+export type ResponseTool =
+  | { type: 'function'; name: string; description: string; parameters: Record<string, unknown>; strict?: boolean }
+  | { type: 'web_search'; search_context_size?: 'low' | 'medium' | 'high' };
+
+export interface ResponsesApiRequest {
+  model: string;
+  input: ResponseInputItem[];
+  instructions?: string;
+  tools?: ResponseTool[];
+  tool_choice?: 'auto' | 'required' | 'none';
+  /** Reasoning config — only for models that support it. summary controls thought visibility */
+  reasoning?: {
+    effort: ReasoningEffort;
+    summary?: 'auto' | 'detailed' | 'none';
   };
+  max_output_tokens?: number;
+  temperature?: number;
+  store?: boolean;
+  stream?: boolean;
+  background?: boolean;
+  /** Continue from a previous response — enables multi-turn without re-sending full input */
+  previous_response_id?: string;
+}
+
+// ─── Responses API Response Types ───────────────────────────────────────────
+
+/** Output item types from the Responses API */
+export type ResponseOutputItem =
+  | ResponseReasoningItem
+  | ResponseMessageItem
+  | ResponseFunctionCallItem
+  | ResponseWebSearchItem;
+
+export interface ResponseReasoningItem {
+  id: string;
+  type: 'reasoning';
+  summary: Array<{ type: 'summary_text'; text: string }>;
+}
+
+export interface ResponseMessageItem {
+  id: string;
+  type: 'message';
+  role: 'assistant';
+  status: 'completed' | 'in_progress';
+  content: Array<{
+    type: 'output_text';
+    text: string;
+    annotations?: Array<{
+      type: 'url_citation';
+      url: string;
+      title?: string;
+      start_index: number;
+      end_index: number;
+    }>;
+  }>;
+}
+
+export interface ResponseFunctionCallItem {
+  id: string;
+  type: 'function_call';
+  status: 'completed';
+  name: string;
+  arguments: string;
+  call_id: string;
+}
+
+export interface ResponseWebSearchItem {
+  id: string;
+  type: 'web_search_call';
+  status: 'completed' | 'searching';
+  action?: {
+    type: 'search' | 'open_page';
+    queries?: string[];
+    query?: string;
+    url?: string;
+  };
+}
+
+export interface ResponsesApiResponse {
+  id: string;
+  object: 'response';
+  status: 'completed' | 'failed' | 'in_progress' | 'incomplete';
+  model: string;
+  output: ResponseOutputItem[];
+  usage?: {
+    input_tokens: number;
+    output_tokens: number;
+    total_tokens: number;
+    input_tokens_details?: { cached_tokens: number };
+    output_tokens_details?: { reasoning_tokens: number };
+  };
+  error?: unknown;
+  /** The tools that were available (echoed back) */
+  tools?: ResponseTool[];
 }
 
 /** Extended token usage with reasoning and cache breakdown */
 export interface ExtendedTokenUsage {
-  promptTokens: number;
-  completionTokens: number;
+  inputTokens: number;
+  outputTokens: number;
   totalTokens: number;
   reasoningTokens: number;
   cachedTokens: number;
 }
 
-export const azureOpenAI = {
-  chatCompletion: (request: ChatCompletionRequest, apiVersion = OPENAI_DEFAULTS.apiVersion) => {
-    const reasoningEffort = request.reasoning?.effort ?? OPENAI_DEFAULTS.reasoningEffort;
-    const hasReasoning = !!reasoningEffort;
+// ─── Responses API Client ───────────────────────────────────────────────────
 
-    // Build body — reasoning models don't accept temperature or top_p
+export const azureOpenAI = {
+  /**
+   * Send a request to the Azure OpenAI Responses API.
+   * Returns the full ResponsesApiResponse with typed output items.
+   */
+  createResponse: (request: ResponsesApiRequest, apiVersion = OPENAI_DEFAULTS.apiVersion) => {
     const body: Record<string, unknown> = {
-      ...request,
-      max_completion_tokens: request.max_completion_tokens ?? OPENAI_DEFAULTS.max_completion_tokens,
+      model: request.model || OPENAI_DEFAULTS.model,
+      input: request.input,
+      stream: false,
+      background: false,
+      store: request.store ?? OPENAI_DEFAULTS.store,
     };
 
-    // Only set temperature for non-reasoning models (o-series rejects it)
-    if (!hasReasoning) {
-      body.temperature = request.temperature ?? OPENAI_DEFAULTS.temperature;
-    } else {
-      delete body.temperature;
-      body.reasoning = { effort: reasoningEffort };
+    // Instructions (system prompt) — goes in `instructions` field, not as a message
+    if (request.instructions) {
+      body.instructions = request.instructions;
     }
 
-    // Pass model if specified (per-agent model selection)
-    if (request.model) {
-      body.model = request.model;
+    // Tools
+    if (request.tools && request.tools.length > 0) {
+      body.tools = request.tools;
+      body.tool_choice = request.tool_choice ?? 'auto';
+    }
+
+    // Reasoning — only add if explicitly set
+    if (request.reasoning) {
+      body.reasoning = {
+        effort: request.reasoning.effort,
+        summary: request.reasoning.summary ?? OPENAI_DEFAULTS.reasoningSummary,
+      };
+    }
+
+    // Max output tokens
+    if (request.max_output_tokens) {
+      body.max_output_tokens = request.max_output_tokens;
+    }
+
+    // Temperature
+    if (request.temperature !== undefined) {
+      body.temperature = request.temperature;
+    }
+
+    // Multi-turn continuation
+    if (request.previous_response_id) {
+      body.previous_response_id = request.previous_response_id;
     }
 
     return tracedOperation<void>(
-      'AzureOpenAI.chatCompletion',
+      'AzureOpenAI.createResponse',
       'connector',
       { apiVersion, body },
       () =>
-        CustomConnector_AzureOpenAIService.chat_completion(apiVersion, body as unknown as Record<string, unknown>)
+        CustCon_AzureOpenAI_ResponsesService.response_post(apiVersion, body)
     ).then((result: IOperationResult<void>) => {
-      const normalized = normalizeConnectorResponse(result) as ChatCompletionResponse;
+      const normalized = normalizeConnectorResponse(result) as ResponsesApiResponse;
+      return { raw: result, normalized };
+    });
+  },
+
+  /**
+   * Retrieve a previous response by ID (GET /openai/v1/responses/:id)
+   */
+  getResponse: (responseId: string) => {
+    return tracedOperation<void>(
+      'AzureOpenAI.getResponse',
+      'connector',
+      { responseId },
+      () =>
+        CustCon_AzureOpenAI_ResponsesService.response_get(responseId)
+    ).then((result: IOperationResult<void>) => {
+      const normalized = normalizeConnectorResponse(result) as ResponsesApiResponse;
       return { raw: result, normalized };
     });
   },
 };
+
+// ─── Response Helpers ───────────────────────────────────────────────────────
+
+/** Extract all text content from a Responses API response */
+export function extractResponseText(response: ResponsesApiResponse): string {
+  return response.output
+    .filter((item): item is ResponseMessageItem => item.type === 'message')
+    .flatMap(msg => msg.content.filter(c => c.type === 'output_text').map(c => c.text))
+    .join('\n\n');
+}
+
+/** Extract all function calls from a Responses API response */
+export function extractFunctionCalls(response: ResponsesApiResponse): ResponseFunctionCallItem[] {
+  return response.output.filter(
+    (item): item is ResponseFunctionCallItem => item.type === 'function_call'
+  );
+}
+
+/** Extract all reasoning summaries from a Responses API response */
+export function extractReasoningSummaries(response: ResponsesApiResponse): string[] {
+  return response.output
+    .filter((item): item is ResponseReasoningItem => item.type === 'reasoning')
+    .flatMap(r => r.summary.map(s => s.text))
+    .filter(Boolean);
+}
+
+/** Extract web search calls from a Responses API response */
+export function extractWebSearchCalls(response: ResponsesApiResponse): ResponseWebSearchItem[] {
+  return response.output.filter(
+    (item): item is ResponseWebSearchItem => item.type === 'web_search_call'
+  );
+}
+
+/** Extract URL citations from message output */
+export function extractCitations(response: ResponsesApiResponse): Array<{ url: string; title?: string }> {
+  return response.output
+    .filter((item): item is ResponseMessageItem => item.type === 'message')
+    .flatMap(msg => msg.content)
+    .flatMap(c => c.annotations ?? [])
+    .filter(a => a.type === 'url_citation')
+    .map(a => ({ url: a.url, title: a.title }));
+}
+
+/** Extract token usage from response into our ExtendedTokenUsage format */
+export function extractTokenUsage(response: ResponsesApiResponse): ExtendedTokenUsage {
+  const u = response.usage;
+  return {
+    inputTokens: u?.input_tokens ?? 0,
+    outputTokens: u?.output_tokens ?? 0,
+    totalTokens: u?.total_tokens ?? 0,
+    reasoningTokens: u?.output_tokens_details?.reasoning_tokens ?? 0,
+    cachedTokens: u?.input_tokens_details?.cached_tokens ?? 0,
+  };
+}
 
 // ─── Azure Document Intelligence ─────────────────────────────────────────────
 

@@ -85,7 +85,7 @@ export function useAgentChat(threadId: string | null) {
   const [state, setState] = useState<AgentChatState>({
     messages: [],
     status: 'idle',
-    tokenUsage: { promptTokens: 0, completionTokens: 0, totalTokens: 0 },
+    tokenUsage: { inputTokens: 0, outputTokens: 0, totalTokens: 0 },
     pendingApprovals: [],
     visualizations: [],
   });
@@ -284,11 +284,11 @@ export function useAgentChat(threadId: string | null) {
     try {
       const allMessages = [...state.messages, userMsg];
       // Track cumulative token usage for persistence
-      let finalTokenUsage: { promptTokens: number; completionTokens: number } | undefined;
+      let finalTokenUsage: { inputTokens: number; outputTokens: number } | undefined;
       const tokenTrackingHandler = (event: AgentEvent) => {
         handleEvent(event);
         if (event.type === 'token_update') {
-          finalTokenUsage = { promptTokens: event.usage.promptTokens, completionTokens: event.usage.completionTokens };
+          finalTokenUsage = { inputTokens: event.usage.inputTokens, outputTokens: event.usage.outputTokens };
         }
       };
 
@@ -319,7 +319,7 @@ export function useAgentChat(threadId: string | null) {
               toolCalls: msg.tool_calls ? JSON.stringify(msg.tool_calls) : undefined,
               toolCallId: msg.tool_call_id,
               name: msg.name,
-              ...(isLastAssistant ? { tokenPrompt: finalTokenUsage!.promptTokens, tokenCompletion: finalTokenUsage!.completionTokens } : {}),
+              ...(isLastAssistant ? { tokenPrompt: finalTokenUsage!.inputTokens, tokenCompletion: finalTokenUsage!.outputTokens } : {}),
             });
             const msgId = (msgResult.data as unknown as Record<string, unknown>)?.jw_messageid as string;
             if (msgId) persistedMessageIds.set(i, msgId);

@@ -1,8 +1,8 @@
 import { useState } from 'react';
 import type { RightPanel } from '../../App';
 
-export const APP_VERSION = '0.9.1';
-const VERSION_SUMMARY = 'Case-centric tabbed workspace: CaseSidebar, WorkspaceTabs, CaseCanvas, dynamic tabs.';
+export const APP_VERSION = '0.10.0';
+const VERSION_SUMMARY = 'Responses API migration: new connector, web search, multi-turn, reasoning summaries.';
 
 interface AppHeaderProps {
   rightPanel: RightPanel;

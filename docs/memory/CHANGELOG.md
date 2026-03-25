@@ -1,5 +1,32 @@
 # Changelog - Playbook Agent
 
+## v0.10.0 (2026-03-25)
+### Changed — Azure OpenAI Responses API Migration
+- **New Connector**: Switched from `CustomConnector_AzureOpenAIService` (Chat Completions) to `CustCon_AzureOpenAI_ResponsesService` (Responses API)
+- **API Version**: `2025-04-01-preview` (was `2025-01-01-preview`)
+- **Request Format**: `input` array + `instructions` field (was `messages` array)
+- **Response Format**: Typed `output` items (reasoning, message, function_call, web_search_call)
+- **Multi-turn**: `previous_response_id` for efficient context continuation
+- **Web Search**: Built-in `web_search` tool toggle via `ModelConfig.web_search`
+- **Token naming**: `inputTokens`/`outputTokens` (was `promptTokens`/`completionTokens`)
+- **Default model**: `gpt-5.2` with `max_output_tokens: 4096`
+
+### Fixed — Critical Bugs
+- **jw_status string type**: Case creation failed because `jw_status` was passed as number instead of string (`'100000000'`)
+- **Seed data N:N dedup**: Agent-tool junctions now query before creating to prevent duplicates (Dataverse doesn't enforce uniqueness on custom junctions)
+- **reasoning_effort default**: Changed from `'medium'` to `undefined` — was preventing temperature from being sent for non-reasoning models (GPT 5.2)
+- **CloudFlow tools**: Now throws explicit error instead of returning fake `not_implemented` success
+- **Doc Intelligence artifacts**: `handleAnalyzeDocument` now saves full `analyzeResult` as `DocumentAnalysis` artifact
+
+### Updated
+- `connectors.ts` — Complete rewrite for Responses API types and client
+- `agentLoop.ts` — Complete rewrite for Responses API input/output format
+- `toolExecutor.ts` — Updated connector handler from `chatCompletion` to `createResponse`
+- `useConnectors.ts` — Updated to use `ResponsesApiRequest` and `createResponse`
+- `ConnectorTester.tsx` — Updated for Responses API request format
+- `CONNECTOR_PATTERNS.md` — Rewritten for Responses API
+- `CLAUDE.md` — Updated connector references
+
 ## v0.9.0 (2026-03-25)
 ### Added — Intelligence & Rich Output
 - **Responses API**: Upgraded to `2025-03-01-preview`, added reasoning support (o-series models), `reasoning_effort` config

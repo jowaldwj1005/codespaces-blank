@@ -1,6 +1,6 @@
 import { useState, useCallback } from 'react';
 import { azureOpenAI, azureDocIntelligence, sapOData } from '../services/connectors';
-import type { ChatCompletionRequest, SapODataRequest, AnalyzeDocumentRequest } from '../services/connectors';
+import type { ResponsesApiRequest, SapODataRequest, AnalyzeDocumentRequest } from '../services/connectors';
 
 interface UseConnectorState {
   result: unknown | null;
@@ -17,10 +17,10 @@ export function useConnectors() {
     pollingStatus: null,
   });
 
-  const callOpenAI = useCallback(async (request: ChatCompletionRequest) => {
+  const callOpenAI = useCallback(async (request: ResponsesApiRequest) => {
     setState({ result: null, loading: true, error: null, pollingStatus: null });
     try {
-      const response = await azureOpenAI.chatCompletion(request);
+      const response = await azureOpenAI.createResponse(request);
       setState({ result: response, loading: false, error: null, pollingStatus: null });
       return response;
     } catch (err: unknown) {

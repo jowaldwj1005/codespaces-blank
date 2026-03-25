@@ -733,7 +733,7 @@ export function createThread(opts: {
   const record: Record<string, unknown> = {
     'jw_agentid@odata.bind': lookupBind('jw_agents', opts.agentId),
     jw_title: opts.title,
-    jw_status: 100000000, // Active
+    jw_status: '100000000', // Active
   };
   if (opts.parentThreadId) {
     record['jw_parentthreadid@odata.bind'] = lookupBind('jw_threads', opts.parentThreadId);

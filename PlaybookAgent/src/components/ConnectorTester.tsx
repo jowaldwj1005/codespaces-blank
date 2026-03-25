@@ -19,7 +19,7 @@ export function ConnectorTester() {
 
   // ─── OpenAI defaults ───
   const [chatMessage, setChatMessage] = useState('Hello, who are you?');
-  const [maxTokens, setMaxTokens] = useState<number>(OPENAI_DEFAULTS.max_completion_tokens);
+  const [maxTokens, setMaxTokens] = useState<number>(OPENAI_DEFAULTS.max_output_tokens);
   const [temperature, setTemperature] = useState<number>(OPENAI_DEFAULTS.temperature);
 
   // ─── Doc Intelligence defaults ───
@@ -36,12 +36,13 @@ export function ConnectorTester() {
     switch (connector) {
       case 'openai':
         callOpenAI({
-          messages: [
-            { role: 'system', content: 'You are a helpful assistant.' },
-            { role: 'user', content: chatMessage },
+          model: OPENAI_DEFAULTS.model,
+          instructions: 'You are a helpful assistant.',
+          input: [
+            { type: 'message', role: 'user', content: [{ type: 'input_text', text: chatMessage }] },
           ],
           temperature,
-          max_completion_tokens: maxTokens,
+          max_output_tokens: maxTokens,
         });
         break;
       case 'docint':
@@ -120,7 +121,7 @@ export function ConnectorTester() {
           </label>
           <div style={{ display: 'flex', gap: 12 }}>
             <label>
-              max_completion_tokens:{' '}
+              max_output_tokens:{' '}
               <input
                 type="number"
                 value={maxTokens}

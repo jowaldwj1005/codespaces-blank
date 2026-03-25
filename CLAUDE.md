@@ -1,7 +1,7 @@
 # CLAUDE.md - Playbook Agent
 
-**App Version:** 0.9.0
-**Phase:** Intelligence & Rich Output — Responses API with reasoning, code-based data tools, rich Markdown streaming UI
+**App Version:** 0.10.0
+**Phase:** Responses API Migration — New connector, web search, multi-turn continuation, rich output
 
 ## Quick Context
 
@@ -108,7 +108,7 @@ src/App.tsx                  → Workspace shell: sidebar + main content + optio
 ### Custom Connectors
 | Service | Connector | Key Params |
 |---|---|---|
-| `CustomConnector_AzureOpenAIService` | Azure OpenAI | `max_completion_tokens` (NOT max_tokens), api `2025-01-01-preview` |
+| `CustCon_AzureOpenAI_ResponsesService` | Azure OpenAI (Responses API) | `max_output_tokens`, api `2025-04-01-preview`, model in body |
 | `CustCon_AzureDocIntService` | Doc Intelligence | Async: submit → poll Operation-Location → get result |
 | `CustCon_SAP_OdataService` | SAP OData | api `2024-10-01`, via Power Automate proxy flow |
 

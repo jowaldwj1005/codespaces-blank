@@ -6,7 +6,7 @@
 
 import {
   jwAgents, jwTools, jwPlaybooks, jwInstructions,
-  linkAgentTool,
+  jwAgentTools, linkAgentTool,
 } from './dataverse';
 import { lookupBind } from './sdk';
 import type { Jw_agents } from '../generated/models/Jw_agentsModel';
@@ -441,10 +441,11 @@ export function getGeneralAssistantSeedData(): SeedRecord[] {
         jw_systemprompt: GENERAL_ASSISTANT_PROMPT,
         jw_allowmcp: true,
         jw_modelconfig: JSON.stringify({
+          model: 'gpt-5.2',
           temperature: 0.7,
-          max_completion_tokens: 4096,
+          max_output_tokens: 4096,
           tool_choice: 'auto',
-          reasoning_effort: 'medium',
+          web_search: true,
         }),
       },
     },
@@ -617,11 +618,23 @@ export async function executeSeed(
             record.error = `Missing ${!agentId ? 'agent' : 'tool'} ID — parent record likely failed to create`;
             break;
           }
+          // Check if link already exists BEFORE creating (prevents N:N duplicates)
+          try {
+            const existing = await jwAgentTools.getAll({
+              filter: `_jw_agentid_value eq '${agentId}' and _jw_toolid_value eq '${toolId}'`,
+              top: 1,
+            } as Parameters<typeof jwAgentTools.getAll>[0]);
+            if ((existing.data ?? []).length > 0) {
+              record.status = 'exists';
+              break;
+            }
+          } catch {
+            // If query fails, try creating anyway
+          }
           try {
             await linkAgentTool(agentId, toolId);
             record.status = 'created';
           } catch (linkErr) {
-            // Check if it's a duplicate (already exists) vs real error
             const msg = linkErr instanceof Error ? linkErr.message : String(linkErr);
             if (msg.toLowerCase().includes('duplicate') || msg.includes('0x80040237')) {
               record.status = 'exists';

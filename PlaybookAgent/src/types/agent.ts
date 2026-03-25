@@ -11,8 +11,10 @@ export interface ChatMessage {
   tool_calls?: ToolCall[];
   tool_call_id?: string;
   name?: string;
-  /** Chain-of-thought reasoning from o-series models */
+  /** Chain-of-thought reasoning summaries from Responses API */
   reasoning_content?: string;
+  /** URL citations from web search results (Responses API) */
+  citations?: Array<{ url: string; title?: string }>;
 }
 
 export interface ToolCall {
@@ -41,10 +43,14 @@ export interface ModelConfig {
   /** Model deployment name (e.g. 'gpt-5.2', 'o4-mini'). Passed in body for Responses API. */
   model?: string;
   temperature?: number;
+  max_output_tokens?: number;
+  /** @deprecated Use max_output_tokens instead (Responses API naming) */
   max_completion_tokens?: number;
-  tool_choice?: 'auto' | 'required' | 'none' | { type: 'function'; function: { name: string } };
-  /** Reasoning effort for o-series models: 'low' | 'medium' | 'high' */
+  tool_choice?: 'auto' | 'required' | 'none';
+  /** Reasoning effort: 'low' | 'medium' | 'high'. Only set for models that support it. */
   reasoning_effort?: 'low' | 'medium' | 'high';
+  /** Enable web search tool for this agent */
+  web_search?: boolean;
 }
 
 /** Runtime capabilities that can be toggled per agent or globally */
@@ -84,12 +90,14 @@ export interface PendingToolCall {
 }
 
 export interface TokenUsage {
-  promptTokens: number;
-  completionTokens: number;
+  /** Responses API: input_tokens */
+  inputTokens: number;
+  /** Responses API: output_tokens */
+  outputTokens: number;
   totalTokens: number;
-  /** Tokens used for chain-of-thought reasoning (o-series models) */
+  /** Tokens used for chain-of-thought reasoning */
   reasoningTokens?: number;
-  /** Prompt tokens served from cache (reduces cost) */
+  /** Input tokens served from cache (reduces cost) */
   cachedTokens?: number;
 }
 
@@ -154,25 +162,29 @@ export interface ThreadSummary {
   modifiedOn: string;
 }
 
-// ─── Azure OpenAI Tool Format (for API request) ──────────────────────────────
+// ─── Azure OpenAI Responses API Tool Format ─────────────────────────────────
 
-export interface OpenAIToolDefinition {
-  type: 'function';
-  function: {
-    name: string;
-    description: string;
-    parameters: Record<string, unknown>;
-  };
-}
+import type { ResponseTool } from '../services/connectors';
 
-/** Convert our ToolDefinition to Azure OpenAI format. */
-export function toOpenAITools(tools: ToolDefinition[]): OpenAIToolDefinition[] {
-  return tools.map(t => ({
-    type: 'function' as const,
-    function: {
+/** Convert our ToolDefinition array to Responses API format.
+ *  Optionally includes web_search as a built-in tool. */
+export function toResponseTools(tools: ToolDefinition[], webSearch = false): ResponseTool[] {
+  const result: ResponseTool[] = [];
+
+  // Add built-in web_search if enabled
+  if (webSearch) {
+    result.push({ type: 'web_search', search_context_size: 'medium' });
+  }
+
+  // Add function tools
+  for (const t of tools) {
+    result.push({
+      type: 'function',
       name: t.name,
       description: t.description,
       parameters: t.inputSchema,
-    },
-  }));
+    });
+  }
+
+  return result;
 }

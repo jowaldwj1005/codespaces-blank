@@ -553,6 +553,8 @@ async function handleQuerySap(args: Record<string, unknown>): Promise<unknown> {
 async function handleAnalyzeDocument(args: Record<string, unknown>): Promise<unknown> {
   const urlSource = (args.urlSource ?? args.url ?? '') as string;
   const base64Source = (args.base64Source ?? args.base64 ?? '') as string;
+  const caseId = args.caseId as string | undefined;
+  const artifactName = (args.artifactName ?? args.name ?? 'Document Analysis') as string;
 
   if (!urlSource && !base64Source) {
     return { error: 'Provide either urlSource (URL) or base64Source (base64-encoded document)' };
@@ -565,13 +567,39 @@ async function handleAnalyzeDocument(args: Record<string, unknown>): Promise<unk
     });
 
     if (result.status === 'succeeded') {
+      const analyzeResult = result.analyzeResult as Record<string, unknown> | null;
+      const pages = analyzeResult?.pages as unknown[] | undefined;
+      const tables = analyzeResult?.tables as unknown[] | undefined;
+      const paragraphs = analyzeResult?.paragraphs as unknown[] | undefined;
+
+      // Save full analyzeResult as artifact for downstream processing via run_data_code
+      let artifactId: string | undefined;
+      if (analyzeResult) {
+        try {
+          const artifactResult = await createArtifact({
+            name: artifactName,
+            type: 'DocumentAnalysis',
+            payload: JSON.stringify(analyzeResult),
+            referenceKey: urlSource || 'base64-upload',
+            caseId: caseId as string | undefined,
+          });
+          artifactId = (artifactResult.data as unknown as Record<string, string>)?.jw_artifactid;
+        } catch {
+          // Non-critical — artifact save failed but analysis succeeded
+        }
+      }
+
       return {
         success: true,
         status: result.status,
         content: result.content,
-        pageCount: (result.analyzeResult as Record<string, unknown>)?.pages
-          ? ((result.analyzeResult as Record<string, unknown>).pages as unknown[]).length
-          : undefined,
+        pageCount: pages?.length,
+        tableCount: tables?.length,
+        paragraphCount: paragraphs?.length,
+        artifactId,
+        hint: artifactId
+          ? 'Full analyzeResult saved as artifact. Use run_data_code with the artifact payload for detailed extraction (TOC, tables, page ranges).'
+          : 'Use run_data_code on this content for further analysis.',
       };
     }
     return {

@@ -50,10 +50,10 @@ interface CaseManagerState {
   error?: string;
 }
 
-const STATUS_MAP: Record<number, CaseStatus> = {
-  100000000: 'Active',
-  100000001: 'Completed',
-  100000002: 'Cancelled',
+const STATUS_MAP: Record<string, CaseStatus> = {
+  '100000000': 'Active',
+  '100000001': 'Completed',
+  '100000002': 'Cancelled',
 };
 
 const THREAD_STATUS_MAP: Record<number, ThreadSummary['status']> = {
@@ -85,7 +85,7 @@ export function useCaseManager() {
       const cases: CaseSummary[] = records.map(r => ({
         id: r.jw_caseid,
         title: r.jw_title ?? 'Untitled Case',
-        status: STATUS_MAP[r.jw_status as unknown as number] ?? 'Active',
+        status: STATUS_MAP[String(r.jw_status)] ?? 'Active',
         playbookId: r._jw_playbookid_value ?? undefined,
         playbookName: r.jw_playbookidname ?? undefined,
         contextData: r.jw_contextdata ?? undefined,
@@ -189,7 +189,7 @@ export function useCaseManager() {
       // Create the case
       const caseRecord: Record<string, unknown> = {
         jw_title: opts.title,
-        jw_status: 100000000, // Active
+        jw_status: '100000000', // Active
       };
       if (opts.playbookId) {
         caseRecord['jw_playbookid@odata.bind'] = lookupBind('jw_playbooks', opts.playbookId);
@@ -270,14 +270,14 @@ export function useCaseManager() {
   // ─── Update case status ───────────────────────────────────────────────────
 
   const updateCaseStatus = useCallback(async (caseId: string, status: CaseStatus) => {
-    const statusMap: Record<CaseStatus, number> = {
-      'Active': 100000000,
-      'Completed': 100000001,
-      'Cancelled': 100000002,
+    const statusMap: Record<CaseStatus, string> = {
+      'Active': '100000000',
+      'Completed': '100000001',
+      'Cancelled': '100000002',
     };
     try {
       await jwCases.update(caseId, {
-        jw_status: String(statusMap[status]),
+        jw_status: statusMap[status],
       } as Parameters<typeof jwCases.update>[1]);
       await loadCases();
     } catch (err) {

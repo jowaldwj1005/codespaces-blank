@@ -21,9 +21,9 @@ export function TokenCounter({ usage }: { usage: TokenUsage }) {
       title={hasExtended ? 'Click for token breakdown' : undefined}
     >
       <div className="token-counter__item">
-        <span>Prompt:</span>
+        <span>Input:</span>
         <span className="token-counter__value">
-          {formatNumber(usage.promptTokens)}
+          {formatNumber(usage.inputTokens)}
           {hasCached && (
             <span className="token-counter__badge token-counter__badge--cached" title="Cached (free)">
               {formatNumber(usage.cachedTokens!)} cached
@@ -33,9 +33,9 @@ export function TokenCounter({ usage }: { usage: TokenUsage }) {
       </div>
       <span className="token-counter__separator">|</span>
       <div className="token-counter__item">
-        <span>Completion:</span>
+        <span>Output:</span>
         <span className="token-counter__value">
-          {formatNumber(usage.completionTokens)}
+          {formatNumber(usage.outputTokens)}
           {hasReasoning && expanded && (
             <span className="token-counter__badge token-counter__badge--reasoning" title="Reasoning tokens">
               {formatNumber(usage.reasoningTokens!)} reasoning

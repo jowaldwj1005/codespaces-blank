@@ -7,7 +7,7 @@
 import type { ToolDefinition, PendingToolCall, AgentEvent } from '../types/agent';
 import { BUILTIN_TOOLS } from './builtinTools';
 import { azureOpenAI, azureDocIntelligence, sapOData } from './connectors';
-import type { ChatCompletionRequest, AnalyzeDocumentRequest, SapODataRequest } from './connectors';
+import type { ResponsesApiRequest, AnalyzeDocumentRequest, SapODataRequest } from './connectors';
 import { emitDebugEvent, generateEventId } from './debugEventBus';
 
 type ApprovalCallback = (
@@ -135,8 +135,8 @@ async function executeBuiltinTool(
 // Routes CustomConnector tools to the actual connector wrappers based on executionTarget.
 
 const CONNECTOR_HANDLERS: Record<string, (args: Record<string, unknown>) => Promise<unknown>> = {
-  'AzureOpenAI.chatCompletion': async (args) => {
-    const result = await azureOpenAI.chatCompletion(args as unknown as ChatCompletionRequest);
+  'AzureOpenAI.createResponse': async (args) => {
+    const result = await azureOpenAI.createResponse(args as unknown as ResponsesApiRequest);
     return result.normalized;
   },
   'AzureDocIntelligence.analyzeDocument': async (args) => {

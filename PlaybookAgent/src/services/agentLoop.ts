@@ -1,7 +1,14 @@
 /**
  * Agent Loop — Core async loop for the Custom Agent Loop pattern.
- * Pure function (no React). Calls Azure OpenAI, handles tool calls iteratively,
- * emits events for UI updates, and persists messages to Dataverse.
+ * Uses the Azure OpenAI Responses API (POST /openai/responses).
+ * Pure function (no React). Emits events for UI updates.
+ *
+ * Key differences from Chat Completions:
+ * - Input uses `input` array (not `messages`)
+ * - System prompt goes in `instructions` (not a system message)
+ * - Response has `output` array with typed items (reasoning, message, function_call, web_search_call)
+ * - Function call results are sent as `function_call_output` items
+ * - Multi-turn can use `previous_response_id` to avoid resending full context
  */
 
 import type {
@@ -9,12 +16,23 @@ import type {
   AgentEvent,
   ChatMessage,
   PendingToolCall,
-  ToolCall,
   ToolDefinition,
 } from '../types/agent';
-import { toOpenAITools } from '../types/agent';
-import { azureOpenAI } from './connectors';
-import type { ChatCompletionResponse, ExtendedTokenUsage } from './connectors';
+import { toResponseTools } from '../types/agent';
+import { azureOpenAI, OPENAI_DEFAULTS } from './connectors';
+import type {
+  ResponsesApiResponse,
+  ResponseInputItem,
+  ExtendedTokenUsage,
+} from './connectors';
+import {
+  extractResponseText,
+  extractFunctionCalls,
+  extractReasoningSummaries,
+  extractWebSearchCalls,
+  extractCitations,
+  extractTokenUsage,
+} from './connectors';
 
 const MAX_ITERATIONS = 10;
 
@@ -27,28 +45,24 @@ export interface AgentLoopConfig {
 }
 
 /**
- * Run the agent loop: call LLM → handle tool calls → repeat until done or limit.
+ * Run the agent loop: call Responses API → handle tool calls → repeat until done.
  * Returns the full message history including new messages.
  */
 export async function runAgentLoop(config: AgentLoopConfig): Promise<ChatMessage[]> {
   const { agent, onEvent, executeToolCall, signal } = config;
   const messages = [...config.messages];
   const cumulativeTokens: ExtendedTokenUsage = {
-    promptTokens: 0, completionTokens: 0, totalTokens: 0,
+    inputTokens: 0, outputTokens: 0, totalTokens: 0,
     reasoningTokens: 0, cachedTokens: 0,
   };
 
-  // Ensure system prompt is first message (replace stale prompts on reload)
-  if (messages.length === 0 || messages[0].role !== 'system') {
-    const systemMsg: ChatMessage = { role: 'system', content: agent.systemPrompt };
-    messages.unshift(systemMsg);
-    onEvent({ type: 'message_added', message: systemMsg });
-  } else if (messages[0].role === 'system') {
-    // Always use the latest system prompt from the agent definition
-    messages[0] = { role: 'system', content: agent.systemPrompt };
-  }
+  // Build the Responses API tools array (function tools + optional web_search)
+  const responseTools = agent.tools.length > 0 || agent.modelConfig.web_search
+    ? toResponseTools(agent.tools, agent.modelConfig.web_search ?? false)
+    : undefined;
 
-  const openAITools = agent.tools.length > 0 ? toOpenAITools(agent.tools) : undefined;
+  // Track the last response ID for multi-turn continuation
+  let previousResponseId: string | undefined;
 
   for (let iteration = 0; iteration < MAX_ITERATIONS; iteration++) {
     if (signal?.aborted) {
@@ -58,25 +72,30 @@ export async function runAgentLoop(config: AgentLoopConfig): Promise<ChatMessage
 
     onEvent({ type: 'status_change', status: 'thinking' });
 
-    // Call Azure OpenAI
-    let response: ChatCompletionResponse;
+    // Build input from messages — Responses API uses `input` array
+    const input = buildResponseInput(messages, !!previousResponseId);
+
+    // Build reasoning config — only if agent has it configured
+    const reasoningConfig = agent.modelConfig.reasoning_effort
+      ? { effort: agent.modelConfig.reasoning_effort, summary: 'auto' as const }
+      : undefined;
+
+    // Call Azure OpenAI Responses API
+    let response: ResponsesApiResponse;
     try {
-      const result = await azureOpenAI.chatCompletion({
-        messages: messages.map(m => ({
-          role: m.role,
-          content: m.content ?? '',
-          ...(m.tool_calls ? { tool_calls: m.tool_calls } : {}),
-          ...(m.tool_call_id ? { tool_call_id: m.tool_call_id } : {}),
-          ...(m.name ? { name: m.name } : {}),
-        })),
-        model: agent.modelConfig.model,
+      const result = await azureOpenAI.createResponse({
+        model: agent.modelConfig.model ?? OPENAI_DEFAULTS.model,
+        input,
+        instructions: agent.systemPrompt,
+        tools: responseTools,
+        tool_choice: agent.modelConfig.tool_choice ?? (responseTools ? 'auto' : undefined),
+        reasoning: reasoningConfig,
+        max_output_tokens: agent.modelConfig.max_output_tokens
+          ?? agent.modelConfig.max_completion_tokens
+          ?? OPENAI_DEFAULTS.max_output_tokens,
         temperature: agent.modelConfig.temperature,
-        max_completion_tokens: agent.modelConfig.max_completion_tokens,
-        tools: openAITools,
-        tool_choice: agent.modelConfig.tool_choice ?? (openAITools ? 'auto' : undefined),
-        reasoning: agent.modelConfig.reasoning_effort
-          ? { effort: agent.modelConfig.reasoning_effort }
-          : undefined,
+        previous_response_id: previousResponseId,
+        store: true,
       });
       response = result.normalized;
     } catch (err) {
@@ -86,61 +105,107 @@ export async function runAgentLoop(config: AgentLoopConfig): Promise<ChatMessage
       break;
     }
 
-    // Update token usage (including reasoning & cache breakdown)
+    // Track response ID for potential continuation
+    previousResponseId = response.id;
+
+    // Update token usage
     if (response.usage) {
-      cumulativeTokens.promptTokens += response.usage.prompt_tokens ?? 0;
-      cumulativeTokens.completionTokens += response.usage.completion_tokens ?? 0;
-      cumulativeTokens.totalTokens = cumulativeTokens.promptTokens + cumulativeTokens.completionTokens;
-      cumulativeTokens.reasoningTokens += response.usage.completion_tokens_details?.reasoning_tokens ?? 0;
-      cumulativeTokens.cachedTokens += response.usage.prompt_tokens_details?.cached_tokens ?? 0;
+      const usage = extractTokenUsage(response);
+      cumulativeTokens.inputTokens += usage.inputTokens;
+      cumulativeTokens.outputTokens += usage.outputTokens;
+      cumulativeTokens.totalTokens = cumulativeTokens.inputTokens + cumulativeTokens.outputTokens;
+      cumulativeTokens.reasoningTokens += usage.reasoningTokens;
+      cumulativeTokens.cachedTokens += usage.cachedTokens;
       onEvent({ type: 'token_update', usage: { ...cumulativeTokens } });
     }
 
-    const choice = response.choices?.[0];
-    if (!choice?.message) {
-      onEvent({ type: 'error', error: 'No response from LLM' });
+    // Check for API error
+    if (response.status === 'failed') {
+      onEvent({ type: 'error', error: `API error: ${JSON.stringify(response.error)}` });
       onEvent({ type: 'status_change', status: 'error' });
       break;
     }
 
-    // If the model returned reasoning content (o-series), emit it as a reasoning event
-    if (choice.message.reasoning_content) {
-      onEvent({ type: 'reasoning', content: choice.message.reasoning_content });
+    // Process output items in order — reasoning, web_search, function_call, message
+    const functionCalls = extractFunctionCalls(response);
+    const reasoningSummaries = extractReasoningSummaries(response);
+    const webSearchCalls = extractWebSearchCalls(response);
+    const responseText = extractResponseText(response);
+    const citations = extractCitations(response);
+
+    // Emit reasoning events
+    for (const summary of reasoningSummaries) {
+      onEvent({ type: 'reasoning', content: summary });
     }
 
+    // Emit web search events as tool calls (visible in UI)
+    for (const ws of webSearchCalls) {
+      const searchInfo = ws.action?.type === 'search'
+        ? `Searched: ${ws.action.queries?.join(', ') ?? ws.action.query ?? 'web'}`
+        : ws.action?.type === 'open_page'
+          ? `Opened: ${ws.action.url}`
+          : 'Web search';
+      onEvent({
+        type: 'tool_call_started',
+        toolCall: {
+          callId: ws.id,
+          toolName: 'web_search',
+          arguments: ws.action as unknown as Record<string, unknown> ?? {},
+          status: 'completed',
+          requiresApproval: false,
+          response: searchInfo,
+        },
+      });
+      onEvent({
+        type: 'tool_call_updated',
+        callId: ws.id,
+        update: { status: 'completed', response: searchInfo },
+      });
+    }
+
+    // Build assistant message from text output
     const assistantMsg: ChatMessage = {
       role: 'assistant',
-      content: choice.message.content ?? null,
-      tool_calls: choice.message.tool_calls as ToolCall[] | undefined,
-      reasoning_content: choice.message.reasoning_content ?? undefined,
+      content: responseText || null,
+      tool_calls: functionCalls.length > 0
+        ? functionCalls.map(fc => ({
+            id: fc.call_id,
+            type: 'function' as const,
+            function: { name: fc.name, arguments: fc.arguments },
+          }))
+        : undefined,
+      reasoning_content: reasoningSummaries.length > 0
+        ? reasoningSummaries.join('\n\n')
+        : undefined,
+      citations: citations.length > 0 ? citations : undefined,
     };
     messages.push(assistantMsg);
     onEvent({ type: 'message_added', message: assistantMsg });
 
-    // If no tool calls → done
-    if (!choice.message.tool_calls || choice.message.tool_calls.length === 0) {
-      onEvent({ type: 'completed', finalMessage: choice.message.content ?? '' });
+    // If no function calls → done
+    if (functionCalls.length === 0) {
+      onEvent({ type: 'completed', finalMessage: responseText ?? '' });
       onEvent({ type: 'status_change', status: 'idle' });
       return messages;
     }
 
-    // Handle tool calls
+    // Handle function calls
     onEvent({ type: 'status_change', status: 'tool_calling' });
 
-    for (const toolCall of choice.message.tool_calls) {
+    for (const fc of functionCalls) {
       if (signal?.aborted) break;
 
-      const toolDef = agent.tools.find(t => t.name === toolCall.function.name);
+      const toolDef = agent.tools.find(t => t.name === fc.name);
       let args: Record<string, unknown>;
       try {
-        args = JSON.parse(toolCall.function.arguments);
+        args = JSON.parse(fc.arguments);
       } catch {
-        args = { _raw: toolCall.function.arguments };
+        args = { _raw: fc.arguments };
       }
 
       const pending: PendingToolCall = {
-        callId: toolCall.id,
-        toolName: toolCall.function.name,
+        callId: fc.call_id,
+        toolName: fc.name,
         arguments: args,
         status: 'pending',
         requiresApproval: toolDef?.requiresApproval ?? false,
@@ -154,34 +219,105 @@ export async function runAgentLoop(config: AgentLoopConfig): Promise<ChatMessage
       let toolResponse: unknown;
       try {
         if (!toolDef) {
-          throw new Error(`Unknown tool: ${toolCall.function.name}`);
+          throw new Error(`Unknown tool: ${fc.name}`);
         }
-        onEvent({ type: 'tool_call_updated', callId: toolCall.id, update: { status: 'executing' } });
-        toolResponse = await executeToolCall(toolDef, args, toolCall.id);
-        onEvent({ type: 'tool_call_updated', callId: toolCall.id, update: { status: 'completed', response: toolResponse } });
+        onEvent({ type: 'tool_call_updated', callId: fc.call_id, update: { status: 'executing' } });
+        toolResponse = await executeToolCall(toolDef, args, fc.call_id);
+        onEvent({ type: 'tool_call_updated', callId: fc.call_id, update: { status: 'completed', response: toolResponse } });
       } catch (err) {
         const errorMsg = err instanceof Error ? err.message : String(err);
         toolResponse = { error: errorMsg };
-        onEvent({ type: 'tool_call_updated', callId: toolCall.id, update: { status: 'error', error: errorMsg } });
+        onEvent({ type: 'tool_call_updated', callId: fc.call_id, update: { status: 'error', error: errorMsg } });
       }
 
-      // Add tool response message
+      // Add tool response message (for our internal message history)
       const toolMsg: ChatMessage = {
         role: 'tool',
         content: typeof toolResponse === 'string' ? toolResponse : JSON.stringify(toolResponse),
-        tool_call_id: toolCall.id,
-        name: toolCall.function.name,
+        tool_call_id: fc.call_id,
+        name: fc.name,
       };
       messages.push(toolMsg);
       onEvent({ type: 'message_added', message: toolMsg });
     }
 
-    // Loop back for next LLM call with tool responses
+    // Loop back — next iteration will send tool results
     onEvent({ type: 'status_change', status: 'thinking' });
   }
 
-  // Safety limit reached — always report
+  // Safety limit reached
   onEvent({ type: 'error', error: `Agent loop reached max iterations (${MAX_ITERATIONS})` });
   onEvent({ type: 'status_change', status: 'error' });
   return messages;
 }
+
+// ─── Input Builder ──────────────────────────────────────────────────────────
+
+/**
+ * Convert our ChatMessage array to Responses API input format.
+ * When using previous_response_id, only send new messages since last response.
+ */
+function buildResponseInput(messages: ChatMessage[], hasPreviousId: boolean): ResponseInputItem[] {
+  const input: ResponseInputItem[] = [];
+
+  // If continuing from previous response, only send tool results + new user messages
+  const startIdx = hasPreviousId
+    ? findLastAssistantIndex(messages) + 1
+    : 0;
+
+  for (let i = startIdx; i < messages.length; i++) {
+    const msg = messages[i];
+
+    switch (msg.role) {
+      case 'system':
+        // System prompt goes in `instructions`, not input — skip
+        break;
+
+      case 'user':
+        input.push({
+          type: 'message',
+          role: 'user',
+          content: typeof msg.content === 'string'
+            ? [{ type: 'input_text', text: msg.content }]
+            : [{ type: 'input_text', text: msg.content ?? '' }],
+        });
+        break;
+
+      case 'tool':
+        // Tool results → function_call_output
+        if (msg.tool_call_id) {
+          input.push({
+            type: 'function_call_output',
+            call_id: msg.tool_call_id,
+            output: msg.content ?? '',
+          });
+        }
+        break;
+
+      case 'assistant':
+        // Skip assistant messages — they're in the API's response history
+        // (previous_response_id handles continuation)
+        // But on first call without previous_response_id, we need them for context
+        if (!hasPreviousId && msg.content) {
+          input.push({
+            type: 'message',
+            role: 'developer',
+            content: [{ type: 'input_text', text: `[Previous assistant response]: ${msg.content}` }],
+          });
+        }
+        break;
+    }
+  }
+
+  return input;
+}
+
+function findLastAssistantIndex(messages: ChatMessage[]): number {
+  for (let i = messages.length - 1; i >= 0; i--) {
+    if (messages[i].role === 'assistant') return i;
+  }
+  return -1;
+}
+
+// Re-export for backward compat
+export type { ExtendedTokenUsage };

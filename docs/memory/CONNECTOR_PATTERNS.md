@@ -8,26 +8,82 @@ All connectors are accessed via PAC CLI generated services that use `client.exec
 
 Response shapes vary per connector — always normalize before business logic.
 
-## Azure OpenAI
+## Azure OpenAI — Responses API
 
-**Service:** `CustomConnector_AzureOpenAIService`
-**Operation:** `chat_completion`
+**Service:** `CustCon_AzureOpenAI_ResponsesService`
+**Operations:** `response_post` (create), `response_get` (retrieve)
 
-### Key Parameters
-- `api_version`: `'2025-01-01-preview'` (current)
-- `body`: Chat completion request object
+### API Version
+- `api_version`: `'2025-04-01-preview'` (Responses API)
 
-### Critical: Use `max_completion_tokens`, NOT `max_tokens`
-The Azure OpenAI API requires `max_completion_tokens`. Using `max_tokens` will be silently ignored or error.
+### Critical: Responses API format (NOT Chat Completions)
+The Responses API is a **completely different format** from Chat Completions:
+
+| Chat Completions | Responses API |
+|---|---|
+| `messages` array | `input` array + `instructions` for system prompt |
+| System message in `messages` | `instructions` field (top-level) |
+| `choices[0].message.content` | `output` array with typed items |
+| `max_completion_tokens` | `max_output_tokens` |
+| `prompt_tokens` / `completion_tokens` | `input_tokens` / `output_tokens` |
+| N/A | `previous_response_id` for multi-turn |
+
+### Request Format
+```typescript
+{
+  model: 'gpt-5.2',
+  instructions: 'System prompt here',
+  input: [
+    { type: 'message', role: 'user', content: [{ type: 'input_text', text: '...' }] }
+  ],
+  tools: [
+    { type: 'web_search', search_context_size: 'medium' },
+    { type: 'function', name: '...', description: '...', parameters: {...} }
+  ],
+  reasoning: { effort: 'medium', summary: 'auto' },
+  max_output_tokens: 4096,
+  temperature: 0.7,
+  previous_response_id: '...',  // multi-turn continuation
+  store: true,
+}
+```
+
+### Response Output Items (typed)
+The `output` array contains typed items processed in order:
+- **`reasoning`** — Chain-of-thought with `summary[]` containing `summary_text` items
+- **`web_search_call`** — Web search actions with queries/URLs
+- **`function_call`** — Tool calls with `call_id`, `name`, `arguments`
+- **`message`** — Assistant text with optional `annotations` (url_citation)
+
+### Tool Results
+Send tool results back as `function_call_output` input items:
+```typescript
+{ type: 'function_call_output', call_id: 'call_xxx', output: '...' }
+```
+
+### Web Search
+Add `{ type: 'web_search', search_context_size: 'medium' }` to tools array. Toggle via `ModelConfig.web_search`.
 
 ### Central Defaults
 Managed in `OPENAI_DEFAULTS` in `connectors.ts`:
 ```typescript
 export const OPENAI_DEFAULTS = {
-  apiVersion: '2025-01-01-preview',
-  max_completion_tokens: 800,
+  apiVersion: '2025-04-01-preview',
+  model: 'gpt-5.2',
+  max_output_tokens: 4096,
   temperature: 0.7,
+  reasoningEffort: undefined,
+  reasoningSummary: 'auto',
+  store: true,
 };
+```
+
+### Token Usage
+```typescript
+usage.input_tokens              // total input
+usage.output_tokens             // total output
+usage.input_tokens_details.cached_tokens      // cache hits
+usage.output_tokens_details.reasoning_tokens  // CoT tokens
 ```
 
 ## Azure Document Intelligence
