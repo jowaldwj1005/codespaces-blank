@@ -76,15 +76,15 @@ function extractOperationId(raw: unknown): string | null {
 // ─── Azure OpenAI ────────────────────────────────────────────────────────────
 
 /** Central defaults for OpenAI parameters. Change here to affect all calls. */
+export type ReasoningEffort = 'low' | 'medium' | 'high';
+
 export const OPENAI_DEFAULTS = {
   apiVersion: '2025-03-01-preview',
   max_completion_tokens: 4096,
   temperature: 0.7,
-  /** Reasoning effort: 'low' | 'medium' | 'high' — controls depth of chain-of-thought for o-series models */
-  reasoningEffort: 'medium' as ReasoningEffort,
+  /** Reasoning effort — undefined means no reasoning (GPT models). Set per-agent for o-series. */
+  reasoningEffort: undefined as ReasoningEffort | undefined,
 } as const;
-
-export type ReasoningEffort = 'low' | 'medium' | 'high';
 
 export interface ChatCompletionRequest {
   messages: Array<{ role: string; content: string | ContentPart[] }>;

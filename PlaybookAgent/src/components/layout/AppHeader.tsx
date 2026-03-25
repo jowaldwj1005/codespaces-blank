@@ -1,8 +1,8 @@
 import { useState } from 'react';
 import type { RightPanel } from '../../App';
 
-export const APP_VERSION = '0.8.1';
-const VERSION_SUMMARY = 'Bug fix sprint: seed data links, agent loop fixes, system message visibility, token persistence.';
+export const APP_VERSION = '0.9.1';
+const VERSION_SUMMARY = 'Case-centric tabbed workspace: CaseSidebar, WorkspaceTabs, CaseCanvas, dynamic tabs.';
 
 interface AppHeaderProps {
   rightPanel: RightPanel;
@@ -11,9 +11,8 @@ interface AppHeaderProps {
 
 const PANEL_BUTTONS: Array<{ panel: RightPanel; label: string; icon: string }> = [
   { panel: 'seed', label: 'Seed', icon: '🌱' },
-  { panel: 'agent-config', label: 'Config', icon: '⚙️' },
   { panel: 'artifacts', label: 'Artifacts', icon: '📦' },
-  { panel: 'case-detail', label: 'Cases', icon: '📋' },
+  { panel: 'case-detail', label: 'Case', icon: '📋' },
 ];
 
 export function AppHeader({ rightPanel, onTogglePanel }: AppHeaderProps) {

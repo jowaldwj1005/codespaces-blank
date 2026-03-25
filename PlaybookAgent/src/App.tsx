@@ -1,38 +1,36 @@
-import { useState, useMemo, useCallback } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import './App.css';
 import { AppHeader } from './components/layout/AppHeader';
-import { ThreadSidebar } from './components/layout/ThreadSidebar';
-import { ChatWorkspace } from './components/chat/ChatWorkspace';
+import { CaseSidebar } from './components/layout/CaseSidebar';
+import { WorkspaceTabs } from './components/layout/WorkspaceTabs';
 import { SeedPanel } from './components/admin/SeedPanel';
-import { AdminWorkspace } from './components/admin/AdminWorkspace';
 import { ArtifactBrowser } from './components/semantic/ArtifactBrowser';
 import { CaseDashboard } from './components/semantic/CaseDashboard';
-import { DataverseExplorer } from './components/DataverseExplorer';
-import { ConnectorTester } from './components/ConnectorTester';
-import { VisualizationPanel } from './components/VisualizationPanel';
-import { McpExplorer } from './components/McpExplorer';
-import { DebugPanel } from './components/DebugPanel';
-import { useThreadManager } from './hooks/useThreadManager';
-import { useAgentChat } from './hooks/useAgentChat';
+import { useCaseManager } from './hooks/useCaseManager';
+import { useWorkspaceTabs } from './hooks/useWorkspaceTabs';
 
-export type MainView = 'chat' | 'admin' | 'dataverse' | 'connectors' | 'viz' | 'mcp' | 'debug';
-export type RightPanel = 'none' | 'seed' | 'agent-config' | 'artifacts' | 'case-detail';
+export type RightPanel = 'none' | 'seed' | 'artifacts' | 'case-detail';
 
 function App() {
-  const [activeView, setActiveView] = useState<MainView>('chat');
+  const caseManager = useCaseManager();
+  const tabsManager = useWorkspaceTabs();
   const [rightPanel, setRightPanel] = useState<RightPanel>('none');
-  const threadManager = useThreadManager();
-  const chat = useAgentChat(threadManager.activeThreadId);
 
-  const activeAgentId = useMemo(() => {
-    if (!threadManager.activeThreadId) return null;
-    const thread = threadManager.threads.find(t => t.id === threadManager.activeThreadId);
-    return thread?.agentId ?? null;
-  }, [threadManager.activeThreadId, threadManager.threads]);
+  // Auto-open context panel when case selected
+  useEffect(() => {
+    if (caseManager.selectedCaseId) {
+      setRightPanel('case-detail');
+    }
+  }, [caseManager.selectedCaseId]);
 
   const toggleRightPanel = useCallback((panel: RightPanel) => {
     setRightPanel(prev => prev === panel ? 'none' : panel);
   }, []);
+
+  // Find the active thread ID from the active tab (for right panel context)
+  const activeThreadId = tabsManager.activeTab?.type === 'thread-chat'
+    ? tabsManager.activeTab.referenceId
+    : null;
 
   return (
     <div className="app">
@@ -42,47 +40,27 @@ function App() {
       />
 
       <div className="app-body">
-        <ThreadSidebar
-          manager={threadManager}
-          activeView={activeView}
-          onViewChange={setActiveView}
+        {/* Navigator (Left) */}
+        <CaseSidebar
+          caseManager={caseManager}
+          tabs={tabsManager}
         />
 
+        {/* Workspace (Center — Tabbed) */}
         <div className="workspace">
-          {/* Main content area */}
           <main className={`main-content ${rightPanel !== 'none' ? 'main-content--with-panel' : ''}`}>
-            {activeView === 'chat' && (
-              <ChatWorkspace
-                chat={chat}
-                threadId={threadManager.activeThreadId}
-                agentId={activeAgentId}
-              />
-            )}
-            {activeView === 'admin' && <AdminWorkspace />}
-            {activeView === 'dataverse' && (
-              <div className="debug-view"><DataverseExplorer /></div>
-            )}
-            {activeView === 'connectors' && (
-              <div className="debug-view"><ConnectorTester /></div>
-            )}
-            {activeView === 'viz' && (
-              <div className="debug-view"><VisualizationPanel /></div>
-            )}
-            {activeView === 'mcp' && (
-              <div className="debug-view"><McpExplorer /></div>
-            )}
-            {activeView === 'debug' && (
-              <div className="debug-view"><DebugPanel /></div>
-            )}
+            <WorkspaceTabs
+              tabsManager={tabsManager}
+              caseManager={caseManager}
+            />
           </main>
 
-          {/* Right context panel */}
+          {/* Context Panel (Right) */}
           {rightPanel !== 'none' && (
             <aside className="right-panel">
               <div className="right-panel__header">
                 <span className="right-panel__title">
                   {rightPanel === 'seed' && 'Seed Data'}
-                  {rightPanel === 'agent-config' && 'Agent Config'}
                   {rightPanel === 'artifacts' && 'Artifacts'}
                   {rightPanel === 'case-detail' && 'Case'}
                 </span>
@@ -95,25 +73,12 @@ function App() {
               </div>
               <div className="right-panel__body">
                 {rightPanel === 'seed' && <SeedPanel />}
-                {rightPanel === 'agent-config' && (
-                  <div className="placeholder-panel">
-                    <span className="placeholder-panel__icon">Settings</span>
-                    <span>Use the Admin workspace for full agent configuration</span>
-                    <button
-                      className="admin-btn admin-btn--primary"
-                      style={{ marginTop: '12px' }}
-                      onClick={() => { setActiveView('admin'); setRightPanel('none'); }}
-                    >
-                      Open Admin
-                    </button>
-                  </div>
-                )}
                 {rightPanel === 'artifacts' && (
-                  <ArtifactBrowser threadId={threadManager.activeThreadId} />
+                  <ArtifactBrowser threadId={activeThreadId} />
                 )}
                 {rightPanel === 'case-detail' && (
                   <CaseDashboard
-                    threadId={threadManager.activeThreadId}
+                    threadId={activeThreadId}
                     onOpenArtifact={() => setRightPanel('artifacts')}
                   />
                 )}
