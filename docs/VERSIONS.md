@@ -5,6 +5,64 @@
 
 ---
 
+## v0.9.0 — Intelligence & Rich Output (2026-03-25)
+
+### What Was Done
+
+**3 major features** added: Responses API with reasoning, code-based data exploration, and rich Markdown rendering with simulated streaming.
+
+**Azure OpenAI Responses API:**
+- Upgraded API version to `2025-03-01-preview` (Responses API)
+- Added **reasoning support** for o-series models (o4-mini, o3): configurable `reasoning_effort` (low/medium/high) in ModelConfig
+- Agent loop now parses `reasoning_content` from model responses and emits `reasoning` events
+- **Cached token tracking**: `prompt_tokens_details.cached_tokens` tracked cumulatively — shows cache hits in token counter
+- **Reasoning token tracking**: `completion_tokens_details.reasoning_tokens` tracked — visible in expanded token counter
+- `ExtendedTokenUsage` interface with `reasoningTokens` and `cachedTokens` fields
+- Token counter UI: clickable to expand, shows cached (green badge) and reasoning (amber badge) breakdown
+- Default `max_completion_tokens` bumped to 4096 (was 800) — reasoning models need more headroom
+
+**Data Exploration Code Tools:**
+- `run_data_code` — **sandboxed JavaScript execution** for data analysis. Runs in `new Function()` sandbox with zero DOM/network access. Built-in helpers: `sum()`, `avg()`, `median()`, `stddev()`, `groupBy()`, `sortBy()`, `unique()`, `pluck()`, `countBy()`, `daysBetween()`. Console output captured and returned.
+- `cross_table_analysis` — queries 2–4 Dataverse tables in parallel, then runs user analysis code with all datasets available as named variables. For joins, correlations, data quality checks across entities.
+- Both tools registered in seed data with agent-tool links
+
+**Rich Markdown Rendering & Streaming UI:**
+- Complete Markdown renderer in MessageBubble: headers (h2-h4), bold/italic, code blocks with language labels, inline code, blockquotes, tables (GFM), lists, links, horizontal rules
+- **Simulated streaming**: new assistant messages reveal character-by-character with adaptive speed (faster for whitespace, slower for content). Blinking cursor animation during stream.
+- **Reasoning thought bubbles**: o-series `reasoning_content` shown as collapsible amber bubbles with pop-in animation. Click to expand full chain-of-thought.
+- Code blocks styled with dark theme (Catppuccin-inspired), monospace font, language badge
+- Tables styled with primary-colored headers and hover rows
+- Blockquotes with left border accent
+- Streaming messages have subtle border glow during output
+- System prompt updated to instruct agent to **always output rich Markdown** with headers, tables, code blocks
+
+### Connector Setup
+
+To use the Responses API with reasoning models:
+- **Deploy an o4-mini (or o3/gpt-4.1) model** in your Azure OpenAI resource
+- Update the custom connector's **api-version** parameter default to `2025-03-01-preview`
+- The body format is unchanged — the connector's `chat_completion` action works as-is
+- Reasoning is automatic: the `reasoning` field in the request body controls effort level
+
+### How to Test
+
+1. **Reasoning**: If using an o-series deployment, check the reasoning thought bubble appears above assistant messages. Toggle expand to see chain-of-thought.
+2. **Cached tokens**: After a multi-turn conversation, expand the token counter — cached token count should increase as prompt cache hits accumulate.
+3. **run_data_code**: Ask the agent to "calculate the average of [1,2,3,4,5]" or "group these records by status and count them" — it should use the code tool.
+4. **cross_table_analysis**: Ask "compare agents and their tools" — agent should query jw_agents and jw_agenttools, then run join analysis.
+5. **Markdown rendering**: Ask any question — response should have headers, bold, code blocks. Check that code blocks show language labels, tables are styled, blockquotes have accent borders.
+6. **Streaming**: New messages should appear character by character with a blinking cursor. Already-seen messages render instantly on page reload.
+7. **Run seed**: Admin → Seed Panel to update existing tools with new definitions.
+
+### Questions for User
+
+- **Which Azure OpenAI model are you deploying?** o4-mini recommended for reasoning + cost balance. gpt-4.1 for no-reasoning but faster/cheaper.
+- **Reasoning effort default**: Currently set to `medium`. Want `high` for deeper analysis or `low` for speed?
+- **Code execution limits**: Currently no timeout on `run_data_code`. Should we add a 5s execution limit?
+- **Streaming speed**: Current speed is ~12ms per char. Too fast? Too slow?
+
+---
+
 ## v0.8.1 — Bug Fix Sprint: Core Mechanics & Robustness (2026-03-24)
 
 ### What Was Done

@@ -77,17 +77,34 @@ function extractOperationId(raw: unknown): string | null {
 
 /** Central defaults for OpenAI parameters. Change here to affect all calls. */
 export const OPENAI_DEFAULTS = {
-  apiVersion: '2025-01-01-preview',
-  max_completion_tokens: 800,
+  apiVersion: '2025-03-01-preview',
+  max_completion_tokens: 4096,
   temperature: 0.7,
+  /** Reasoning effort: 'low' | 'medium' | 'high' — controls depth of chain-of-thought for o-series models */
+  reasoningEffort: 'medium' as ReasoningEffort,
 } as const;
 
+export type ReasoningEffort = 'low' | 'medium' | 'high';
+
 export interface ChatCompletionRequest {
-  messages: Array<{ role: string; content: string }>;
+  messages: Array<{ role: string; content: string | ContentPart[] }>;
   temperature?: number;
   max_completion_tokens?: number;
   tools?: unknown[];
   tool_choice?: string | object;
+  /** Reasoning configuration for o-series models (o4-mini, o3, etc.) */
+  reasoning?: {
+    effort?: ReasoningEffort;
+  };
+  /** Store the conversation for later retrieval (Responses API) */
+  store?: boolean;
+}
+
+/** Structured content parts for multimodal messages */
+export interface ContentPart {
+  type: 'text' | 'image_url';
+  text?: string;
+  image_url?: { url: string; detail?: 'auto' | 'low' | 'high' };
 }
 
 export interface ChatCompletionResponse {
@@ -101,20 +118,53 @@ export interface ChatCompletionResponse {
         type: string;
         function: { name: string; arguments: string };
       }>;
+      /** Reasoning content returned by o-series models (chain-of-thought summary) */
+      reasoning_content?: string | null;
     };
     finish_reason?: string;
   }>;
-  usage?: { prompt_tokens?: number; completion_tokens?: number; total_tokens?: number };
+  usage?: {
+    prompt_tokens?: number;
+    completion_tokens?: number;
+    total_tokens?: number;
+    /** Detailed completion token breakdown (reasoning, cached, etc.) */
+    completion_tokens_details?: {
+      reasoning_tokens?: number;
+      accepted_prediction_tokens?: number;
+      rejected_prediction_tokens?: number;
+    };
+    /** Prompt token breakdown — cached_tokens shows cache hits */
+    prompt_tokens_details?: {
+      cached_tokens?: number;
+    };
+  };
+}
+
+/** Extended token usage with reasoning and cache breakdown */
+export interface ExtendedTokenUsage {
+  promptTokens: number;
+  completionTokens: number;
+  totalTokens: number;
+  reasoningTokens: number;
+  cachedTokens: number;
 }
 
 export const azureOpenAI = {
   chatCompletion: (request: ChatCompletionRequest, apiVersion = OPENAI_DEFAULTS.apiVersion) => {
     // Apply central defaults; caller can override
-    const body = {
+    const body: Record<string, unknown> = {
       ...request,
       temperature: request.temperature ?? OPENAI_DEFAULTS.temperature,
       max_completion_tokens: request.max_completion_tokens ?? OPENAI_DEFAULTS.max_completion_tokens,
     };
+
+    // Add reasoning config if provided or if default is set
+    if (request.reasoning?.effort || OPENAI_DEFAULTS.reasoningEffort) {
+      body.reasoning = {
+        effort: request.reasoning?.effort ?? OPENAI_DEFAULTS.reasoningEffort,
+      };
+    }
+
     return tracedOperation<void>(
       'AzureOpenAI.chatCompletion',
       'connector',

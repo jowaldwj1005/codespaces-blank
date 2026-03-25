@@ -1,7 +1,7 @@
 # CLAUDE.md - Playbook Agent
 
-**App Version:** 0.8.1
-**Phase:** Bug Fix Sprint — Core Mechanics & Robustness (15 fixes across seed data, agent loop, tool execution, persistence, UI)
+**App Version:** 0.9.0
+**Phase:** Intelligence & Rich Output — Responses API with reasoning, code-based data tools, rich Markdown streaming UI
 
 ## Quick Context
 

@@ -1,5 +1,19 @@
 # Changelog - Playbook Agent
 
+## v0.9.0 (2026-03-25)
+### Added — Intelligence & Rich Output
+- **Responses API**: Upgraded to `2025-03-01-preview`, added reasoning support (o-series models), `reasoning_effort` config
+- **Reasoning UI**: Chain-of-thought displayed as collapsible amber "thought bubbles" with pop-in animation
+- **Cached token tracking**: `prompt_tokens_details.cached_tokens` tracked and shown in token counter
+- **Reasoning token tracking**: `completion_tokens_details.reasoning_tokens` tracked and shown in expanded token counter
+- **`run_data_code` tool**: Sandboxed JS execution with data analysis helpers (sum, avg, median, stddev, groupBy, etc.)
+- **`cross_table_analysis` tool**: Multi-table query + analysis code for joins and correlations
+- **Markdown rendering**: Full GFM support in assistant messages — headers, code blocks, tables, blockquotes, lists
+- **Simulated streaming**: Character-by-character reveal with blinking cursor for new messages
+- **System prompt update**: Agent instructed to always output rich Markdown formatting
+- **Extended TokenUsage**: `reasoningTokens` and `cachedTokens` fields in TokenUsage interface
+- **Token counter UX**: Clickable expand with cached (green) and reasoning (amber) badges
+
 ## v0.8.1 (2026-03-24)
 ### Fixed — Bug Fix Sprint: Core Mechanics & Robustness
 - **Seed Data: Instructions linked to Playbooks** — Instructions now include `jw_playbookid@odata.bind`, fixing `start_playbook` returning 0 instructions

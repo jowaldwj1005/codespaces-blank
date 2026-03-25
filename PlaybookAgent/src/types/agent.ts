@@ -11,6 +11,8 @@ export interface ChatMessage {
   tool_calls?: ToolCall[];
   tool_call_id?: string;
   name?: string;
+  /** Chain-of-thought reasoning from o-series models */
+  reasoning_content?: string;
 }
 
 export interface ToolCall {
@@ -39,6 +41,8 @@ export interface ModelConfig {
   temperature?: number;
   max_completion_tokens?: number;
   tool_choice?: 'auto' | 'required' | 'none' | { type: 'function'; function: { name: string } };
+  /** Reasoning effort for o-series models: 'low' | 'medium' | 'high' */
+  reasoning_effort?: 'low' | 'medium' | 'high';
 }
 
 /** Runtime capabilities that can be toggled per agent or globally */
@@ -81,6 +85,10 @@ export interface TokenUsage {
   promptTokens: number;
   completionTokens: number;
   totalTokens: number;
+  /** Tokens used for chain-of-thought reasoning (o-series models) */
+  reasoningTokens?: number;
+  /** Prompt tokens served from cache (reduces cost) */
+  cachedTokens?: number;
 }
 
 export interface AgentLoopState {
@@ -101,6 +109,7 @@ export type AgentEvent =
   | { type: 'tool_call_started'; toolCall: PendingToolCall }
   | { type: 'tool_call_updated'; callId: string; update: Partial<PendingToolCall> }
   | { type: 'token_update'; usage: TokenUsage }
+  | { type: 'reasoning'; content: string }
   | { type: 'sub_agent_spawned'; threadId: string; agentName: string; task: string }
   | { type: 'sub_agent_event'; threadId: string; event: AgentEvent }
   | { type: 'sub_agent_completed'; threadId: string; result: string }

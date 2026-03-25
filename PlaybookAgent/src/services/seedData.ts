@@ -36,6 +36,25 @@ export type SeedProgress = (record: SeedRecord, index: number, total: number) =>
 
 const GENERAL_ASSISTANT_PROMPT = `You are the Playbook Agent General Assistant. You help users explore Dataverse data, query SAP systems, analyze documents, manage cases, and create visualizations.
 
+## Output Format — Rich Markdown
+
+**IMPORTANT:** Always format your responses in beautiful, structured Markdown. Your output is rendered with full Markdown support including:
+- **Headers** (##, ###) to structure sections
+- **Bold** and *italic* for emphasis
+- \`inline code\` and \`\`\`code blocks\`\`\` with language tags
+- Bullet lists and numbered lists
+- > Blockquotes for important callouts
+- Tables for structured data comparisons
+- Links where relevant
+- Horizontal rules (---) to separate sections
+
+Use these formatting features generously — they make your responses easy to scan and visually appealing. Structure longer responses with clear headers. Use code blocks with language tags (e.g. \`\`\`json, \`\`\`sql, \`\`\`javascript) for any data or code output.
+
+When presenting analysis results, prefer:
+1. A brief **summary** header with key finding
+2. A table or list of details
+3. A visualization recommendation or automatic chart
+
 ## Your Capabilities
 
 ### Data Exploration
@@ -43,6 +62,10 @@ const GENERAL_ASSISTANT_PROMPT = `You are the Playbook Agent General Assistant. 
 - **get_table_schema**: Inspect table structure (columns, types, keys)
 - **execute_dataverse_query**: Run OData queries (max 50 records)
 - **create_visual**: Charts (bar/line/pie/area/scatter/radar) and tables from data
+
+### Code-Based Data Analysis
+- **run_data_code**: Execute JavaScript code for data analysis — has built-in helpers: \`sum()\`, \`avg()\`, \`median()\`, \`stddev()\`, \`groupBy()\`, \`sortBy()\`, \`unique()\`, \`pluck()\`, \`countBy()\`, \`daysBetween()\`. Use this for calculations, transformations, aggregations, and statistical analysis on query results.
+- **cross_table_analysis**: Query 2–4 tables and run join/correlation analysis across them. Use for cross-entity insights, relationship discovery, and data quality checks.
 
 ### Connectors
 - **query_sap**: Query SAP via OData — GET for reads, POST/PATCH for writes (requires approval)
@@ -64,15 +87,19 @@ const GENERAL_ASSISTANT_PROMPT = `You are the Playbook Agent General Assistant. 
 1. When asked about data, first search for relevant tables
 2. Inspect the schema to understand available columns
 3. Query the data with appropriate filters
-4. Visualize results when it makes sense — charts for trends, tables for details
-5. When working on a playbook, follow instructions step by step and mark each complete
-6. Save important outputs as artifacts linked to the active case
-7. Always explain what you found and what it means
+4. **Use run_data_code** for any calculations, aggregations, or transformations on the results
+5. **Use cross_table_analysis** when questions span multiple entities
+6. Visualize results when it makes sense — charts for trends, tables for details
+7. When working on a playbook, follow instructions step by step and mark each complete
+8. Save important outputs as artifacts linked to the active case
+9. Always explain what you found and what it means — **use Markdown formatting**
 
 ## Communication Style
+- **Richly formatted** Markdown in every response — headers, bold, code blocks, tables
 - Clear, concise, bilingual (respond in user's language: German or English)
 - Show your reasoning — explain which tables you're querying and why
 - Proactively suggest follow-up analyses when you spot interesting patterns
+- When presenting numbers, use tables and highlight key metrics in **bold**
 - When using SAP tools, explain the OData path and what data you're requesting`;
 
 export function getGeneralAssistantSeedData(): SeedRecord[] {
@@ -255,6 +282,56 @@ export function getGeneralAssistantSeedData(): SeedRecord[] {
         }),
       },
     },
+    // ─── Data Exploration Code Tools ─────────────────────────────────
+    {
+      type: 'tool',
+      name: 'run_data_code',
+      data: {
+        jw_name: 'run_data_code',
+        jw_description: 'Execute JavaScript code for data analysis. Sandboxed with helpers: sum(), avg(), median(), stddev(), groupBy(), sortBy(), unique(), pluck(), countBy(), daysBetween(). Input data available as `data`. Return the result.',
+        jw_endpointtype: 100000002, // InternalReact
+        jw_requiresapproval: false,
+        jw_inputschema: JSON.stringify({
+          type: 'object',
+          required: ['code'],
+          properties: {
+            code: { type: 'string', description: 'JavaScript code to execute. Must return a value.' },
+            data: { description: 'Input data — available as `data` in the code' },
+          },
+        }),
+      },
+    },
+    {
+      type: 'tool',
+      name: 'cross_table_analysis',
+      data: {
+        jw_name: 'cross_table_analysis',
+        jw_description: 'Query 2-4 Dataverse tables and run analysis code across them. Each query result is available by its alias. Use for joins, correlations, and cross-entity insights.',
+        jw_endpointtype: 100000002,
+        jw_requiresapproval: false,
+        jw_inputschema: JSON.stringify({
+          type: 'object',
+          required: ['queries', 'code'],
+          properties: {
+            queries: {
+              type: 'array',
+              items: {
+                type: 'object',
+                required: ['table', 'alias'],
+                properties: {
+                  table: { type: 'string', description: 'Plural table name' },
+                  alias: { type: 'string', description: 'Variable name in code' },
+                  select: { type: 'string', description: 'Comma-separated columns' },
+                  filter: { type: 'string', description: 'OData $filter' },
+                  top: { type: 'integer', description: 'Max records (max 100)' },
+                },
+              },
+            },
+            code: { type: 'string', description: 'JavaScript analysis code using query aliases' },
+          },
+        }),
+      },
+    },
     // ─── Connector Tools ─────────────────────────────────────────────
     {
       type: 'tool',
@@ -365,8 +442,9 @@ export function getGeneralAssistantSeedData(): SeedRecord[] {
         jw_allowmcp: true,
         jw_modelconfig: JSON.stringify({
           temperature: 0.7,
-          max_completion_tokens: 2000,
+          max_completion_tokens: 4096,
           tool_choice: 'auto',
+          reasoning_effort: 'medium',
         }),
       },
     },
@@ -375,6 +453,8 @@ export function getGeneralAssistantSeedData(): SeedRecord[] {
     { type: 'agent_tool_link', name: 'General Assistant → get_table_schema', data: {}, agentName: 'General Assistant', toolName: 'get_table_schema' },
     { type: 'agent_tool_link', name: 'General Assistant → execute_dataverse_query', data: {}, agentName: 'General Assistant', toolName: 'execute_dataverse_query' },
     { type: 'agent_tool_link', name: 'General Assistant → create_visual', data: {}, agentName: 'General Assistant', toolName: 'create_visual' },
+    { type: 'agent_tool_link', name: 'General Assistant → run_data_code', data: {}, agentName: 'General Assistant', toolName: 'run_data_code' },
+    { type: 'agent_tool_link', name: 'General Assistant → cross_table_analysis', data: {}, agentName: 'General Assistant', toolName: 'cross_table_analysis' },
     { type: 'agent_tool_link', name: 'General Assistant → create_dataverse_record', data: {}, agentName: 'General Assistant', toolName: 'create_dataverse_record' },
     { type: 'agent_tool_link', name: 'General Assistant → update_dataverse_record', data: {}, agentName: 'General Assistant', toolName: 'update_dataverse_record' },
     { type: 'agent_tool_link', name: 'General Assistant → link_agent_tool', data: {}, agentName: 'General Assistant', toolName: 'link_agent_tool' },

@@ -1,4 +1,141 @@
+import { useState, useEffect, useRef, useMemo } from 'react';
 import type { ChatMessage } from '../../types/agent';
+
+// ─── Markdown Renderer ───────────────────────────────────────────────────────
+
+/** Parse markdown to HTML with syntax highlighting hints */
+function renderMarkdown(text: string): string {
+  if (!text) return '';
+
+  // Escape HTML first
+  let html = text
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;');
+
+  // Code blocks with language tag
+  html = html.replace(/```(\w*)\n([\s\S]*?)```/g, (_match, lang, code) => {
+    const langClass = lang ? ` data-lang="${lang}"` : '';
+    const langLabel = lang ? `<span class="md-code-lang">${lang}</span>` : '';
+    return `${langLabel}<pre class="md-code-block"${langClass}><code>${code.trim()}</code></pre>`;
+  });
+
+  // Inline code
+  html = html.replace(/`([^`]+)`/g, '<code class="md-inline-code">$1</code>');
+
+  // Headers (h1-h3)
+  html = html.replace(/^### (.+)$/gm, '<h4 class="md-h4">$1</h4>');
+  html = html.replace(/^## (.+)$/gm, '<h3 class="md-h3">$1</h3>');
+  html = html.replace(/^# (.+)$/gm, '<h2 class="md-h2">$1</h2>');
+
+  // Bold & italic
+  html = html.replace(/\*\*\*(.+?)\*\*\*/g, '<strong><em>$1</em></strong>');
+  html = html.replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>');
+  html = html.replace(/\*(.+?)\*/g, '<em>$1</em>');
+
+  // Strikethrough
+  html = html.replace(/~~(.+?)~~/g, '<del>$1</del>');
+
+  // Links
+  html = html.replace(/\[([^\]]+)\]\(([^)]+)\)/g, '<a href="$2" target="_blank" rel="noopener" class="md-link">$1</a>');
+
+  // Blockquotes
+  html = html.replace(/^&gt; (.+)$/gm, '<blockquote class="md-blockquote">$1</blockquote>');
+
+  // Horizontal rules
+  html = html.replace(/^---$/gm, '<hr class="md-hr" />');
+
+  // Unordered lists
+  html = html.replace(/^[*-] (.+)$/gm, '<li class="md-li">$1</li>');
+  html = html.replace(/((?:<li class="md-li">.*<\/li>\n?)+)/g, '<ul class="md-ul">$1</ul>');
+
+  // Ordered lists
+  html = html.replace(/^\d+\. (.+)$/gm, '<li class="md-oli">$1</li>');
+  html = html.replace(/((?:<li class="md-oli">.*<\/li>\n?)+)/g, '<ol class="md-ol">$1</ol>');
+
+  // Tables (GFM)
+  html = html.replace(/^(\|.+\|)\n(\|[-| :]+\|)\n((?:\|.+\|\n?)+)/gm, (_match, header, _sep, body) => {
+    const ths = (header as string).split('|').filter(Boolean).map((c: string) => `<th>${c.trim()}</th>`).join('');
+    const rows = (body as string).trim().split('\n').map((row: string) => {
+      const tds = row.split('|').filter(Boolean).map((c: string) => `<td>${c.trim()}</td>`).join('');
+      return `<tr>${tds}</tr>`;
+    }).join('');
+    return `<table class="md-table"><thead><tr>${ths}</tr></thead><tbody>${rows}</tbody></table>`;
+  });
+
+  // Paragraphs (double newline)
+  html = html.replace(/\n\n/g, '</p><p class="md-p">');
+
+  // Single newlines to <br>
+  html = html.replace(/\n/g, '<br/>');
+
+  return `<p class="md-p">${html}</p>`;
+}
+
+// ─── Streaming Simulator ─────────────────────────────────────────────────────
+
+/** Simulates streaming by revealing content progressively */
+function useStreamingText(text: string, isNew: boolean, speed = 12): { displayed: string; done: boolean } {
+  const [charIndex, setCharIndex] = useState(isNew ? 0 : text.length);
+  const frameRef = useRef<number | null>(null);
+
+  useEffect(() => {
+    if (!isNew || charIndex >= text.length) return;
+
+    // Adaptive speed: faster for whitespace/punctuation, slower for content
+    const nextChar = text[charIndex];
+    const delay = nextChar === '\n' ? 30 : nextChar === ' ' ? speed * 0.3 : speed;
+
+    const timeout = setTimeout(() => {
+      // Advance by chunks for very long messages
+      const chunkSize = text.length > 500 ? 3 : 1;
+      setCharIndex(prev => Math.min(prev + chunkSize, text.length));
+    }, delay);
+
+    return () => clearTimeout(timeout);
+  }, [charIndex, text, isNew, speed]);
+
+  // Reset if text changes
+  useEffect(() => {
+    if (isNew) setCharIndex(0);
+  }, [text, isNew]);
+
+  useEffect(() => {
+    return () => {
+      if (frameRef.current) cancelAnimationFrame(frameRef.current);
+    };
+  }, []);
+
+  return {
+    displayed: text.slice(0, charIndex),
+    done: charIndex >= text.length,
+  };
+}
+
+// ─── Reasoning Thought Bubble ────────────────────────────────────────────────
+
+function ReasoningBubble({ content }: { content: string }) {
+  const [expanded, setExpanded] = useState(false);
+  const preview = content.length > 120 ? content.slice(0, 120) + '...' : content;
+
+  return (
+    <div className="reasoning-bubble" onClick={() => setExpanded(!expanded)}>
+      <div className="reasoning-bubble__header">
+        <span className="reasoning-bubble__icon">&#x1f9e0;</span>
+        <span className="reasoning-bubble__label">Reasoning</span>
+        <span className="reasoning-bubble__toggle">{expanded ? 'hide' : 'show'}</span>
+      </div>
+      <div className={`reasoning-bubble__content ${expanded ? 'reasoning-bubble__content--expanded' : ''}`}>
+        {expanded ? content : preview}
+      </div>
+    </div>
+  );
+}
+
+// ─── Message Bubble Component ────────────────────────────────────────────────
+
+/** Track which message IDs we've already rendered (skip streaming for those) */
+const renderedMessages = new Set<string>();
 
 export function MessageBubble({ message }: { message: ChatMessage }) {
   if (message.role === 'system') {
@@ -10,19 +147,62 @@ export function MessageBubble({ message }: { message: ChatMessage }) {
   }
 
   if (message.role === 'tool') {
-    // Tool responses rendered by ToolCallCard, skip here
     return null;
   }
 
   const isUser = message.role === 'user';
+  const isAssistant = message.role === 'assistant';
+
+  // Generate stable message ID for tracking
+  const msgId = useMemo(() => {
+    const content = message.content ?? '';
+    return `${message.role}-${content.slice(0, 50)}-${content.length}`;
+  }, [message.role, message.content]);
+
+  // Only stream new assistant messages
+  const isNew = isAssistant && !renderedMessages.has(msgId);
+  const { displayed, done } = useStreamingText(message.content ?? '', isNew);
+
+  useEffect(() => {
+    if (done && isAssistant) {
+      renderedMessages.add(msgId);
+    }
+  }, [done, msgId, isAssistant]);
+
+  const textToRender = isAssistant ? displayed : (message.content ?? '');
+
+  // Parse markdown for assistant messages
+  const renderedHtml = useMemo(() => {
+    if (!isAssistant) return null;
+    return renderMarkdown(textToRender);
+  }, [textToRender, isAssistant]);
 
   return (
-    <div className={`message message--${message.role}`}>
+    <div className={`message message--${message.role} ${isNew && !done ? 'message--streaming' : ''}`}>
       <div className={`message__avatar message__avatar--${message.role}`}>
         {isUser ? 'U' : 'A'}
       </div>
-      <div className="message__content">
-        {message.content || '(no content)'}
+      <div className="message__content-wrapper">
+        {/* Reasoning thought bubble (o-series models) */}
+        {isAssistant && message.reasoning_content && (
+          <ReasoningBubble content={message.reasoning_content} />
+        )}
+
+        {isAssistant && renderedHtml ? (
+          <div
+            className="message__content message__content--markdown"
+            dangerouslySetInnerHTML={{ __html: renderedHtml }}
+          />
+        ) : (
+          <div className="message__content">
+            {message.content || '(no content)'}
+          </div>
+        )}
+
+        {/* Streaming cursor */}
+        {isNew && !done && (
+          <span className="streaming-cursor" />
+        )}
       </div>
     </div>
   );

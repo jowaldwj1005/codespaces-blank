@@ -27,6 +27,9 @@ export const BUILTIN_TOOLS: Record<string, ToolHandler> = {
   create_dataverse_record: handleCreateDataverseRecord,
   update_dataverse_record: handleUpdateDataverseRecord,
   link_agent_tool: handleLinkAgentTool,
+  // Data exploration code tools
+  run_data_code: handleRunDataCode,
+  cross_table_analysis: handleCrossTableAnalysis,
   // Connector tools
   query_sap: handleQuerySap,
   analyze_document: handleAnalyzeDocument,
@@ -253,6 +256,191 @@ async function handleLinkAgentTool(args: Record<string, unknown>): Promise<unkno
       return { success: true, message: 'Link already exists', agentId, toolId };
     }
     throw err;
+  }
+}
+
+// ─── Data Exploration Code Tools ──────────────────────────────────────────────
+
+/**
+ * Sandboxed JavaScript code execution for data analysis.
+ * Runs in a Function() sandbox with data utilities available.
+ * No DOM access, no network, no imports — pure computation.
+ */
+async function handleRunDataCode(args: Record<string, unknown>): Promise<unknown> {
+  const code = (args.code ?? '') as string;
+  const inputData = args.data as unknown;
+
+  if (!code) return { error: 'Missing code parameter — provide JavaScript code to execute' };
+
+  try {
+    // Build sandbox with data utilities
+    const sandbox = buildDataSandbox(inputData);
+
+    // Execute in sandboxed Function (no access to globalThis, window, document, etc.)
+    const fn = new Function(
+      ...Object.keys(sandbox),
+      `"use strict";\n${code}`
+    );
+
+    const startTime = performance.now();
+    const result = fn(...Object.values(sandbox));
+    const durationMs = Math.round(performance.now() - startTime);
+
+    // Capture console output from sandbox
+    const logs = sandbox._logs as string[];
+
+    return {
+      success: true,
+      result: result !== undefined ? result : null,
+      logs: logs.length > 0 ? logs : undefined,
+      durationMs,
+      type: typeof result,
+    };
+  } catch (err) {
+    return {
+      error: err instanceof Error ? err.message : String(err),
+      stack: err instanceof Error ? err.stack?.split('\n').slice(0, 3).join('\n') : undefined,
+    };
+  }
+}
+
+/** Build a sandbox environment with data analysis utilities */
+function buildDataSandbox(inputData: unknown): Record<string, unknown> {
+  const logs: string[] = [];
+
+  return {
+    data: inputData ?? null,
+    _logs: logs,
+
+    // Console replacement (captured, not printed)
+    console: {
+      log: (...a: unknown[]) => logs.push(a.map(String).join(' ')),
+      warn: (...a: unknown[]) => logs.push(`[WARN] ${a.map(String).join(' ')}`),
+      error: (...a: unknown[]) => logs.push(`[ERROR] ${a.map(String).join(' ')}`),
+      table: (d: unknown) => logs.push(JSON.stringify(d, null, 2)),
+    },
+
+    // Math & stats helpers
+    Math,
+    sum: (arr: number[]) => arr.reduce((a, b) => a + b, 0),
+    avg: (arr: number[]) => arr.length ? arr.reduce((a, b) => a + b, 0) / arr.length : 0,
+    min: (arr: number[]) => Math.min(...arr),
+    max: (arr: number[]) => Math.max(...arr),
+    median: (arr: number[]) => {
+      const s = [...arr].sort((a, b) => a - b);
+      const m = Math.floor(s.length / 2);
+      return s.length % 2 ? s[m] : (s[m - 1] + s[m]) / 2;
+    },
+    stddev: (arr: number[]) => {
+      const m = arr.reduce((a, b) => a + b, 0) / arr.length;
+      return Math.sqrt(arr.reduce((s, v) => s + (v - m) ** 2, 0) / arr.length);
+    },
+
+    // Data manipulation helpers
+    groupBy: <T>(arr: T[], key: string): Record<string, T[]> => {
+      return arr.reduce((acc: Record<string, T[]>, item: T) => {
+        const k = String((item as Record<string, unknown>)[key] ?? 'null');
+        (acc[k] = acc[k] || []).push(item);
+        return acc;
+      }, {});
+    },
+    sortBy: <T>(arr: T[], key: string, desc = false): T[] => {
+      return [...arr].sort((a, b) => {
+        const va = String((a as Record<string, unknown>)[key] ?? '');
+        const vb = String((b as Record<string, unknown>)[key] ?? '');
+        const cmp = va < vb ? -1 : va > vb ? 1 : 0;
+        return desc ? -cmp : cmp;
+      });
+    },
+    unique: <T>(arr: T[], key?: string): T[] => {
+      if (!key) return [...new Set(arr)];
+      const seen = new Set<unknown>();
+      return arr.filter(item => {
+        const v = (item as Record<string, unknown>)[key];
+        if (seen.has(v)) return false;
+        seen.add(v);
+        return true;
+      });
+    },
+    pluck: <T>(arr: T[], key: string): unknown[] => arr.map(i => (i as Record<string, unknown>)[key]),
+    countBy: <T>(arr: T[], key: string): Record<string, number> => {
+      return arr.reduce((acc: Record<string, number>, item: T) => {
+        const k = String((item as Record<string, unknown>)[key] ?? 'null');
+        acc[k] = (acc[k] || 0) + 1;
+        return acc;
+      }, {});
+    },
+
+    // Date helpers
+    parseDate: (s: string) => new Date(s),
+    now: () => new Date(),
+    daysBetween: (a: string, b: string) =>
+      Math.round(Math.abs(new Date(b).getTime() - new Date(a).getTime()) / 86400000),
+
+    // JSON
+    JSON,
+  };
+}
+
+/**
+ * Cross-table analysis: query multiple tables and join/correlate the results.
+ * Fetches data from 2-3 tables and runs user-provided analysis code on them.
+ */
+async function handleCrossTableAnalysis(args: Record<string, unknown>): Promise<unknown> {
+  const queries = args.queries as Array<{ table: string; select?: string; filter?: string; top?: number; alias: string }>;
+  const code = (args.code ?? '') as string;
+
+  if (!queries || !Array.isArray(queries) || queries.length === 0) {
+    return { error: 'Missing queries parameter — provide array of { table, select?, filter?, top?, alias }' };
+  }
+  if (queries.length > 4) {
+    return { error: 'Maximum 4 tables per cross-table analysis' };
+  }
+  if (!code) return { error: 'Missing code parameter — provide analysis code that uses the query aliases' };
+
+  try {
+    // Fetch all tables in parallel
+    const datasets: Record<string, unknown[]> = {};
+    const fetchPromises = queries.map(async (q) => {
+      const getAllFn = TABLE_GETALL_MAP[q.table];
+      if (!getAllFn) throw new Error(`Unknown table: ${q.table}`);
+
+      const selectArr = typeof q.select === 'string' ? q.select.split(',').map(s => s.trim()) : undefined;
+      const result = await getAllFn({
+        select: selectArr,
+        filter: q.filter,
+        top: Math.min(q.top ?? 50, 100),
+        orderBy: undefined,
+      });
+      const data = (result as { data?: unknown[] }).data ?? [];
+      datasets[q.alias] = data;
+    });
+
+    await Promise.all(fetchPromises);
+
+    // Run analysis code with all datasets available
+    const sandbox = buildDataSandbox(datasets);
+    // Also inject each alias directly
+    for (const [alias, data] of Object.entries(datasets)) {
+      sandbox[alias] = data;
+    }
+
+    const fn = new Function(...Object.keys(sandbox), `"use strict";\n${code}`);
+    const startTime = performance.now();
+    const result = fn(...Object.values(sandbox));
+    const durationMs = Math.round(performance.now() - startTime);
+    const logs = sandbox._logs as string[];
+
+    return {
+      success: true,
+      result: result !== undefined ? result : null,
+      logs: logs.length > 0 ? logs : undefined,
+      durationMs,
+      tablesQueried: queries.map(q => `${q.table} as ${q.alias}`),
+      recordCounts: Object.fromEntries(Object.entries(datasets).map(([k, v]) => [k, v.length])),
+    };
+  } catch (err) {
+    return { error: err instanceof Error ? err.message : String(err) };
   }
 }
 
@@ -694,6 +882,51 @@ export const BUILTIN_TOOL_DEFINITIONS: ToolDefinition[] = [
         caseId: { type: 'string', description: 'GUID of the active case' },
         instructionId: { type: 'string', description: 'GUID of the instruction to mark complete' },
         notes: { type: 'string', description: 'Optional completion notes or findings' },
+      },
+    },
+    requiresApproval: false,
+    endpointType: 'InternalReact',
+  },
+  // ─── Data Exploration Code Tools ─────────────────────────────────────────────
+  {
+    id: 'builtin_run_data_code',
+    name: 'run_data_code',
+    description: 'Execute JavaScript code for data analysis. Runs in a sandboxed environment with built-in helpers: sum(), avg(), median(), stddev(), groupBy(), sortBy(), unique(), pluck(), countBy(), daysBetween(). Input data is available as `data`. Return the result. Use console.log() for intermediate output.',
+    inputSchema: {
+      type: 'object',
+      required: ['code'],
+      properties: {
+        code: { type: 'string', description: 'JavaScript code to execute. Must return a value. Has access to helper functions and `data` variable.' },
+        data: { description: 'Input data (array of objects, object, or any value) — available as `data` in the code' },
+      },
+    },
+    requiresApproval: false,
+    endpointType: 'InternalReact',
+  },
+  {
+    id: 'builtin_cross_table_analysis',
+    name: 'cross_table_analysis',
+    description: 'Query 2-4 Dataverse tables and run analysis code across them. Each query result is available by its alias. Use for joins, correlations, and cross-entity insights.',
+    inputSchema: {
+      type: 'object',
+      required: ['queries', 'code'],
+      properties: {
+        queries: {
+          type: 'array',
+          items: {
+            type: 'object',
+            required: ['table', 'alias'],
+            properties: {
+              table: { type: 'string', description: 'Plural table name (e.g. jw_agents)' },
+              alias: { type: 'string', description: 'Variable name to access this data in code' },
+              select: { type: 'string', description: 'Comma-separated columns' },
+              filter: { type: 'string', description: 'OData $filter' },
+              top: { type: 'integer', description: 'Max records (max 100)' },
+            },
+          },
+          description: 'Array of table queries (max 4)',
+        },
+        code: { type: 'string', description: 'JavaScript analysis code. Each query alias is a direct variable. Return the result.' },
       },
     },
     requiresApproval: false,

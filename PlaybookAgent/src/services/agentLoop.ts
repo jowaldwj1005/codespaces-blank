@@ -9,13 +9,12 @@ import type {
   AgentEvent,
   ChatMessage,
   PendingToolCall,
-  TokenUsage,
   ToolCall,
   ToolDefinition,
 } from '../types/agent';
 import { toOpenAITools } from '../types/agent';
 import { azureOpenAI } from './connectors';
-import type { ChatCompletionResponse } from './connectors';
+import type { ChatCompletionResponse, ExtendedTokenUsage } from './connectors';
 
 const MAX_ITERATIONS = 10;
 
@@ -34,7 +33,10 @@ export interface AgentLoopConfig {
 export async function runAgentLoop(config: AgentLoopConfig): Promise<ChatMessage[]> {
   const { agent, onEvent, executeToolCall, signal } = config;
   const messages = [...config.messages];
-  const cumulativeTokens: TokenUsage = { promptTokens: 0, completionTokens: 0, totalTokens: 0 };
+  const cumulativeTokens: ExtendedTokenUsage = {
+    promptTokens: 0, completionTokens: 0, totalTokens: 0,
+    reasoningTokens: 0, cachedTokens: 0,
+  };
 
   // Ensure system prompt is first message (replace stale prompts on reload)
   if (messages.length === 0 || messages[0].role !== 'system') {
@@ -71,6 +73,9 @@ export async function runAgentLoop(config: AgentLoopConfig): Promise<ChatMessage
         max_completion_tokens: agent.modelConfig.max_completion_tokens,
         tools: openAITools,
         tool_choice: agent.modelConfig.tool_choice ?? (openAITools ? 'auto' : undefined),
+        reasoning: agent.modelConfig.reasoning_effort
+          ? { effort: agent.modelConfig.reasoning_effort }
+          : undefined,
       });
       response = result.normalized;
     } catch (err) {
@@ -80,11 +85,13 @@ export async function runAgentLoop(config: AgentLoopConfig): Promise<ChatMessage
       break;
     }
 
-    // Update token usage
+    // Update token usage (including reasoning & cache breakdown)
     if (response.usage) {
       cumulativeTokens.promptTokens += response.usage.prompt_tokens ?? 0;
       cumulativeTokens.completionTokens += response.usage.completion_tokens ?? 0;
       cumulativeTokens.totalTokens = cumulativeTokens.promptTokens + cumulativeTokens.completionTokens;
+      cumulativeTokens.reasoningTokens += response.usage.completion_tokens_details?.reasoning_tokens ?? 0;
+      cumulativeTokens.cachedTokens += response.usage.prompt_tokens_details?.cached_tokens ?? 0;
       onEvent({ type: 'token_update', usage: { ...cumulativeTokens } });
     }
 
@@ -95,10 +102,16 @@ export async function runAgentLoop(config: AgentLoopConfig): Promise<ChatMessage
       break;
     }
 
+    // If the model returned reasoning content (o-series), emit it as a reasoning event
+    if (choice.message.reasoning_content) {
+      onEvent({ type: 'reasoning', content: choice.message.reasoning_content });
+    }
+
     const assistantMsg: ChatMessage = {
       role: 'assistant',
       content: choice.message.content ?? null,
       tool_calls: choice.message.tool_calls as ToolCall[] | undefined,
+      reasoning_content: choice.message.reasoning_content ?? undefined,
     };
     messages.push(assistantMsg);
     onEvent({ type: 'message_added', message: assistantMsg });
