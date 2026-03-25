@@ -1,0 +1,630 @@
+sample requests:
+
+request:
+https://proj-experiment-aifoundry-msdach.cognitiveservices.azure.com/openai/responses?api-version=2025-04-01-preview
+post
+body
+{
+  "model": "gpt-5.2",
+  "background": false,
+  "stream": false,
+  "store": true,
+  "reasoning": {
+    "effort": "medium",
+    "summary": "auto"
+  },
+  "tools": [
+    {
+      "type": "web_search"
+    },
+    {
+      "type": "function",
+      "name": "get_sap_customer_data",
+      "description": "Fetch customer data from SAP system via API",
+      "parameters": {
+        "type": "object",
+        "properties": {
+          "customerId": {
+            "type": "string",
+            "description": "SAP Business Partner ID"
+          }
+        },
+        "required": [
+          "customerId"
+        ]
+      }
+    }
+  ],
+  "instructions": "You are a SAP agent. Always use tools for data retrieval. Never guess.",
+  "input": [
+    {
+      "type": "message",
+      "role": "user",
+      "content": [
+        {
+          "type": "input_text",
+          "text": "Find recent news about SAP and then check customer 17100005 in our system."
+        }
+      ]
+    }
+  ]
+}
+
+response:
+{
+  "id": "resp_0d6c0bf3f91ab8990069c4651a0d4881959a351530607a4b94",
+  "object": "response",
+  "created_at": 1774478618,
+  "status": "completed",
+  "background": false,
+  "completed_at": 1774478633,
+  "content_filters": [
+    {
+      "blocked": false,
+      "source_type": "prompt",
+      "content_filter_raw": [],
+      "content_filter_results": {
+        "hate": {
+          "filtered": false,
+          "severity": "safe"
+        },
+        "self_harm": {
+          "filtered": false,
+          "severity": "safe"
+        },
+        "violence": {
+          "filtered": false,
+          "severity": "safe"
+        },
+        "jailbreak": {
+          "filtered": false,
+          "detected": false
+        },
+        "sexual": {
+          "filtered": false,
+          "severity": "safe"
+        }
+      },
+      "content_filter_offsets": {
+        "start_offset": 30,
+        "end_offset": 104,
+        "check_offset": 0
+      }
+    },
+    {
+      "blocked": false,
+      "source_type": "completion",
+      "content_filter_raw": [],
+      "content_filter_results": {
+        "hate": {
+          "filtered": false,
+          "severity": "safe"
+        },
+        "self_harm": {
+          "filtered": false,
+          "severity": "safe"
+        },
+        "violence": {
+          "filtered": false,
+          "severity": "safe"
+        },
+        "sexual": {
+          "filtered": false,
+          "severity": "safe"
+        },
+        "protected_material_text": {
+          "filtered": false,
+          "detected": false
+        },
+        "protected_material_code": {
+          "filtered": false,
+          "detected": false
+        }
+      },
+      "content_filter_offsets": {
+        "start_offset": 0,
+        "end_offset": 30013,
+        "check_offset": 0
+      }
+    }
+  ],
+  "error": null,
+  "frequency_penalty": 0,
+  "incomplete_details": null,
+  "instructions": "You are a SAP agent. Always use tools for data retrieval. Never guess.",
+  "max_output_tokens": null,
+  "max_tool_calls": null,
+  "model": "gpt-5.2",
+  "output": [
+    {
+      "id": "rs_0d6c0bf3f91ab8990069c4651bae348195862253c6f7856d5c",
+      "type": "reasoning",
+      "summary": []
+    },
+    {
+      "id": "ws_0d6c0bf3f91ab8990069c4652008c4819592d83c1e47056a6f",
+      "type": "web_search_call",
+      "status": "completed",
+      "action": {
+        "type": "search",
+        "queries": [
+          "SAP latest news March 2026",
+          "SAP SE press release March 2026",
+          "SAP earnings release 2026",
+          "SAP acquisition 2026"
+        ],
+        "query": "SAP latest news March 2026"
+      }
+    },
+    {
+      "id": "rs_0d6c0bf3f91ab8990069c4652595ec819587221fb408ae515b",
+      "type": "reasoning",
+      "summary": [
+        {
+          "type": "summary_text",
+          "text": "**Gathering reliable SAP news sources**\n\nI’m looking for reliable sources for SAP news. It seems Bloomberg is behind a paywall, but I might still be able to cite it. The SAP newsroom could be useful too. Opening the SAP press room and investor relations page would be a good idea to find recent newsfeed and press releases from the last few weeks. I’ll get started on checking those sources!"
+        }
+      ]
+    },
+    {
+      "id": "ws_0d6c0bf3f91ab8990069c46527f9ac8195866deccd8221d11e",
+      "type": "web_search_call",
+      "status": "completed",
+      "action": {
+        "type": "open_page",
+        "url": "https://news.sap.com/press-room/"
+      }
+    },
+    {
+      "id": "rs_0d6c0bf3f91ab8990069c465289b888195a85324b52613a24f",
+      "type": "reasoning",
+      "summary": []
+    },
+    {
+      "id": "fc_0d6c0bf3f91ab8990069c4652969a88195a88ff3f889af935b",
+      "type": "function_call",
+      "status": "completed",
+      "arguments": "{\"customerId\":\"17100005\"}",
+      "call_id": "call_l4i8yOkDU9gofbChLGHH4mqm",
+      "name": "get_sap_customer_data"
+    }
+  ],
+  "parallel_tool_calls": true,
+  "presence_penalty": 0,
+  "previous_response_id": null,
+  "prompt_cache_key": null,
+  "prompt_cache_retention": null,
+  "reasoning": {
+    "effort": "medium",
+    "summary": "detailed"
+  },
+  "safety_identifier": null,
+  "service_tier": "auto",
+  "store": true,
+  "temperature": 1,
+  "text": {
+    "format": {
+      "type": "text"
+    },
+    "verbosity": "medium"
+  },
+  "tool_choice": "auto",
+  "tools": [
+    {
+      "type": "function",
+      "description": "Fetch customer data from SAP system via API",
+      "name": "get_sap_customer_data",
+      "parameters": {
+        "type": "object",
+        "properties": {
+          "customerId": {
+            "type": "string",
+            "description": "SAP Business Partner ID"
+          }
+        },
+        "required": [
+          "customerId"
+        ],
+        "additionalProperties": false
+      },
+      "strict": true
+    },
+    {
+      "type": "web_search",
+      "filters": null,
+      "search_context_size": "medium",
+      "user_location": {
+        "type": "approximate",
+        "city": null,
+        "country": "US",
+        "region": null,
+        "timezone": null
+      }
+    }
+  ],
+  "top_logprobs": 0,
+  "top_p": 0.98,
+  "truncation": "disabled",
+  "usage": {
+    "input_tokens": 11598,
+    "input_tokens_details": {
+      "cached_tokens": 3712
+    },
+    "output_tokens": 379,
+    "output_tokens_details": {
+      "reasoning_tokens": 353
+    },
+    "total_tokens": 11977
+  },
+  "user": null,
+  "metadata": {}
+}
+
+simple:
+{
+  "model": "gpt-5.2",
+  "background": false,
+  "stream": false,
+  "store": true,
+  "reasoning": {
+    "effort": "low",
+    "summary": "auto"
+  },
+  "tools": [
+    {
+      "type": "web_search"
+    }
+  ],
+  "input": [
+    {
+      "type": "message",
+      "role": "user",
+      "content": [
+        {
+          "type": "input_text",
+          "text": "Research a fun fact about SAP."
+        }
+      ]
+    }
+  ]
+}
+response:
+{
+  "model": "gpt-5.2",
+  "background": false,
+  "stream": false,
+  "store": true,
+  "reasoning": {
+    "effort": "low",
+    "summary": "auto"
+  },
+  "tools": [
+    {
+      "type": "web_search"
+    }
+  ],
+  "input": [
+    {
+      "type": "message",
+      "role": "user",
+      "content": [
+        {
+          "type": "input_text",
+          "text": "Research a fun fact about SAP."
+        }
+      ]
+    }
+  ]
+}
+
+GET
+https://usa002-004.azure-apihub.net/apim/custcon-5fazureopenai-5fresponses-5fe435f80a6d4-fe0d0c18aa7a701d/c9e5eee46ad14446995f0a1e7e5f8bc5/openai/v1/responses/resp_0b27590acbdc280a0069c4639671d08194b71173c418d6797e
+result:
+{
+  "id": "resp_0b27590acbdc280a0069c4639671d08194b71173c418d6797e",
+  "object": "response",
+  "created_at": 1774478230,
+  "status": "completed",
+  "background": false,
+  "completed_at": 1774478239,
+  "content_filters": [
+    {
+      "blocked": false,
+      "source_type": "prompt",
+      "content_filter_raw": [],
+      "content_filter_results": {
+        "self_harm": {
+          "filtered": false,
+          "severity": "safe"
+        },
+        "sexual": {
+          "filtered": false,
+          "severity": "safe"
+        },
+        "jailbreak": {
+          "filtered": false,
+          "detected": false
+        },
+        "hate": {
+          "filtered": false,
+          "severity": "safe"
+        },
+        "violence": {
+          "filtered": false,
+          "severity": "safe"
+        }
+      },
+      "content_filter_offsets": {
+        "start_offset": 30,
+        "end_offset": 60,
+        "check_offset": 0
+      }
+    },
+    {
+      "blocked": false,
+      "source_type": "completion",
+      "content_filter_raw": [],
+      "content_filter_results": {
+        "hate": {
+          "filtered": false,
+          "severity": "safe"
+        },
+        "self_harm": {
+          "filtered": false,
+          "severity": "safe"
+        },
+        "violence": {
+          "filtered": false,
+          "severity": "safe"
+        },
+        "sexual": {
+          "filtered": false,
+          "severity": "safe"
+        },
+        "protected_material_code": {
+          "filtered": false,
+          "detected": false
+        },
+        "protected_material_text": {
+          "filtered": false,
+          "detected": false
+        }
+      },
+      "content_filter_offsets": {
+        "start_offset": 0,
+        "end_offset": 19510,
+        "check_offset": 0
+      }
+    }
+  ],
+  "error": null,
+  "frequency_penalty": 0,
+  "incomplete_details": null,
+  "instructions": null,
+  "max_output_tokens": null,
+  "max_tool_calls": null,
+  "model": "gpt-5.2",
+  "output": [
+    {
+      "id": "rs_0b27590acbdc280a0069c46397a9e08194bda124220ec1f6cf",
+      "type": "reasoning",
+      "summary": [
+        {
+          "type": "summary_text",
+          "text": "**Searching for fun facts**\n\nI need to use web.run to request research and find an interesting fun fact. It’s always exciting to dig into new information. I’m thinking about how to cite the sources properly, too! Let’s perform a web search and see what fascinating tidbits I can uncover. It’s like a little adventure in knowledge just waiting to happen! I'm curious to see what I find and share it with the user."
+        }
+      ]
+    },
+    {
+      "id": "ws_0b27590acbdc280a0069c4639957bc8194931534705e803f85",
+      "type": "web_search_call",
+      "status": "completed",
+      "action": {
+        "type": "search",
+        "queries": [
+          "fun fact about SAP company founded as Systemanalyse und Programmentwicklung IBM project",
+          "SAP name stands for Systemanalyse und Programmentwicklung founded 1972 five former IBM employees"
+        ],
+        "query": "fun fact about SAP company founded as Systemanalyse und Programmentwicklung IBM project"
+      }
+    },
+    {
+      "id": "rs_0b27590acbdc280a0069c4639c34208194a03596bb25017473",
+      "type": "reasoning",
+      "summary": [
+        {
+          "type": "summary_text",
+          "text": "**Crafting a fun fact about SAP**\n\nI’m thinking about a fun fact to share: SAP was created by five ex-IBM employees to focus on real-time integrated processes. Also, interestingly, it’s pronounced as letters, not “sap.” I’ll make sure to reference SAP’s official site for clarity on \"what is SAP\" and its history. It needs to be brief and engaging, so I’ll focus on just those key points. Sounds fun, right?"
+        }
+      ]
+    },
+    {
+      "id": "msg_0b27590acbdc280a0069c4639e735881948ff4017581a521da",
+      "type": "message",
+      "status": "completed",
+      "content": [
+        {
+          "type": "output_text",
+          "annotations": [
+            {
+              "type": "url_citation",
+              "end_index": 361,
+              "start_index": 302,
+              "title": "SAP History | About SAP",
+              "url": "https://www.sap.com/about/company/history.html"
+            }
+          ],
+          "logprobs": [],
+          "text": "A fun fact about SAP: **“SAP” originally wasn’t a product name at all—it was the company’s German name.** When it was founded by **five former IBM employees**, the company was called **Systemanalyse Programmentwicklung** (“System Analysis Program Development”), and **SAP** comes from that initialism. ([sap.com](https://www.sap.com/about/company/history.html))"
+        }
+      ],
+      "role": "assistant"
+    }
+  ],
+  "parallel_tool_calls": true,
+  "presence_penalty": 0,
+  "previous_response_id": null,
+  "prompt_cache_key": null,
+  "prompt_cache_retention": null,
+  "reasoning": {
+    "effort": "low",
+    "summary": "detailed"
+  },
+  "safety_identifier": null,
+  "service_tier": "auto",
+  "store": true,
+  "temperature": 1,
+  "text": {
+    "format": {
+      "type": "text"
+    },
+    "verbosity": "medium"
+  },
+  "tool_choice": "auto",
+  "tools": [
+    {
+      "type": "web_search",
+      "filters": null,
+      "search_context_size": "medium",
+      "user_location": {
+        "type": "approximate",
+        "city": null,
+        "country": "US",
+        "region": null,
+        "timezone": null
+      }
+    }
+  ],
+  "top_logprobs": 0,
+  "top_p": 0.98,
+  "truncation": "disabled",
+  "usage": {
+    "input_tokens": 8396,
+    "input_tokens_details": {
+      "cached_tokens": 0
+    },
+    "output_tokens": 243,
+    "output_tokens_details": {
+      "reasoning_tokens": 151
+    },
+    "total_tokens": 8639
+  },
+  "user": null,
+  "metadata": {}
+}
+
+SWAGGER:
+swagger: '2.0'
+info:
+  title: CustCon_AzureOpenAI_Responses
+  description: ''
+  version: '1.0'
+host: proj-experiment-aifoundry-msdach.cognitiveservices.azure.com
+basePath: /
+schemes:
+  - https
+consumes: []
+produces: []
+paths:
+  /openai/responses:
+    post:
+      responses:
+        default:
+          description: default
+          schema: {}
+          https://make.preview.powerautomate.com/environments/012af916-f79c-ec76-b699-8b810241c010/connections/shared_webcontents/shared-webcontents-c66bce8c-0dd9-4668-8dea-fb73423538ef/details?environment=012af916-f79c-ec76-b699-8b810241c010
+          https://make.preview.powerautomate.com/environments/012af916-f79c-ec76-b699-8b810241c010/connections/shared_custcon-5fazureopenai-5fresponses-5fe435f80a6d4-fe0d0c18aa7a701d/c9e5eee46ad14446995f0a1e7e5f8bc5/details?environment=012af916-f79c-ec76-b699-8b810241c010
+        pac code add-data-source -a "shared_custcon-5fazureopenai-5fresponses-5fe435f80a6d4-fe0d0c18aa7a701" -c "c9e5eee46ad14446995f0a1e7e5f8bc5"
+      summary: POST
+      operationId: response_post
+      parameters:
+        - name: api-version
+          in: query
+          required: false
+          type: string
+        - name: body
+          in: body
+          required: false
+          schema:
+            type: object
+            properties:
+              model:
+                type: string
+                description: model
+              background:
+                type: boolean
+                description: background
+              stream:
+                type: boolean
+                description: stream
+              store:
+                type: boolean
+                description: store
+              reasoning:
+                type: object
+                properties:
+                  effort:
+                    type: string
+                    description: effort
+                  summary:
+                    type: string
+                    description: summary
+                description: reasoning
+              tools:
+                type: array
+                items:
+                  type: object
+                  properties:
+                    type:
+                      type: string
+                      description: type
+                description: tools
+              input:
+                type: array
+                items:
+                  type: object
+                  properties:
+                    type:
+                      type: string
+                      description: type
+                    role:
+                      type: string
+                      description: role
+                    content:
+                      type: array
+                      items:
+                        type: object
+                        properties:
+                          type:
+                            type: string
+                            description: type
+                          text:
+                            type: string
+                            description: text
+                      description: content
+                description: input
+  /openai/v1/responses/{pathparameters}:
+    get:
+      responses:
+        default:
+          description: default
+          schema: {}
+      summary: GET
+      operationId: response_get
+      parameters:
+        - name: pathparameters
+          in: path
+          required: true
+          type: string
+  /: {}
+definitions: {}
+parameters: {}
+responses: {}
+security:
+  - api_key: []
+tags: []
+securityDefinitions:
+  api_key:
+    type: apiKey
+    in: header
+    name: api-key

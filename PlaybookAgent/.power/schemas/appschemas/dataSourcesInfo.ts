@@ -172,6 +172,66 @@ export const dataSourcesInfo = {
       }
     }
   },
+  "custcon_5fazureopenai_5fresponses_5fe435f80a6d4_fe0d0c18aa7a701d": {
+    "tableId": "",
+    "version": "",
+    "primaryKey": "",
+    "dataSourceType": "Connector",
+    "apis": {
+      "response_post": {
+        "path": "/{connectionId}/openai/responses",
+        "method": "POST",
+        "parameters": [
+          {
+            "name": "connectionId",
+            "in": "path",
+            "required": true,
+            "type": "string"
+          },
+          {
+            "name": "api-version",
+            "in": "query",
+            "required": false,
+            "type": "string"
+          },
+          {
+            "name": "body",
+            "in": "body",
+            "required": false,
+            "type": "object"
+          }
+        ],
+        "responseInfo": {
+          "default": {
+            "type": "object"
+          }
+        }
+      },
+      "response_get": {
+        "path": "/{connectionId}/openai/v1/responses/{pathparameters}",
+        "method": "GET",
+        "parameters": [
+          {
+            "name": "connectionId",
+            "in": "path",
+            "required": true,
+            "type": "string"
+          },
+          {
+            "name": "pathparameters",
+            "in": "path",
+            "required": true,
+            "type": "string"
+          }
+        ],
+        "responseInfo": {
+          "default": {
+            "type": "object"
+          }
+        }
+      }
+    }
+  },
   "jw_agents": {
     "tableId": "",
     "version": "",

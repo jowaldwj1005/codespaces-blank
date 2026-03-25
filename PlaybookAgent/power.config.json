@@ -42,6 +42,14 @@
       "authenticationType": "EntraAuth",
       "sharedConnectionId": "/providers/Microsoft.PowerApps/apis/shared_webcontents/connections/shared-webcontents-c66bce8c-0dd9-4668-8dea-fb73423538ef",
       "dataSets": {}
+    },
+    "3f365a6f-aa58-4055-8d49-a91853b398ce": {
+      "id": "/providers/Microsoft.PowerApps/apis/shared_custcon-5fazureopenai-5fresponses-5fe435f80a6d4-fe0d0c18aa7a701d",
+      "displayName": "CustCon_AzureOpenAI_Responses",
+      "dataSources": [
+        "custcon_5fazureopenai_5fresponses_5fe435f80a6d4_fe0d0c18aa7a701d"
+      ],
+      "dataSets": {}
     }
   },
   "databaseReferences": {
