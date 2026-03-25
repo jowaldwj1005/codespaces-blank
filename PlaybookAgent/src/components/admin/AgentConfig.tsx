@@ -220,6 +220,7 @@ export function AgentConfig({ agentId, onTestInChat }: AgentConfigProps) {
                     value={formData.jw_modelconfig}
                     onChange={v => setFormData(prev => ({ ...prev, jw_modelconfig: v ?? '' }))}
                     theme="vs-dark"
+                    loading={<div className="form-field__monaco-loading">Loading editor...</div>}
                     options={{
                       minimap: { enabled: false },
                       fontSize: 13,
@@ -250,6 +251,7 @@ export function AgentConfig({ agentId, onTestInChat }: AgentConfigProps) {
                   value={formData.jw_systemprompt}
                   onChange={v => setFormData(prev => ({ ...prev, jw_systemprompt: v ?? '' }))}
                   theme="vs-dark"
+                  loading={<div className="form-field__monaco-loading">Loading editor...</div>}
                   options={{
                     minimap: { enabled: false },
                     fontSize: 13,

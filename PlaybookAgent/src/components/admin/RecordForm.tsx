@@ -167,6 +167,8 @@ export function RecordForm({
               value={String(value ?? '')}
               onChange={v => updateField(field.logicalName, v ?? '')}
               theme="vs-dark"
+              loading={<div className="form-field__monaco-loading">Loading editor...</div>}
+              onMount={() => { /* Monaco ready */ }}
               options={{
                 minimap: { enabled: false },
                 fontSize: 13,

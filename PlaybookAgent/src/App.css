@@ -1876,6 +1876,18 @@
   overflow: hidden;
 }
 
+.form-field__monaco-loading {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 100%;
+  min-height: 100px;
+  background: #1e1e1e;
+  color: var(--color-text-tertiary);
+  font-size: 13px;
+  font-style: italic;
+}
+
 /* Toggle Switch */
 .form-field__toggle {
   display: flex;
