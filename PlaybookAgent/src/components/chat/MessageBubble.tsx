@@ -36,8 +36,11 @@ function renderMarkdown(text: string): string {
   // Strikethrough
   html = html.replace(/~~(.+?)~~/g, '<del>$1</del>');
 
-  // Links
-  html = html.replace(/\[([^\]]+)\]\(([^)]+)\)/g, '<a href="$2" target="_blank" rel="noopener" class="md-link">$1</a>');
+  // Links (sanitize: only allow http/https/mailto — block javascript: etc.)
+  html = html.replace(/\[([^\]]+)\]\(([^)]+)\)/g, (_m, label, url) => {
+    const safeUrl = /^(https?:\/\/|mailto:|#)/.test(url) ? url : '#';
+    return `<a href="${safeUrl}" target="_blank" rel="noopener noreferrer" class="md-link">${label}</a>`;
+  });
 
   // Blockquotes
   html = html.replace(/^&gt; (.+)$/gm, '<blockquote class="md-blockquote">$1</blockquote>');
@@ -134,10 +137,10 @@ function ReasoningBubble({ content }: { content: string }) {
 
 // ─── Message Bubble Component ────────────────────────────────────────────────
 
-/** Track which message IDs we've already rendered (skip streaming for those) */
-const renderedMessages = new Set<string>();
-
 export function MessageBubble({ message }: { message: ChatMessage }) {
+  // Track rendered messages in ref to avoid re-streaming on re-render (bounded to 200 entries)
+  const renderedRef = useRef<Set<string>>(new Set());
+
   if (message.role === 'system') {
     return (
       <div className="message message--system">
@@ -160,12 +163,17 @@ export function MessageBubble({ message }: { message: ChatMessage }) {
   }, [message.role, message.content]);
 
   // Only stream new assistant messages
-  const isNew = isAssistant && !renderedMessages.has(msgId);
+  const isNew = isAssistant && !renderedRef.current.has(msgId);
   const { displayed, done } = useStreamingText(message.content ?? '', isNew);
 
   useEffect(() => {
     if (done && isAssistant) {
-      renderedMessages.add(msgId);
+      renderedRef.current.add(msgId);
+      // Bound the set to prevent unbounded growth
+      if (renderedRef.current.size > 200) {
+        const entries = Array.from(renderedRef.current);
+        renderedRef.current = new Set(entries.slice(-100));
+      }
     }
   }, [done, msgId, isAssistant]);
 

@@ -88,6 +88,8 @@ export type ReasoningEffort = 'low' | 'medium' | 'high';
 
 export interface ChatCompletionRequest {
   messages: Array<{ role: string; content: string | ContentPart[] }>;
+  /** Model deployment name — e.g. 'gpt-5.2', 'o4-mini'. Sent in body for Responses API. */
+  model?: string;
   temperature?: number;
   max_completion_tokens?: number;
   tools?: unknown[];
@@ -151,18 +153,26 @@ export interface ExtendedTokenUsage {
 
 export const azureOpenAI = {
   chatCompletion: (request: ChatCompletionRequest, apiVersion = OPENAI_DEFAULTS.apiVersion) => {
-    // Apply central defaults; caller can override
+    const reasoningEffort = request.reasoning?.effort ?? OPENAI_DEFAULTS.reasoningEffort;
+    const hasReasoning = !!reasoningEffort;
+
+    // Build body — reasoning models don't accept temperature or top_p
     const body: Record<string, unknown> = {
       ...request,
-      temperature: request.temperature ?? OPENAI_DEFAULTS.temperature,
       max_completion_tokens: request.max_completion_tokens ?? OPENAI_DEFAULTS.max_completion_tokens,
     };
 
-    // Add reasoning config if provided or if default is set
-    if (request.reasoning?.effort || OPENAI_DEFAULTS.reasoningEffort) {
-      body.reasoning = {
-        effort: request.reasoning?.effort ?? OPENAI_DEFAULTS.reasoningEffort,
-      };
+    // Only set temperature for non-reasoning models (o-series rejects it)
+    if (!hasReasoning) {
+      body.temperature = request.temperature ?? OPENAI_DEFAULTS.temperature;
+    } else {
+      delete body.temperature;
+      body.reasoning = { effort: reasoningEffort };
+    }
+
+    // Pass model if specified (per-agent model selection)
+    if (request.model) {
+      body.model = request.model;
     }
 
     return tracedOperation<void>(

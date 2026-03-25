@@ -266,6 +266,9 @@ async function handleLinkAgentTool(args: Record<string, unknown>): Promise<unkno
  * Runs in a Function() sandbox with data utilities available.
  * No DOM access, no network, no imports — pure computation.
  */
+/** Max execution time for user code (ms) */
+const CODE_EXEC_TIMEOUT_MS = 5000;
+
 async function handleRunDataCode(args: Record<string, unknown>): Promise<unknown> {
   const code = (args.code ?? '') as string;
   const inputData = args.data as unknown;
@@ -273,35 +276,120 @@ async function handleRunDataCode(args: Record<string, unknown>): Promise<unknown
   if (!code) return { error: 'Missing code parameter — provide JavaScript code to execute' };
 
   try {
-    // Build sandbox with data utilities
-    const sandbox = buildDataSandbox(inputData);
-
-    // Execute in sandboxed Function (no access to globalThis, window, document, etc.)
-    const fn = new Function(
-      ...Object.keys(sandbox),
-      `"use strict";\n${code}`
-    );
-
-    const startTime = performance.now();
-    const result = fn(...Object.values(sandbox));
-    const durationMs = Math.round(performance.now() - startTime);
-
-    // Capture console output from sandbox
-    const logs = sandbox._logs as string[];
-
-    return {
-      success: true,
-      result: result !== undefined ? result : null,
-      logs: logs.length > 0 ? logs : undefined,
-      durationMs,
-      type: typeof result,
-    };
+    return await executeInSandbox(code, inputData);
   } catch (err) {
     return {
       error: err instanceof Error ? err.message : String(err),
       stack: err instanceof Error ? err.stack?.split('\n').slice(0, 3).join('\n') : undefined,
     };
   }
+}
+
+/**
+ * Execute user code in a sandboxed Web Worker with timeout.
+ * Falls back to main-thread Function() if Worker is unavailable.
+ */
+function executeInSandbox(code: string, inputData: unknown, extraVars?: Record<string, unknown>): Promise<Record<string, unknown>> {
+  const sandbox = buildDataSandbox(inputData);
+  if (extraVars) {
+    for (const [k, v] of Object.entries(extraVars)) {
+      sandbox[k] = v;
+    }
+  }
+
+  // Try Web Worker for true isolation + timeout
+  if (typeof Worker !== 'undefined' && typeof Blob !== 'undefined') {
+    return new Promise((resolve) => {
+      const helperCode = `
+        const sum = (a) => a.reduce((x, y) => x + y, 0);
+        const avg = (a) => a.length ? sum(a) / a.length : 0;
+        const min = (a) => Math.min(...a);
+        const max = (a) => Math.max(...a);
+        const median = (a) => { const s = [...a].sort((x,y)=>x-y); const m = Math.floor(s.length/2); return s.length%2 ? s[m] : (s[m-1]+s[m])/2; };
+        const stddev = (a) => { const m = avg(a); return Math.sqrt(a.reduce((s,v)=>s+(v-m)**2,0)/a.length); };
+        const groupBy = (a, k) => a.reduce((r, i) => { const g = String(i[k]??'null'); (r[g]=r[g]||[]).push(i); return r; }, {});
+        const sortBy = (a, k, d) => [...a].sort((x,y) => { const c = String(x[k]??'') < String(y[k]??'') ? -1 : String(x[k]??'') > String(y[k]??'') ? 1 : 0; return d ? -c : c; });
+        const unique = (a, k) => { if(!k) return [...new Set(a)]; const s = new Set(); return a.filter(i => { const v = i[k]; if(s.has(v)) return false; s.add(v); return true; }); };
+        const pluck = (a, k) => a.map(i => i[k]);
+        const countBy = (a, k) => a.reduce((r, i) => { const g = String(i[k]??'null'); r[g] = (r[g]||0)+1; return r; }, {});
+        const daysBetween = (a, b) => Math.round(Math.abs(new Date(b)-new Date(a))/86400000);
+        const parseDate = (s) => new Date(s);
+        const now = () => new Date();
+      `;
+      const workerCode = `
+        "use strict";
+        ${helperCode}
+        self.onmessage = function(e) {
+          const { code, data, extraVars } = e.data;
+          const _logs = [];
+          const console = {
+            log: (...a) => _logs.push(a.map(String).join(' ')),
+            warn: (...a) => _logs.push('[WARN] ' + a.map(String).join(' ')),
+            error: (...a) => _logs.push('[ERROR] ' + a.map(String).join(' ')),
+            table: (d) => _logs.push(JSON.stringify(d, null, 2)),
+          };
+          try {
+            const vars = extraVars || {};
+            const fn = new Function('data', 'console', '_logs', ...Object.keys(vars), code);
+            const result = fn(data, console, _logs, ...Object.values(vars));
+            self.postMessage({ success: true, result: result !== undefined ? result : null, logs: _logs.length > 0 ? _logs : undefined });
+          } catch (err) {
+            self.postMessage({ error: err.message, stack: err.stack ? err.stack.split('\\n').slice(0,3).join('\\n') : undefined });
+          }
+        };
+      `;
+
+      const blob = new Blob([workerCode], { type: 'application/javascript' });
+      const url = URL.createObjectURL(blob);
+      const worker = new Worker(url);
+
+      const timer = setTimeout(() => {
+        worker.terminate();
+        URL.revokeObjectURL(url);
+        resolve({ error: `Execution timeout — code exceeded ${CODE_EXEC_TIMEOUT_MS}ms limit`, timeout: true });
+      }, CODE_EXEC_TIMEOUT_MS);
+
+      worker.onmessage = (e) => {
+        clearTimeout(timer);
+        worker.terminate();
+        URL.revokeObjectURL(url);
+        const r = e.data as Record<string, unknown>;
+        if (r.error) {
+          resolve({ error: r.error, stack: r.stack });
+        } else {
+          resolve({ success: true, result: r.result, logs: r.logs, type: typeof r.result });
+        }
+      };
+
+      worker.onerror = (e) => {
+        clearTimeout(timer);
+        worker.terminate();
+        URL.revokeObjectURL(url);
+        resolve({ error: e.message || 'Worker execution error' });
+      };
+
+      worker.postMessage({ code, data: inputData, extraVars });
+    });
+  }
+
+  // Fallback: main-thread execution (no timeout protection against infinite loops)
+  const fn = new Function(
+    ...Object.keys(sandbox),
+    `"use strict";\n${code}`
+  );
+
+  const startTime = performance.now();
+  const result = fn(...Object.values(sandbox));
+  const durationMs = Math.round(performance.now() - startTime);
+  const logs = sandbox._logs as string[];
+
+  return Promise.resolve({
+    success: true,
+    result: result !== undefined ? result : null,
+    logs: logs.length > 0 ? logs : undefined,
+    durationMs,
+    type: typeof result,
+  });
 }
 
 /** Build a sandbox environment with data analysis utilities */
@@ -418,24 +506,17 @@ async function handleCrossTableAnalysis(args: Record<string, unknown>): Promise<
 
     await Promise.all(fetchPromises);
 
-    // Run analysis code with all datasets available
-    const sandbox = buildDataSandbox(datasets);
-    // Also inject each alias directly
+    // Run analysis code in sandbox with timeout protection
+    const extraVars: Record<string, unknown> = {};
     for (const [alias, data] of Object.entries(datasets)) {
-      sandbox[alias] = data;
+      extraVars[alias] = data;
     }
 
-    const fn = new Function(...Object.keys(sandbox), `"use strict";\n${code}`);
-    const startTime = performance.now();
-    const result = fn(...Object.values(sandbox));
-    const durationMs = Math.round(performance.now() - startTime);
-    const logs = sandbox._logs as string[];
+    const execResult = await executeInSandbox(code, datasets, extraVars) as Record<string, unknown>;
+    if (execResult.error) return execResult;
 
     return {
-      success: true,
-      result: result !== undefined ? result : null,
-      logs: logs.length > 0 ? logs : undefined,
-      durationMs,
+      ...execResult,
       tablesQueried: queries.map(q => `${q.table} as ${q.alias}`),
       recordCounts: Object.fromEntries(Object.entries(datasets).map(([k, v]) => [k, v.length])),
     };

@@ -69,6 +69,7 @@ export async function runAgentLoop(config: AgentLoopConfig): Promise<ChatMessage
           ...(m.tool_call_id ? { tool_call_id: m.tool_call_id } : {}),
           ...(m.name ? { name: m.name } : {}),
         })),
+        model: agent.modelConfig.model,
         temperature: agent.modelConfig.temperature,
         max_completion_tokens: agent.modelConfig.max_completion_tokens,
         tools: openAITools,
@@ -182,8 +183,5 @@ export async function runAgentLoop(config: AgentLoopConfig): Promise<ChatMessage
   // Safety limit reached — always report
   onEvent({ type: 'error', error: `Agent loop reached max iterations (${MAX_ITERATIONS})` });
   onEvent({ type: 'status_change', status: 'error' });
-  if (messages.length > 0) {
-  }
-
   return messages;
 }

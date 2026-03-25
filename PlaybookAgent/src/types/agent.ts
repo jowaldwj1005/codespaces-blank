@@ -38,6 +38,8 @@ export interface ToolDefinition {
 // ─── Agent Definition (maps to jw_agent + expanded tools) ────────────────────
 
 export interface ModelConfig {
+  /** Model deployment name (e.g. 'gpt-5.2', 'o4-mini'). Passed in body for Responses API. */
+  model?: string;
   temperature?: number;
   max_completion_tokens?: number;
   tool_choice?: 'auto' | 'required' | 'none' | { type: 'function'; function: { name: string } };
