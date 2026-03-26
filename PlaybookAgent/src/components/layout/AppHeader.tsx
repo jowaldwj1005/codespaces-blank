@@ -1,21 +1,9 @@
 import { useState } from 'react';
-import type { RightPanel } from '../../App';
 
 export const APP_VERSION = '0.11.0';
-const VERSION_SUMMARY = 'Wire it together: inline charts, terminal code display, citations, datatype bug fixes.';
+const VERSION_SUMMARY = 'Activity sidebar, AI-assisted config, wiring & bug fixes.';
 
-interface AppHeaderProps {
-  rightPanel: RightPanel;
-  onTogglePanel: (panel: RightPanel) => void;
-}
-
-const PANEL_BUTTONS: Array<{ panel: RightPanel; label: string; icon: string }> = [
-  { panel: 'seed', label: 'Seed', icon: '🌱' },
-  { panel: 'artifacts', label: 'Artifacts', icon: '📦' },
-  { panel: 'case-detail', label: 'Case', icon: '📋' },
-];
-
-export function AppHeader({ rightPanel, onTogglePanel }: AppHeaderProps) {
+export function AppHeader() {
   const [showTooltip, setShowTooltip] = useState(false);
 
   return (
@@ -32,24 +20,10 @@ export function AppHeader({ rightPanel, onTogglePanel }: AppHeaderProps) {
             <div className="app-header__tooltip">
               <strong>v{APP_VERSION}</strong>
               <span>{VERSION_SUMMARY}</span>
-              <span className="app-header__tooltip-hint">See docs/VERSIONS.md for details & questions</span>
+              <span className="app-header__tooltip-hint">See docs/VERSIONS.md for details</span>
             </div>
           )}
         </div>
-      </div>
-
-      <div className="app-header__right">
-        {PANEL_BUTTONS.map(({ panel, label, icon }) => (
-          <button
-            key={panel}
-            className={`header-panel-btn ${rightPanel === panel ? 'header-panel-btn--active' : ''}`}
-            onClick={() => onTogglePanel(panel)}
-            title={label}
-          >
-            <span className="header-panel-btn__icon">{icon}</span>
-            <span className="header-panel-btn__label">{label}</span>
-          </button>
-        ))}
       </div>
     </header>
   );

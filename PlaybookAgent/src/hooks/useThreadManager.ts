@@ -32,10 +32,10 @@ export function useThreadManager() {
       } as Parameters<typeof jwThreads.getAll>[0]);
       const records = result.data ?? [];
       const threads: ThreadSummary[] = records.map(r => {
-        const statusMap: Record<number, ThreadSummary['status']> = {
-          100000000: 'Active',
-          100000001: 'Completed',
-          100000002: 'Cancelled',
+        const statusMap: Record<string, ThreadSummary['status']> = {
+          '100000000': 'Active',
+          '100000001': 'Completed',
+          '100000002': 'Cancelled',
         };
         return {
           id: r.jw_threadid,
@@ -43,7 +43,7 @@ export function useThreadManager() {
           agentId: r._jw_agentid_value ?? '',
           agentName: r.jw_agentidname,
           parentThreadId: r._jw_parentthreadid_value ?? undefined,
-          status: statusMap[r.jw_status as number] ?? 'Active',
+          status: statusMap[String(r.jw_status)] ?? 'Active',
           createdOn: r.createdon ?? '',
           modifiedOn: r.modifiedon ?? '',
         };
