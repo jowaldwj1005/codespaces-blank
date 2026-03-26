@@ -1,8 +1,8 @@
 import { useState } from 'react';
 import type { RightPanel } from '../../App';
 
-export const APP_VERSION = '0.10.0';
-const VERSION_SUMMARY = 'Responses API migration: new connector, web search, multi-turn, reasoning summaries.';
+export const APP_VERSION = '0.11.0';
+const VERSION_SUMMARY = 'Wire it together: inline charts, terminal code display, citations, datatype bug fixes.';
 
 interface AppHeaderProps {
   rightPanel: RightPanel;

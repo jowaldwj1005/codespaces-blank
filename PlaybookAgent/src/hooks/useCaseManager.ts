@@ -56,10 +56,10 @@ const STATUS_MAP: Record<string, CaseStatus> = {
   '100000002': 'Cancelled',
 };
 
-const THREAD_STATUS_MAP: Record<number, ThreadSummary['status']> = {
-  100000000: 'Active',
-  100000001: 'Completed',
-  100000002: 'Cancelled',
+const THREAD_STATUS_MAP: Record<string, ThreadSummary['status']> = {
+  '100000000': 'Active',
+  '100000001': 'Completed',
+  '100000002': 'Cancelled',
 };
 
 export function useCaseManager() {
@@ -145,7 +145,7 @@ export function useCaseManager() {
           agentId: r._jw_agentid_value ?? '',
           agentName: r.jw_agentidname,
           parentThreadId: r._jw_parentthreadid_value ?? undefined,
-          status: THREAD_STATUS_MAP[r.jw_status as number] ?? 'Active',
+          status: THREAD_STATUS_MAP[String(r.jw_status)] ?? 'Active',
           createdOn: r.createdon ?? '',
           modifiedOn: r.modifiedon ?? '',
         }));

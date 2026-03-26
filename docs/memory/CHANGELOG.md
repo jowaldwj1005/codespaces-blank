@@ -1,5 +1,24 @@
 # Changelog - Playbook Agent
 
+## v0.11.0 (2026-03-26)
+### Wired — Feature Connections
+- **Inline Visualizations**: `create_visual` tool now renders charts directly in chat via `VisualizationCard` (bar, line, pie, area, scatter, radar, treemap, table)
+- **Terminal Code Display**: `run_data_code` results render in terminal-style UI (dark theme, colored output, duration badge)
+- **Citation Rendering**: Web search citations from Responses API now display as clickable source pills below messages
+- **visual_created Event**: `toolExecutor` now emits `visual_created` event after `create_visual` completes, connecting to `useAgentChat` visualization state
+
+### Fixed — Datatype Bugs
+- **jw_status as string everywhere**: Fixed in `builtinTools.ts`, `PlaybookProgress.tsx`, `CaseDashboard.tsx`, `useCaseManager.ts` — all status comparisons now use string `'100000000'` not number `100000000`
+- **Seed data choice fields**: `jw_requiresapproval` now `0`/`1` (was `true`/`false`), `jw_allowmcp` now `1` (was `true`)
+- **THREAD_STATUS_MAP**: Changed from `Record<number, ...>` to `Record<string, ...>` with string keys
+
+### Updated
+- `ToolCallCard.tsx` — Complete rewrite with specialized renderers per tool type
+- `MessageBubble.tsx` — Added citation rendering section
+- `toolExecutor.ts` — Added `visual_created` event emission
+- `App.css` — Terminal display styles (Catppuccin-inspired), citation pill styles
+- `AppHeader.tsx` — Version bumped to 0.11.0
+
 ## v0.10.0 (2026-03-25)
 ### Changed — Azure OpenAI Responses API Migration
 - **New Connector**: Switched from `CustomConnector_AzureOpenAIService` (Chat Completions) to `CustCon_AzureOpenAI_ResponsesService` (Responses API)

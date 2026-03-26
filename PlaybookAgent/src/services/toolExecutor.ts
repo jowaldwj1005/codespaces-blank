@@ -102,6 +102,16 @@ export function createToolExecutor(config: ToolExecutorConfig) {
       response = { error };
     }
 
+    // Emit visual_created event for create_visual tool
+    if (tool.name === 'create_visual' && response && typeof response === 'object' && 'visualId' in (response as Record<string, unknown>)) {
+      const visualResponse = response as Record<string, unknown>;
+      config.onEvent({
+        type: 'visual_created',
+        visualId: visualResponse.visualId as string,
+        input: args as unknown as import('../types/agent').CreateVisualInput,
+      });
+    }
+
     // Emit audit record
     const record: ToolExecutionRecord = {
       callId,

@@ -17,7 +17,7 @@ interface CaseDashboardProps {
 interface CaseData {
   id: string;
   title: string;
-  status: number;
+  status: string;
   contextData: Record<string, unknown> | null;
   playbookId: string | null;
   createdOn: string;
@@ -37,10 +37,10 @@ interface InstructionProgress {
   completed: boolean;
 }
 
-const STATUS_MAP: Record<number, { label: string; color: string; bg: string }> = {
-  100000000: { label: 'Active', color: '#059669', bg: '#ecfdf5' },
-  100000001: { label: 'Completed', color: '#6366f1', bg: '#eef2ff' },
-  100000002: { label: 'Cancelled', color: '#dc2626', bg: '#fef2f2' },
+const STATUS_MAP: Record<string, { label: string; color: string; bg: string }> = {
+  '100000000': { label: 'Active', color: '#059669', bg: '#ecfdf5' },
+  '100000001': { label: 'Completed', color: '#6366f1', bg: '#eef2ff' },
+  '100000002': { label: 'Cancelled', color: '#dc2626', bg: '#fef2f2' },
 };
 
 export function CaseDashboard({ threadId, caseId: propCaseId, onOpenArtifact }: CaseDashboardProps) {
@@ -92,7 +92,7 @@ export function CaseDashboard({ threadId, caseId: propCaseId, onOpenArtifact }: 
         const cData: CaseData = {
           id: c.jw_caseid as string,
           title: (c.jw_title ?? 'Untitled Case') as string,
-          status: (c.jw_status ?? 100000000) as number,
+          status: String(c.jw_status ?? '100000000'),
           contextData,
           playbookId: c._jw_playbookid_value as string | null,
           createdOn: c.createdon as string,
@@ -194,7 +194,7 @@ export function CaseDashboard({ threadId, caseId: propCaseId, onOpenArtifact }: 
     );
   }
 
-  const statusInfo = STATUS_MAP[caseData.status] ?? STATUS_MAP[100000000];
+  const statusInfo = STATUS_MAP[String(caseData.status)] ?? STATUS_MAP['100000000'];
 
   return (
     <div className="case-dashboard">

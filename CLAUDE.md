@@ -1,7 +1,7 @@
 # CLAUDE.md - Playbook Agent
 
-**App Version:** 0.10.0
-**Phase:** Responses API Migration — New connector, web search, multi-turn continuation, rich output
+**App Version:** 0.11.0
+**Phase:** Wire It Together — Inline visualizations, terminal code display, citations, datatype fixes
 
 ## Quick Context
 

@@ -6,6 +6,57 @@ Austausch-Dokument zwischen Dir und Claude. Ideen werden hier gesammelt, du bewe
 
 ---
 
+## Implementation Status Matrix (v0.11.0)
+
+| # | Feature | Status | Details |
+|---|---------|--------|---------|
+| - | **Core Agent Loop** | DONE | Responses API, multi-turn, tool execution, HitL |
+| - | **Inline Visualizations** | DONE (v0.11) | create_visual → VisualizationCard, 9 chart types |
+| - | **Terminal Code Display** | DONE (v0.11) | run_data_code terminal UI |
+| - | **Citation Rendering** | DONE (v0.11) | Web search citation pills |
+| - | **DataverseExplorer** | DONE (v0.10) | Mini model-driven app, 12+ entities |
+| - | **ConnectorTester** | DONE (v0.10) | 3 panels: OpenAI, DocInt, SAP |
+| - | **Debug Console** | DONE | debugEventBus, DebugPanel with raw I/O |
+| - | **MCP Tools** | DONE | search_dataverse, get_table_schema, execute_dataverse_query |
+| - | **Seed Data System** | DONE | Idempotent seeder with all tools + agents |
+| - | **SemanticRenderer** | PARTIAL | 12 types registered, but artifact pipeline incomplete |
+| - | **CaseDashboard** | PARTIAL | Renders, but artifact display limited |
+| - | **PlaybookProgress** | PARTIAL | Checklist works, but auto-refresh limited |
+| 1 | Agentic Learning Loop | NOT STARTED | User approved, needs save_learning tool + autonomy settings |
+| 2 | Agent Handoff | NOT STARTED | User: "cool but complex, needs use cases" |
+| 3 | Agent Persona Playground | NOT STARTED | User wants replay of past cases too |
+| 4 | Instruction Auto-Tagging | NOT STARTED | User wants AI help for all entity creation |
+| 5 | Bounded History | NOT STARTED | User wants manual trigger + visibility |
+| 6 | Cross-Thread Context | NOT STARTED | User wants global system prompts |
+| 7 | Case Context Snapshots | NOT STARTED | User: "wenn möglich gerne" |
+| 8 | Artifact Version History | NOT STARTED | User approved |
+| 9 | Live Artifact Binding | NOT STARTED | User: "ja gut" |
+| 10 | NL Queries on Artifacts | NOT STARTED | User wants bidirectional |
+| 11 | Artifact Templates | NOT STARTED | User suggests knowledge instructions |
+| 12 | Dashboard-Zusammenstellung | NOT STARTED | User wants agent-driven case updates |
+| 13 | Playbook Auto-Generation | DEPRIORITIZED | User: "nicht der erwartete Grenznutzen" |
+| 14 | Conditional Auto-Approval | NOT STARTED | Hard vs soft HitL distinction needed |
+| 15 | Tool Chains | NOT STARTED | User wants markdown-defined flows |
+| 16 | Scheduled Agent Tasks | DEFERRED | Azure Function future vision |
+| 17 | Cost Dashboard | NOT STARTED | User approved |
+| 18 | Performance Scorecard | NOT STARTED | User: part of home dashboards |
+| 19 | Thread Health Monitor | NOT STARTED | User approved |
+| 20 | Audit Trail Export | NOT STARTED | User approved |
+| 21 | Conversation Branching | NOT STARTED | User wants free fork switching |
+| 22 | Annotation Layer | NOT STARTED | User added annotation entity |
+| 23 | Multi-User Awareness | DEPRIORITIZED | User: "nicht der krasse Mehrwert" |
+| 24 | Keyboard-First Chat UX | NOT STARTED | User: "muss erklärt werden" |
+| 25 | Mobile-Responsive | LOW PRIORITY | Code apps desktop only for now |
+| 26-30 | Integration/External | DEFERRED | User: "nein für now" |
+
+**Next recommended priorities (high impact, builds on existing code):**
+1. Agentic Learning Loop (#1) — `save_learning` tool, autonomy settings, knowledge versioning
+2. Bounded History (#5) — token budget management, manual trigger, summary visibility
+3. Cost Dashboard (#17) — token data already tracked, just needs aggregation UI
+4. Conditional Auto-Approval (#14) — agent-tool JSON config, hard/soft HitL gate
+
+---
+
 ## Agent Intelligence
 
 ### 1. Agentic Learning Loop (save_learning)

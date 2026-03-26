@@ -631,7 +631,7 @@ async function handleStartPlaybook(args: Record<string, unknown>): Promise<unkno
     // 2. Create case linked to playbook
     const caseRecord: Record<string, unknown> = {
       jw_title: title || `${playbook.jw_name || 'Unnamed Playbook'} — Case`,
-      jw_status: 100000000, // Active
+      jw_status: '100000000', // Active
       'jw_playbookid@odata.bind': lookupBind('jw_playbooks', playbookId),
     };
     const caseResult = await dv.jwCases.create(caseRecord as never);
@@ -720,7 +720,7 @@ async function handleCompleteInstruction(args: Record<string, unknown>): Promise
 
     // If all instructions completed, update case status
     if (completed === total && total > 0) {
-      await dv.jwCases.update(caseId, { jw_status: 100000001 } as never); // Completed
+      await dv.jwCases.update(caseId, { jw_status: '100000001' } as never); // Completed
     }
 
     return {

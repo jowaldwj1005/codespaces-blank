@@ -5,6 +5,45 @@
 
 ---
 
+## v0.11.0 — Wire It Together (2026-03-26)
+
+### What Was Done
+
+**Connected existing features** that were built but never wired together. Focus: make things actually work end-to-end.
+
+**Inline Visualizations:**
+- `create_visual` tool now renders real recharts visualizations directly in the chat message stream
+- `toolExecutor` emits `visual_created` event → `useAgentChat` picks it up → `VisualizationCard` renders inline in `ToolCallCard`
+- Supports all 9 chart types: bar, line, pie, area, scatter, radar, treemap, table, 3d
+
+**Terminal-Style Code Execution:**
+- `run_data_code` results now render in a dark terminal UI (Catppuccin-inspired)
+- Shows: code input, console.log output (grey), return value (green), errors (red), execution duration
+- macOS-style window dots header
+
+**Citation Rendering:**
+- Web search citations from Responses API now display as clickable pill-style links below assistant messages
+- Shows hostname or title, opens in new tab
+
+**Bug Fixes:**
+- `jw_status` string type fixed across 6 files (was number, broke comparisons)
+- Seed data `jw_requiresapproval` and `jw_allowmcp` now use integers (0/1) instead of booleans
+- `THREAD_STATUS_MAP` changed from number-keyed to string-keyed
+
+### How to Test
+1. Ask the agent to "query systemusers and show me a bar chart of their data" → should see inline chart
+2. Ask the agent to "run some code to calculate 2+2" → should see terminal-style output
+3. Enable web search on an agent and ask a web question → should see citation pills below the answer
+4. Run seed data → check that choice fields are integers, not booleans
+5. Start a playbook → case status should display correctly in CaseDashboard
+
+### Questions for User
+- Terminal design: Catppuccin dark theme good? Or prefer something lighter?
+- Citations: pill-style links work? Or prefer inline footnote-style?
+- Next priority: Agentic Learning Loop or Bounded History with Smart Summarization?
+
+---
+
 ## v0.10.0 — Responses API Migration (2026-03-25)
 
 ### What Was Done

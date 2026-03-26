@@ -1,5 +1,6 @@
 import { useState } from 'react';
-import type { ToolCall } from '../../types/agent';
+import type { ToolCall, CreateVisualInput } from '../../types/agent';
+import { VisualizationCard } from './VisualizationCard';
 
 interface ToolCallCardProps {
   toolCall: ToolCall;
@@ -19,12 +20,16 @@ function formatJson(value: unknown): string {
 }
 
 /** Extract a short summary from a tool response */
-function summarizeResponse(response: unknown): string | null {
+function summarizeResponse(response: unknown, toolName: string): string | null {
   if (response == null) return null;
   if (typeof response === 'string') return response.length > 80 ? response.slice(0, 80) + '...' : response;
   if (typeof response !== 'object') return String(response);
 
   const obj = response as Record<string, unknown>;
+
+  // Tool-specific summaries
+  if (toolName === 'create_visual' && obj.visualId) return `Chart created: ${obj.chartType ?? 'chart'}`;
+  if (toolName === 'run_data_code' && obj.success) return 'Code executed successfully';
 
   // Common success pattern
   if (obj.success && obj.message) return String(obj.message);
@@ -45,14 +50,80 @@ function summarizeResponse(response: unknown): string | null {
   return null;
 }
 
+// ─── Terminal Display for run_data_code ──────────────────────────────────────
+
+function TerminalDisplay({ args, response }: { args: Record<string, unknown>; response: Record<string, unknown> }) {
+  const code = (args.code as string) ?? '';
+  const logs = (response.logs as string[]) ?? [];
+  const result = response.result;
+  const error = response.error as string | undefined;
+  const duration = response.durationMs as number | undefined;
+
+  return (
+    <div className="tool-call-card__terminal">
+      <div className="tool-call-card__terminal-header">
+        <span className="tool-call-card__terminal-dot tool-call-card__terminal-dot--red" />
+        <span className="tool-call-card__terminal-dot tool-call-card__terminal-dot--yellow" />
+        <span className="tool-call-card__terminal-dot tool-call-card__terminal-dot--green" />
+        <span className="tool-call-card__terminal-title">Code Execution</span>
+        {duration !== undefined && (
+          <span className="tool-call-card__terminal-duration">{duration}ms</span>
+        )}
+      </div>
+      <pre className="tool-call-card__terminal-input">{code}</pre>
+      {logs.length > 0 && (
+        <div className="tool-call-card__terminal-output">
+          <div className="tool-call-card__terminal-label">console.log</div>
+          {logs.map((log, i) => (
+            <pre key={i} className="tool-call-card__terminal-log">{log}</pre>
+          ))}
+        </div>
+      )}
+      {result !== undefined && !error && (
+        <div className="tool-call-card__terminal-output">
+          <div className="tool-call-card__terminal-label">Return value</div>
+          <pre className="tool-call-card__terminal-result">
+            {typeof result === 'string' ? result : JSON.stringify(result, null, 2)}
+          </pre>
+        </div>
+      )}
+      {error && (
+        <div className="tool-call-card__terminal-error">
+          <div className="tool-call-card__terminal-label">Error</div>
+          <pre>{error}</pre>
+        </div>
+      )}
+    </div>
+  );
+}
+
+// ─── Inline Visualization for create_visual ─────────────────────────────────
+
+function VisualDisplay({ args }: { args: Record<string, unknown> }) {
+  const input: CreateVisualInput = {
+    chartType: (args.chartType ?? 'bar') as CreateVisualInput['chartType'],
+    title: (args.title ?? 'Chart') as string,
+    data: (args.data ?? []) as Record<string, unknown>[],
+    xAxisKey: args.xAxisKey as string | undefined,
+    yAxisKey: args.yAxisKey as string | string[] | undefined,
+    colors: args.colors as string[] | undefined,
+    options: args.options as CreateVisualInput['options'],
+  };
+
+  return <VisualizationCard input={input} />;
+}
+
+// ─── Main Component ─────────────────────────────────────────────────────────
+
 export function ToolCallCard({ toolCall, status = 'completed', response }: ToolCallCardProps) {
   const [expanded, setExpanded] = useState(false);
+  const toolName = toolCall.function.name;
 
-  let parsedArgs: unknown;
+  let parsedArgs: Record<string, unknown>;
   try {
     parsedArgs = JSON.parse(toolCall.function.arguments);
   } catch {
-    parsedArgs = toolCall.function.arguments;
+    parsedArgs = { _raw: toolCall.function.arguments };
   }
 
   const statusClass = status === 'error' ? 'error'
@@ -60,8 +131,12 @@ export function ToolCallCard({ toolCall, status = 'completed', response }: ToolC
     : status === 'pending' ? 'pending'
     : 'completed';
 
-  const summary = response !== undefined ? summarizeResponse(response) : null;
+  const summary = response !== undefined ? summarizeResponse(response, toolName) : null;
   const isError = typeof response === 'object' && response !== null && 'error' in (response as Record<string, unknown>);
+
+  // Determine if this tool has a special inline display
+  const hasVisual = toolName === 'create_visual' && status === 'completed' && !isError;
+  const hasTerminal = toolName === 'run_data_code' && status === 'completed' && response != null;
 
   return (
     <div className={`tool-call-card ${isError ? 'tool-call-card--error' : ''}`}>
@@ -70,7 +145,7 @@ export function ToolCallCard({ toolCall, status = 'completed', response }: ToolC
         onClick={() => setExpanded(!expanded)}
       >
         <span className="tool-call-card__name">
-          {expanded ? '\u25BC' : '\u25B6'} {toolCall.function.name}
+          {expanded ? '\u25BC' : '\u25B6'} {toolName}
         </span>
         {summary && !expanded && (
           <span className="tool-call-card__summary">{summary}</span>
@@ -79,6 +154,12 @@ export function ToolCallCard({ toolCall, status = 'completed', response }: ToolC
           {status}
         </span>
       </button>
+
+      {/* Inline visualization — always shown when available */}
+      {hasVisual && <VisualDisplay args={parsedArgs} />}
+
+      {/* Terminal display — always shown when available */}
+      {hasTerminal && <TerminalDisplay args={parsedArgs} response={response as Record<string, unknown>} />}
 
       {expanded && (
         <div className="tool-call-card__body">

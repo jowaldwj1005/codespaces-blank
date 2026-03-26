@@ -207,6 +207,24 @@ export function MessageBubble({ message }: { message: ChatMessage }) {
           </div>
         )}
 
+        {/* URL Citations from web search */}
+        {isAssistant && message.citations && message.citations.length > 0 && (
+          <div className="message__citations">
+            <span className="message__citations-label">Sources:</span>
+            {message.citations.map((c, i) => (
+              <a
+                key={i}
+                href={c.url}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="message__citation-link"
+              >
+                {c.title ?? new URL(c.url).hostname}
+              </a>
+            ))}
+          </div>
+        )}
+
         {/* Streaming cursor */}
         {isNew && !done && (
           <span className="streaming-cursor" />

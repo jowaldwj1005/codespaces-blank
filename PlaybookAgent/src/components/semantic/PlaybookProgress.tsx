@@ -13,7 +13,7 @@ interface PlaybookProgressProps {
 interface ProgressState {
   playbookName: string;
   caseTitle: string;
-  caseStatus: number;
+  caseStatus: string;
   instructions: { id: string; name: string; type: string; completed: boolean }[];
 }
 
@@ -68,7 +68,7 @@ export function PlaybookProgress({ threadId }: PlaybookProgressProps) {
       setState({
         playbookName: (pb?.jw_name ?? 'Playbook') as string,
         caseTitle: (c.jw_title ?? '') as string,
-        caseStatus: (c.jw_status ?? 100000000) as number,
+        caseStatus: String(c.jw_status ?? '100000000'),
         instructions: instrRecords.map(i => ({
           id: i.jw_instructionid as string,
           name: (i.jw_name ?? 'Step') as string,
@@ -88,7 +88,7 @@ export function PlaybookProgress({ threadId }: PlaybookProgressProps) {
 
   // Refresh every 8s while active
   useEffect(() => {
-    if (!state || state.caseStatus !== 100000000) return; // Only refresh active cases
+    if (!state || state.caseStatus !== '100000000') return; // Only refresh active cases
     const interval = setInterval(load, 8000);
     return () => clearInterval(interval);
   }, [state, load]);
@@ -107,7 +107,7 @@ export function PlaybookProgress({ threadId }: PlaybookProgressProps) {
 
   if (loading || !state) return null;
 
-  const isComplete = state.caseStatus === 100000001;
+  const isComplete = state.caseStatus === '100000001';
 
   return (
     <div className={`playbook-progress ${isComplete ? 'playbook-progress--complete' : ''}`}>
