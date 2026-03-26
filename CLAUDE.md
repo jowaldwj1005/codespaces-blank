@@ -60,13 +60,34 @@ See `ContextFiles/Data Model Blueprint.md` for full schema.
 
 ## Key Documentation
 
+### Active Docs (read first)
+
 | File | What's in it |
 |------|-------------|
-| `docs/DESIGN_AND_ISSUES.md` | **Master design doc** — issues, proposals, roadmap, questions |
-| `docs/memory/DATAVERSE_PATTERNS.md` | SDK access, CRUD patterns, lookup binding |
-| `docs/memory/CONNECTOR_PATTERNS.md` | Azure OpenAI, Doc Intelligence, SAP OData gotchas |
-| `ContextFiles/Data Model Blueprint.md` | Full jw_ entity schema — strict source of truth |
-| `ContextFiles/customconnectorinformation/azureopenai_responses.txt` | Sample API request/response for validation |
+| `docs/DESIGN_AND_ISSUES.md` | **Master design doc** — known issues (P0/P1/P2), UX flows, proposals, roadmap |
+| `docs/VERSIONS.md` | Version notes v0.10–v0.13 with Q&A (recent history) |
+| `docs/FEATURE_IDEAS.md` | Feature backlog with user decisions and status |
+| `docs/JO_PROFILE.md` | User profile — how to collaborate effectively |
+| `docs/memory/DATAVERSE_PATTERNS.md` | SDK access, CRUD patterns, lookup binding, gotchas |
+| `docs/memory/CONNECTOR_PATTERNS.md` | Azure OpenAI Responses API, Doc Intelligence, SAP OData |
+| `docs/memory/CHANGELOG.md` | Full technical changelog (all versions) |
+
+### Architecture & Data Model
+
+| File | What's in it |
+|------|-------------|
+| `ContextFiles/Data Model Blueprint.md` | Full jw_ entity schema — **strict source of truth** |
+| `ContextFiles/Architecture Decisions.md` | ADRs: Custom Agent Loop, Sub-Agents, Visuals, Token Tracking |
+| `ContextFiles/Architecture Core.md` | SemanticRenderer, decoupled workspaces, meta-app concept |
+| `ContextFiles/Agentic Workflows.md` | HitL architecture, Smart Context, Dataverse MCP |
+| `ContextFiles/customconnectorinformation/azureopenai_responses.txt` | Sample Responses API request/response for validation |
+
+### Legacy (implemented or superseded)
+
+| File | Status |
+|------|--------|
+| `docs/legacy/DESIGN_SPRINT_CANVAS.md` | Implemented in v0.12–v0.13 (tabbed workspace, sidebar, CaseCanvas) |
+| `docs/legacy/VERSIONS_ARCHIVE.md` | Q&A version notes v0.1–v0.9 |
 
 ## Commands
 

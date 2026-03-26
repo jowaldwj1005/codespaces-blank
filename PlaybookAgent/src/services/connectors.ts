@@ -108,6 +108,7 @@ export const OPENAI_DEFAULTS = {
 /** Input item for the Responses API `input` array */
 export type ResponseInputItem =
   | { type: 'message'; role: 'user' | 'system' | 'developer'; content: ResponseInputContent[] | string }
+  | { type: 'function_call'; call_id: string; name: string; arguments: string }
   | { type: 'function_call_output'; call_id: string; output: string };
 
 export interface ResponseInputContent {

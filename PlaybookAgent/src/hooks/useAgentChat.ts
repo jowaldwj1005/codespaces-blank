@@ -10,6 +10,7 @@ import type {
   AgentDefinition,
   AgentEvent,
   AgentStatus,
+  AttachmentMeta,
   ChatMessage,
   CreateVisualInput,
   PendingToolCall,
@@ -46,6 +47,11 @@ const ENDPOINT_TYPE_MAP: Record<number, EndpointType> = {
   100000001: 'CustomConnector',
   100000002: 'InternalReact',
 };
+
+// Module-level map: threadId → last Responses API response ID.
+// Survives tab switches (component unmount/remount) so the next sendMessage
+// can pass previous_response_id and skip full history reconstruction.
+const _lastResponseIds = new Map<string, string>();
 
 // Map approval state strings to Dataverse choice values
 const APPROVAL_STATE_MAP: Record<string, 100000000 | 100000001 | 100000002 | 100000003> = {
@@ -273,6 +279,7 @@ export function useAgentChat(threadId: string | null) {
     // Pattern: analyze doc → save as artifact → give agent a peek (summary + first N chars + artifact ID)
     // Agent decides what to do: read full doc, code interpreter, or pass artifact ID to tools
     let attachmentContext = '';
+    let attachmentMeta: AttachmentMeta | undefined;
     if (options?.attachment) {
       const { fileName, mimeType, base64 } = options.attachment;
       try {
@@ -347,12 +354,15 @@ export function useAgentChat(threadId: string | null) {
             '- Ask user for specific extraction needs',
           ].filter(Boolean);
           attachmentContext = `\n\n${metaSummary.join('\n')}`;
+          attachmentMeta = { fileName, mimeType, pageCount, tableCount, charCount: fullContent.length, artifactId };
         } else if (analysisResult.status === 'failed') {
           attachmentContext = `\n\n[Document Analysis Failed: ${fileName}]`;
+          attachmentMeta = { fileName, mimeType, failed: true };
         }
       } catch (err) {
         const msg = err instanceof Error ? err.message : String(err);
         attachmentContext = `\n\n[Document upload error: ${msg}]`;
+        attachmentMeta = { fileName, mimeType, failed: true, errorMessage: msg };
       }
     }
 
@@ -362,12 +372,21 @@ export function useAgentChat(threadId: string | null) {
       ? { role: 'user', content: changeSummary }
       : null;
 
-    const userMsg: ChatMessage = { role: 'user', content: content + attachmentContext };
-    const outboundMessages = changeMsg ? [changeMsg, userMsg] : [userMsg];
+    // Display message: user-visible content only (no attachment context blob), plus attachment card metadata
+    const displayMsg: ChatMessage = {
+      role: 'user',
+      content,
+      ...(attachmentMeta ? { attachmentMeta } : {}),
+    };
+    // LLM message: includes full attachment context so agent can act on it
+    const llmMsg: ChatMessage = { role: 'user', content: content + attachmentContext };
+
+    const outboundDisplayMessages: ChatMessage[] = changeMsg ? [changeMsg, displayMsg] : [displayMsg];
+    const outboundLlmMessages: ChatMessage[] = changeMsg ? [changeMsg, llmMsg] : [llmMsg];
 
     setState(prev => ({
       ...prev,
-      messages: [...prev.messages, ...outboundMessages],
+      messages: [...prev.messages, ...outboundDisplayMessages],
       status: 'thinking',
       error: undefined,
     }));
@@ -403,7 +422,7 @@ export function useAgentChat(threadId: string | null) {
     });
 
     try {
-      const allMessages = [...state.messages, ...outboundMessages];
+      const allMessages = [...state.messages, ...outboundLlmMessages];
       // Track cumulative token usage for persistence
       let finalTokenUsage: { inputTokens: number; outputTokens: number } | undefined;
 
@@ -467,6 +486,8 @@ export function useAgentChat(threadId: string | null) {
       await runAgentLoop({
         agent: effectiveAgent,
         messages: allMessages,
+        previousResponseId: _lastResponseIds.get(threadId),
+        onResponseId: (id) => { _lastResponseIds.set(threadId, id); },
         onEvent: tokenTrackingHandler,
         executeToolCall: executor,
         signal: abortRef.current.signal,

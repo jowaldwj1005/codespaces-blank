@@ -39,6 +39,10 @@ const MAX_ITERATIONS = 10;
 export interface AgentLoopConfig {
   agent: AgentDefinition;
   messages: ChatMessage[];
+  /** Resume from a known response ID — skips full history reconstruction */
+  previousResponseId?: string;
+  /** Called after each API response with its ID, so the caller can persist it */
+  onResponseId?: (id: string) => void;
   onEvent: (event: AgentEvent) => void;
   executeToolCall: (tool: ToolDefinition, args: Record<string, unknown>, callId: string) => Promise<unknown>;
   signal?: AbortSignal;
@@ -61,8 +65,9 @@ export async function runAgentLoop(config: AgentLoopConfig): Promise<ChatMessage
     ? toResponseTools(agent.tools, agent.modelConfig.web_search ?? false)
     : undefined;
 
-  // Track the last response ID for multi-turn continuation
-  let previousResponseId: string | undefined;
+  // Track the last response ID for multi-turn continuation.
+  // Seeded from config so the caller can resume across separate sendMessage calls.
+  let previousResponseId: string | undefined = config.previousResponseId;
 
   for (let iteration = 0; iteration < MAX_ITERATIONS; iteration++) {
     if (signal?.aborted) {
@@ -113,8 +118,9 @@ export async function runAgentLoop(config: AgentLoopConfig): Promise<ChatMessage
       break;
     }
 
-    // Track response ID for potential continuation
+    // Track response ID for multi-turn continuation; notify caller so it can persist it
     previousResponseId = response.id;
+    if (response.id) config.onResponseId?.(response.id);
 
     // Update token usage
     if (response.usage) {
@@ -303,15 +309,26 @@ function buildResponseInput(messages: ChatMessage[], hasPreviousId: boolean): Re
         break;
 
       case 'assistant':
-        // Skip assistant messages — they're in the API's response history
-        // (previous_response_id handles continuation)
-        // But on first call without previous_response_id, we need them for context
-        if (!hasPreviousId && msg.content) {
-          input.push({
-            type: 'message',
-            role: 'developer',
-            content: [{ type: 'input_text', text: `[Previous assistant response]: ${msg.content}` }],
-          });
+        // When replaying full history (no previous_response_id), the API requires
+        // function_call items to appear before their matching function_call_output items.
+        if (!hasPreviousId) {
+          if (msg.tool_calls) {
+            for (const tc of msg.tool_calls) {
+              input.push({
+                type: 'function_call',
+                call_id: tc.id,
+                name: tc.function.name,
+                arguments: tc.function.arguments,
+              });
+            }
+          }
+          if (msg.content) {
+            input.push({
+              type: 'message',
+              role: 'developer',
+              content: [{ type: 'input_text', text: `[Previous assistant response]: ${msg.content}` }],
+            });
+          }
         }
         break;
     }

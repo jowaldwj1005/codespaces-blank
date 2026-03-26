@@ -1591,6 +1591,10 @@
   margin-bottom: 0;
 }
 
+.message__content--markdown .md-p:empty {
+  display: none;
+}
+
 .message__content--markdown strong {
   font-weight: 600;
   color: var(--color-text);
@@ -4016,6 +4020,144 @@
   color: var(--color-text-secondary);
   max-height: 200px;
   overflow-y: auto;
+}
+
+.case-canvas__card-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding-right: 12px;
+}
+.case-canvas__card-header .case-canvas__card-title {
+  flex: 1;
+}
+.case-canvas__card-actions {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-shrink: 0;
+}
+.case-canvas__agent-select {
+  font-size: 11px;
+  padding: 3px 6px;
+  border-radius: 4px;
+  border: 1px solid var(--color-border);
+  background: var(--color-surface-2, var(--color-surface));
+  color: var(--color-text);
+  max-width: 120px;
+}
+.case-canvas__new-thread-btn {
+  font-size: 11px;
+  padding: 3px 10px;
+}
+
+.playbook-progress__step--clickable {
+  cursor: pointer;
+}
+.playbook-progress__step--clickable:hover {
+  background: var(--color-hover);
+  border-radius: 4px;
+}
+.playbook-progress__step--completing {
+  opacity: 0.5;
+  pointer-events: none;
+}
+
+/* ─── Attachment Card (file upload result) ──────────────────────────────────── */
+
+.attachment-card {
+  margin: 2px 0 6px 48px;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  background: var(--color-surface);
+  overflow: hidden;
+  max-width: 420px;
+}
+
+.attachment-card--failed {
+  border-color: var(--color-error, #ef4444);
+}
+
+.attachment-card__header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 10px;
+  background: none;
+  border: none;
+  width: 100%;
+  cursor: pointer;
+  text-align: left;
+  font-size: 13px;
+  color: var(--color-text);
+}
+
+.attachment-card__header:hover {
+  background: var(--color-surface-hover, var(--color-hover));
+}
+
+.attachment-card__icon {
+  font-size: 15px;
+  flex-shrink: 0;
+}
+
+.attachment-card__name {
+  flex: 1;
+  font-weight: 500;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.attachment-card__badge {
+  font-size: 10px;
+  padding: 1px 6px;
+  border-radius: 10px;
+  background: var(--color-primary-bg);
+  color: var(--color-primary);
+  font-weight: 600;
+  flex-shrink: 0;
+}
+
+.attachment-card__badge--error {
+  background: var(--color-error-bg, #fee2e2);
+  color: var(--color-error, #ef4444);
+}
+
+.attachment-card__chevron {
+  font-size: 10px;
+  color: var(--color-text-tertiary);
+  flex-shrink: 0;
+}
+
+.attachment-card__body {
+  padding: 6px 12px 8px;
+  border-top: 1px solid var(--color-border-light, var(--color-border));
+}
+
+.attachment-card__stats {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.attachment-card__stat {
+  font-size: 11px;
+  color: var(--color-text-secondary);
+  background: var(--color-bg-secondary);
+  padding: 2px 7px;
+  border-radius: var(--radius-sm);
+}
+
+.attachment-card__stat--id {
+  font-family: var(--font-mono);
+  font-size: 10px;
+  color: var(--color-text-tertiary);
+}
+
+.attachment-card__error {
+  font-size: 12px;
+  color: var(--color-error, #ef4444);
 }
 
 /* ─── Artifact Full View ───────────────────────────────────────────────────── */

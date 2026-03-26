@@ -1,9 +1,64 @@
 import { useEffect, useRef, useState } from 'react';
-import type { ChatMessage, AgentStatus, PendingToolCall, InteractiveCard as ICard } from '../../types/agent';
+import type { ChatMessage, AgentStatus, AttachmentMeta, PendingToolCall, InteractiveCard as ICard } from '../../types/agent';
 import { MessageBubble } from './MessageBubble';
 import { ToolCallCard } from './ToolCallCard';
 import { ApprovalForm } from './ApprovalForm';
 import { InteractiveCard } from './InteractiveCard';
+
+function getFileIcon(mimeType: string): string {
+  if (mimeType.startsWith('image/')) return '\u{1F5BC}\u{FE0F}';
+  if (mimeType === 'application/pdf') return '\u{1F4C4}';
+  if (mimeType.includes('word') || mimeType.includes('document')) return '\u{1F4DD}';
+  if (mimeType.includes('spreadsheet') || mimeType.includes('excel')) return '\u{1F4CA}';
+  if (mimeType.includes('presentation') || mimeType.includes('powerpoint')) return '\u{1F4CA}';
+  return '\u{1F4CE}';
+}
+
+function AttachmentCard({ meta }: { meta: AttachmentMeta }) {
+  const [expanded, setExpanded] = useState(false);
+
+  return (
+    <div className={`attachment-card ${meta.failed ? 'attachment-card--failed' : ''}`}>
+      <button className="attachment-card__header" onClick={() => setExpanded(e => !e)}>
+        <span className="attachment-card__icon">{getFileIcon(meta.mimeType)}</span>
+        <span className="attachment-card__name">{meta.fileName}</span>
+        {!meta.failed && (
+          <span className="attachment-card__badge">Analyzed</span>
+        )}
+        {meta.failed && (
+          <span className="attachment-card__badge attachment-card__badge--error">Failed</span>
+        )}
+        <span className="attachment-card__chevron">{expanded ? '\u25BC' : '\u25B6'}</span>
+      </button>
+      {expanded && (
+        <div className="attachment-card__body">
+          {meta.failed ? (
+            <span className="attachment-card__error">
+              {meta.errorMessage ?? 'Analysis failed'}
+            </span>
+          ) : (
+            <div className="attachment-card__stats">
+              {meta.pageCount != null && (
+                <span className="attachment-card__stat">{meta.pageCount} page{meta.pageCount !== 1 ? 's' : ''}</span>
+              )}
+              {meta.tableCount != null && (
+                <span className="attachment-card__stat">{meta.tableCount} table{meta.tableCount !== 1 ? 's' : ''}</span>
+              )}
+              {meta.charCount != null && (
+                <span className="attachment-card__stat">{meta.charCount.toLocaleString()} chars</span>
+              )}
+              {meta.artifactId && (
+                <span className="attachment-card__stat attachment-card__stat--id">
+                  ID: {meta.artifactId.slice(0, 8)}…
+                </span>
+              )}
+            </div>
+          )}
+        </div>
+      )}
+    </div>
+  );
+}
 
 interface MessageListProps {
   messages: ChatMessage[];
@@ -94,6 +149,15 @@ export function MessageList({ messages, status, pendingApprovals, onApprove, onR
 
         // Skip tool messages (rendered inline with their parent assistant message)
         if (msg.role === 'tool') return null;
+
+        if (msg.role === 'user' && msg.attachmentMeta) {
+          return (
+            <div key={i}>
+              <MessageBubble message={msg} />
+              <AttachmentCard meta={msg.attachmentMeta} />
+            </div>
+          );
+        }
 
         return <MessageBubble key={i} message={msg} />;
       })}

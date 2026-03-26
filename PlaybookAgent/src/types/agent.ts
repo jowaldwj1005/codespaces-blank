@@ -5,6 +5,18 @@
 
 // ─── Azure OpenAI Compatible Message Types ───────────────────────────────────
 
+export interface AttachmentMeta {
+  fileName: string;
+  mimeType: string;
+  pageCount?: number;
+  tableCount?: number;
+  charCount?: number;
+  artifactId?: string;
+  /** True when analysis failed */
+  failed?: boolean;
+  errorMessage?: string;
+}
+
 export interface ChatMessage {
   role: 'system' | 'user' | 'assistant' | 'tool';
   content: string | null;
@@ -15,6 +27,8 @@ export interface ChatMessage {
   reasoning_content?: string;
   /** URL citations from web search results (Responses API) */
   citations?: Array<{ url: string; title?: string }>;
+  /** File attachment metadata for UI card rendering (not sent to LLM) */
+  attachmentMeta?: AttachmentMeta;
 }
 
 export interface ToolCall {

@@ -93,7 +93,7 @@ export function AgentCanvas({ agentId, tabs }: AgentCanvasProps) {
         jwAgents.get(agentId),
         jwTools.getAll(),
         jwAgentTools.getAll({ filter: `_jw_agentid_value eq '${agentId}'` } as never),
-        jwInstructions.getAll({ filter: `_jw_agentid_value eq '${agentId}'` } as never),
+        jwInstructions.getAll({ top: 50 } as never),
       ]);
 
       const a = agentRes.data;

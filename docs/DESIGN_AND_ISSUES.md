@@ -1,8 +1,8 @@
 # Playbook Agent — Design, Issues & Roadmap
 
-**Version:** 0.13.0-draft
+**Version:** 0.13.0
 **Last Updated:** 2026-03-26
-**Purpose:** Single source of truth for UX design, known issues, and implementation plan. Every future session reads this FIRST.
+**Purpose:** Single source of truth for UX design, known issues, and implementation plan. Every session reads this FIRST.
 
 ---
 
@@ -13,6 +13,7 @@
 3. [UX Flow Specification](#3-ux-flow-specification)
 4. [Design Proposals & Open Questions](#4-design-proposals)
 5. [Implementation Roadmap](#5-roadmap)
+6. [Dead Code & Cleanup](#6-dead-code--cleanup)
 
 ---
 
@@ -22,67 +23,73 @@
 
 | Feature | Status | Notes |
 |---------|--------|-------|
-| Azure OpenAI Responses API integration | Works | Multi-turn, function calling, web search, reasoning |
-| Agent Loop (agentLoop.ts) | Works | Iterates: API call -> tool extraction -> execution -> loop |
-| InternalReact tool execution | Works | 16 builtin handlers (search, query, CRUD, visual, etc.) |
+| Azure OpenAI Responses API | Works | Multi-turn, function calling, web search, reasoning |
+| Agent Loop (agentLoop.ts) | Works | Iterates: API call → tool extraction → execution → loop |
+| Agent Loop Registry | Works | Survives tab switches; tab notification badges |
+| InternalReact tool execution | Works | 16+ builtin handlers (search, query, CRUD, visual, etc.) |
 | Dataverse CRUD (SDK-only) | Works | 15 tables with traced wrappers |
 | Debug Console | Works | debugEventBus captures all SDK/connector calls |
 | Admin Workspace | Works | Entity tabs, record list, create/edit forms, bulk counts |
+| AgentConfig | Works | Tool binding, system prompt editor, model config |
+| AgentCanvas | Works | Definition experience: overview, prompt, tools, instructions |
+| DefinitionBuilder | Works | Step-by-step wizard for new agents and playbooks |
+| UnifiedSidebar | Works | Icon rail + panel: cases tree, define section, dev tools |
 | SemanticRenderer | Works | Bidirectional artifact rendering (Chart, Report, etc.) |
 | Visualization (create_visual) | Works | 9 chart types via Recharts |
 | Chat markdown rendering | Works | Custom renderer with code blocks, tables, links |
-| Streaming simulation | Partially works | Re-streams ALL messages on tab switch (should only stream new) |
-| Playbook Progress | Partially works | Checklist renders but no auto-refresh |
-| CaseCanvas | EXISTS but unreachable | Component exists, not wired into sidebar |
-| SeedPanel | EXISTS but buried | In admin workspace, but no obvious entry point |
+| Streaming | Works | Plain text during stream, markdown after; module-level dedup |
+| Bidirectional artifacts | Works | Change accumulator → prepended summary before next message |
+| Interactive cards (ask_user) | Works | choice, confirm, form, rating card types |
+| Tab notification badges | Works | Pulsing dot when background agent completes |
+| Playbook Progress | Partially works | Checklist renders, read-only, no auto-refresh trigger |
+| CaseCanvas | Exists, partially wired | Component exists; sidebar case click may not open tab |
+| SeedPanel | Works but buried | In Admin workspace, no auto-detect empty state |
 
 ### What's Broken or Missing
 
 | Area | Issue | Severity |
 |------|-------|----------|
-| **ask_user tool** | Not in seed data tool records or junction links → never sent to API → LLM can't call it | CRITICAL |
-| **get_artifact tool** | Same — missing from seed data + junction links | CRITICAL |
-| **Case Canvas tab** | Sidebar click only loads case data, doesn't open a `case-canvas` tab | CRITICAL |
-| **No creation wizards** | "New Agent", "New Playbook" in sidebar do nothing useful | HIGH |
-| **SAP tool approval UX** | Tool requires approval but user may not see/understand the approval form | HIGH |
-| **File upload results** | Doc Intelligence results appended directly to user message text | MEDIUM |
-| **Tab switch loses state** | Incremental persistence added (v0.13) but streaming re-triggers | MEDIUM |
-| **Markdown spacing** | `<p>` and `<br>` have too much margin in CSS | LOW |
-| **Seed data not visible** | No obvious button to run seed data from main UI | LOW |
+| **File upload results** | Doc Intelligence results appended to user message text (not a card) | MEDIUM | - do, and can the user open the file/preview? we save the file right? so pdfs etc should easily made viewable by opening in a tab or popup? if complicated store idea for later
+| **Markdown spacing** | `<p>` and `<br>` have too much margin in CSS | LOW | - do
+| **Seed data not auto-detected** | No banner when no agents exist; user must know to go to Admin → Seed | LOW | - dont do for now
 
 ### Component Inventory
 
 ```
 src/components/
 ├── chat/
-│   ├── ChatWorkspace.tsx      ← Main chat container (header, messages, input)
-│   ├── ChatInputBar.tsx       ← Input with toolbar (reasoning, web search, file upload)
-│   ├── MessageList.tsx        ← Renders messages + tool cards + approval forms
-│   ├── MessageBubble.tsx      ← Individual message with markdown + streaming
-│   ├── ToolCallCard.tsx       ← Collapsible tool call display
-│   ├── TokenCounter.tsx       ← Token usage display
-│   ├── ApprovalForm.tsx       ← HitL approval UI (approve/reject/edit args)
-│   ├── InteractiveCard.tsx    ← ask_user UI (choice, confirm, form, rating)
-│   └── VisualizationCard.tsx  ← Recharts wrapper for create_visual results
+│   ├── ChatWorkspace.tsx       ← Main chat container (header, messages, input)
+│   ├── ChatInputBar.tsx        ← Toolbar (reasoning, web search, file upload)
+│   ├── MessageList.tsx         ← Renders messages + tool cards + approval forms
+│   ├── MessageBubble.tsx       ← Per-message: markdown + streaming (module-level dedup)
+│   ├── ToolCallCard.tsx        ← Collapsible tool call display per tool type
+│   ├── TokenCounter.tsx        ← Token usage display
+│   ├── ApprovalForm.tsx        ← HitL approval UI (approve/reject/edit args)
+│   ├── InteractiveCard.tsx     ← ask_user UI (choice, confirm, form, rating)
+│   └── VisualizationCard.tsx   ← Recharts wrapper for create_visual results
 ├── case/
-│   └── CaseCanvas.tsx         ← Case overview: header, threads list, artifacts list
-│                                 PROBLEM: Not reachable from sidebar
+│   └── CaseCanvas.tsx          ← Case overview: header, threads list, artifacts
+│                                  ISSUE: may not open from sidebar click
+├── define/
+│   ├── DefinitionBuilder.tsx   ← Step-by-step creation wizard (agent / playbook)
+│   ├── AgentCanvas.tsx         ← Full-page agent editor (prompt, tools, instructions)
+│   └── EntityCard.tsx          ← Preview card used in DefinitionBuilder + AgentCanvas
 ├── semantic/
-│   ├── SemanticRenderer.tsx   ← Type → component dispatch for artifacts
-│   ├── ArtifactBrowser.tsx    ← Artifact gallery/list view
-│   ├── CaseDashboard.tsx      ← Case summary dashboard
-│   └── PlaybookProgress.tsx   ← Instruction checklist for active playbook
+│   ├── SemanticRenderer.tsx    ← Type → component dispatch for artifacts
+│   ├── ArtifactBrowser.tsx     ← Artifact gallery/list (partially wired)
+│   ├── CaseDashboard.tsx       ← Case summary dashboard (partially wired)
+│   └── PlaybookProgress.tsx    ← Instruction checklist (read-only)
 ├── sidebar/
-│   └── UnifiedSidebar.tsx     ← Lucid sidebar: recent threads, cases tree, define, dev tools
+│   └── UnifiedSidebar.tsx      ← Icon rail + panel: cases tree, define, dev tools
 ├── layout/
-│   └── WorkspaceTabs.tsx      ← Tab bar + content router (thread-chat, case-canvas, admin, etc.)
+│   └── WorkspaceTabs.tsx       ← Tab bar + content router
 ├── admin/
-│   ├── AdminWorkspace.tsx     ← Entity management: tabs, list, forms
-│   ├── RecordList.tsx         ← Data grid with search/sort
-│   ├── RecordForm.tsx         ← Monaco editor for JSON fields, lookup binding
-│   ├── AgentConfig.tsx        ← Agent creation/edit with model config
-│   ├── EntityRegistry.ts      ← Entity metadata (fields, types, display names)
-│   └── SeedPanel.tsx          ← Seed data execution UI
+│   ├── AdminWorkspace.tsx      ← Entity management: tabs, list, forms
+│   ├── RecordList.tsx          ← Data grid with search/sort
+│   ├── RecordForm.tsx          ← Monaco editor for JSON fields, lookup binding
+│   ├── AgentConfig.tsx         ← Agent editor with model config (Admin path)
+│   ├── EntityRegistry.ts       ← Entity metadata (fields, types, display names)
+│   └── SeedPanel.tsx           ← Seed data execution UI
 └── dev/
     ├── DataverseExplorer.tsx   ← Mini model-driven app
     ├── ConnectorTester.tsx     ← Test Azure OpenAI, Doc Intel, SAP
@@ -95,14 +102,14 @@ src/components/
 
 | Entity | Read | Create | Update | Delete | UI Location |
 |--------|------|--------|--------|--------|-------------|
-| jw_agent | Yes | Yes (Admin) | Yes (Admin) | Yes (Admin) | AdminWorkspace, sidebar "Define" |
+| jw_agent | Yes | Yes (DefinitionBuilder) | Yes (AgentCanvas, Admin) | Yes (Admin) | Sidebar Define, AgentCanvas |
 | jw_tool | Yes | Yes (Admin) | Yes (Admin) | Yes (Admin) | AdminWorkspace |
-| jw_playbook | Yes | Yes (Admin) | Yes (Admin) | Yes (Admin) | AdminWorkspace, sidebar "Define" |
-| jw_instruction | Yes | Yes (Admin) | Yes (Admin) | Yes (Admin) | AdminWorkspace |
-| jw_agenttool | Yes | Yes (seed) | No | Yes (Admin) | AdminWorkspace (raw junction) |
+| jw_playbook | Yes | Yes (DefinitionBuilder) | Yes (Admin) | Yes (Admin) | Sidebar Define, Admin |
+| jw_instruction | Yes | Yes (Admin) | Yes (Admin) | Yes (Admin) | AdminWorkspace, AgentCanvas (read) |
+| jw_agenttool | Yes | Yes (AgentCanvas, Admin) | No | Yes (AgentCanvas, Admin) | AgentCanvas Tools tab |
 | jw_case | Yes | Yes (sidebar) | No UI | No UI | Sidebar case tree, CaseCanvas |
 | jw_thread | Yes | Yes (case creation) | No UI | No UI | Sidebar, ChatWorkspace |
-| jw_message | Yes | Yes (auto, loop) | No | No UI | ChatWorkspace |
+| jw_message | Yes | Yes (auto, loop) | No | No | ChatWorkspace |
 | jw_artifact | Yes | Yes (auto, tools) | Yes (SemanticRenderer) | No UI | CaseCanvas, ArtifactBrowser |
 | jw_document | Yes | Yes (file upload) | No | No | Not directly visible |
 | jw_toolexecution | Yes | Yes (auto, audit) | No | No | AdminWorkspace (raw) |
@@ -112,69 +119,46 @@ src/components/
 
 ## 2. Known Issues
 
-### P0 — Blocks Core Functionality
+### P0 — None currently open
 
-**ISSUE-001: ask_user tool never available to LLM**
-- `ask_user` has a handler in `builtinTools.ts:818` and a definition in `BUILTIN_TOOL_DEFINITIONS:1146`
-- But it has NO seed data tool record (not in `seedData.ts` tool list)
-- And NO `agent_tool_link` junction record
-- When dynamic tools load from Dataverse (junction records exist), ask_user is excluded
-- The API never sees it as an available tool → can't call it
-- **Fix:** Add `ask_user` and `get_artifact` to seed tool records + junction links
-
-**ISSUE-002: Case Canvas unreachable**
-- `CaseCanvas.tsx` exists and renders threads, artifacts, metadata
-- But `UnifiedSidebar.handleSelectCase()` (line 275) only calls `selectCase(caseId)` — loads data, doesn't open tab
-- No `case-canvas` tab ever opens from the sidebar
-- **Fix:** `handleSelectCase` should also open a `case-canvas` tab
-
-**ISSUE-003: No creation wizards in sidebar**
-- Sidebar "Define" section shows agents and playbooks
-- Clicking "New agent" in the sidebar → does nothing meaningful
-- No inline creation flow, no redirect to admin
-- User expects: click "New Agent" → opens a creation form/wizard
-- **Fix:** Multiple options (see Design Proposals section)
+All P0 issues resolved:
+- **ISSUE-001** (ask_user + get_artifact): Already in `seedData.ts` lines 437–511 with junction links. ✓
+- **ISSUE-002** (CaseCanvas tab): `UnifiedSidebar.handleSelectCase()` already opens `case-canvas` tab. ✓
 
 ### P1 — Degrades User Experience
 
-**ISSUE-004: Streaming re-triggers on tab switch**
-- `MessageBubble.renderedRef` is a `useRef` inside the component
-- When component unmounts (tab switch) and remounts, the ref resets
-- All assistant messages are treated as "new" → full re-stream animation
-- **Fix:** Track rendered message IDs in a module-level Set or localStorage
+**ISSUE-005: ~~File upload context appended to user message~~** ✓ FIXED (v0.14)
+- `useAgentChat.ts` now splits into `displayMsg` (content only + `attachmentMeta`) and `llmMsg` (content + full context)
+- `AttachmentCard` in `MessageList.tsx` renders below the user bubble — shows file icon, name, pages/tables/chars, Analyzed/Failed badge
+- LLM still receives full attachment context unchanged
+- **Idea (future):** Add "Open" button to view artifact in a tab (requires threading `tabsManager` through `ChatWorkspace` → `MessageList`)
 
-**ISSUE-005: File upload context appended to user message**
-- `useAgentChat.ts:365`: `content + attachmentContext` creates one giant user message
-- User sees the raw Doc Intelligence summary in their own message bubble
-- Looks ugly, pollutes the conversation
-- **Fix:** Separate into a system-level context message, or render as a collapsible attachment card
-
-**ISSUE-006: Markdown paragraph spacing too large**
-- Custom `renderMarkdown` wraps in `<p class="md-p">` with `</p><p>` for double newlines
-- CSS margins on `.md-p` and `<br/>` create excessive whitespace
-- **Fix:** Tighten CSS margins
+**ISSUE-006: ~~Markdown paragraph spacing too large~~** ✓ FIXED (v0.14)
+- `.md-p` margin was already at `0 0 4px` from prior fix
+- Added `.md-p:empty { display: none }` to suppress phantom empty paragraphs from invalid HTML nesting
 
 **ISSUE-007: Seed data panel not discoverable**
-- SeedPanel is inside AdminWorkspace as a dedicated tab
-- But admin needs to be opened first, then navigate to seed tab
-- New users have no idea it exists
-- **Fix:** Auto-detect empty state (no agents) → show seed data prompt
+- SeedPanel lives inside AdminWorkspace as a tab — user must know where to look
+- New users with empty state have no guided path
+- **Fix:** Auto-detect no agents → show "Run Seed Data" banner on the empty state screen
 
 ### P2 — Missing Features
 
-**ISSUE-008: No "Add Thread" action in CaseCanvas**
-- CaseCanvas shows existing threads but has no button to create a new thread for the case
-- **Fix:** Add "New Thread" button that creates a thread linked to the case
+**ISSUE-008: ~~No "New Thread" action in CaseCanvas~~** ✓ FIXED (v0.13)
+- CaseCanvas now shows "+ Thread" button in the Threads card header
+- Uses `caseManager.addThreadToCase()` — agent picker appears when multiple agents exist
+- New thread opens automatically in a chat tab
 
 **ISSUE-009: No artifact preview in chat**
-- When an artifact is created/referenced in chat, there's no inline preview
-- User has to navigate to artifact tab separately
-- **Fix:** Render mini artifact cards inline in chat (after tool call cards)
+- When an artifact is created via tool call, no inline preview appears
+- User must navigate to the artifact tab separately
+- **Fix:** Render mini artifact cards inline in chat after the tool call card
 
-**ISSUE-010: Playbook instruction completion not visible in case view**
-- CaseCanvas shows playbook name but not instruction progress
-- PlaybookProgress component exists but isn't in CaseCanvas
-- **Fix:** Add PlaybookProgress to CaseCanvas when case has a playbook
+**ISSUE-010: ~~Playbook instruction completion not visible in CaseCanvas~~** ✓ FIXED (v0.13)
+- PlaybookProgress now rendered directly in CaseCanvas when case has a playbook
+- PlaybookProgress accepts `caseId` prop (skips threadCase lookup)
+- Steps are interactive checkboxes — clicking marks them complete via `jwCases.update`
+- Progress bar + counter always visible
 
 ---
 
@@ -183,221 +167,150 @@ src/components/
 ### Flow A: New User First Visit
 ```
 1. App loads → Empty sidebar, no tabs
-2. Show welcome screen with "Get Started" button
-3. Button triggers seed data execution (or points to Admin → Seed)
-4. After seed: sidebar shows "General Assistant" agent, sample playbook
-5. User can click "New Case" to start
+2. Show welcome / empty state with "Run Seed Data" banner (ISSUE-007)
+3. Seed runs → sidebar shows "General Assistant" agent, sample playbook
+4. User can click "New Case" to start
 ```
-**Status:** Not implemented. User currently must know to go to Admin → run seed.
-**Question for User:** Should seed auto-run on first visit? Or prompt?
+**Status:** Step 2 missing. User must know to go to Admin → Seed.
 
 ### Flow B: Create & Work with a Case
 ```
 1. User clicks "+" in sidebar Cases section → New Case dialog
 2. Enters title, selects agent → case + thread created
-3. Case Canvas tab opens (overview: no threads yet message, playbook selector?)
-4. Thread tab also opens (chat with the agent)
-5. Agent conversations create artifacts → appear in Case Canvas
-6. User can open Case Canvas anytime to see overview
+3. Case Canvas tab opens (or just the thread tab?)
+4. Thread tab opens → chat with the agent
+5. Agent creates artifacts → appear in Case Canvas
 ```
-**Status:** Partially works. Step 3 missing (no Case Canvas tab opens). Step 5 works.
-**Question for User:** When creating a case, should Case Canvas auto-open? Or just the thread?
-
+**Status:** Partially works. Step 3 may be missing (ISSUE-002). Step 5 works.
+**Question:** When creating a case, should Case Canvas auto-open alongside the thread tab?
+- yes. did we think about the case layout well enough? how artefacts and their optionally related file, added playboocs and agents etc are shown? I feel like we have a very idea about the usage
 ### Flow C: Define an Agent
 ```
 1. User clicks "New Agent" in sidebar Define section
-2. Options:
-   a. Opens Admin with create form pre-selected for jw_agent
-   b. Opens an inline creation wizard (name, system prompt, model config)
-   c. Opens a dedicated "Agent Builder" canvas (future)
-3. After creation, user can link tools (from tool library)
-4. Agent appears in sidebar
+2. DefinitionBuilder wizard opens (name → system prompt → model config)
+3. Agent created → AgentCanvas opens in new tab
+4. User links tools, reviews instructions, tests in chat
 ```
-**Status:** Not implemented. Clicking does nothing.
-**Question for User:** Which option (a/b/c) for v0.14? Option (a) is fastest to implement.
+**Status:** IMPLEMENTED in v0.13. DefinitionBuilder → AgentCanvas flow works.
 
 ### Flow D: Chat with Tool Calls
 ```
 1. User sends message → status: "Thinking..."
-2. API responds → assistant message appears (with streaming)
+2. API responds → assistant message appears (streaming plain text → markdown after)
 3. If tool calls: tool cards appear inline under the message
 4. If requiresApproval: ApprovalForm/InteractiveCard renders, loop pauses
 5. User approves → tool executes → result shown in tool card
 6. Loop continues → final assistant response with markdown
 ```
-**Status:** Mostly works. Issues:
-- ask_user never fires (ISSUE-001)
-- Streaming is slow and re-triggers (ISSUE-004)
-- Tool cards appear correctly for non-approval tools
+**Status:** Mostly works. ask_user never fires (ISSUE-001). Tool cards appear correctly.
 
 ### Flow E: File Upload & Document Analysis
 ```
 1. User clicks paperclip → selects file
-2. File uploaded → Doc Intelligence analyzes (status: "Executing tools...")
+2. File uploaded → Doc Intelligence analyzes
 3. Result saved as artifact in Dataverse
-4. Agent gets: meta-summary (MIME, pages, tables, preview, artifact ID)
-5. Chat shows: user message + attachment summary (separate card?)
-6. Agent can use get_artifact to read full content
+4. Agent gets meta-summary (MIME, pages, tables, preview, artifact ID)
+5. Chat shows: user message + attachment card (ISSUE-005 — currently appended to message text)
+6. Agent can use get_artifact to read full content (ISSUE-001 — get_artifact not wired)
 ```
-**Status:** Steps 1-4 work. Step 5 broken (summary appended to user message text).
-Step 6 broken (get_artifact not in agent tools → ISSUE-001).
-**Question for User:** Should attachment show as a separate card above the user message? Or collapsible section?
+**Status:** Steps 1-4 work. Steps 5-6 broken.
 
 ---
 
 ## 4. Design Proposals
 
-### Proposal A: Sidebar "Define" Experience
-
-**Current state:** Shows agents and playbooks with tool/instruction counts. Click does nothing useful.
-
-**Option A1: Admin Redirect** (1-2 hours)
-- Click agent/playbook → opens Admin tab with that entity pre-selected
-- Click "New Agent" → opens Admin tab in create mode for jw_agent
-- Pros: Fast, reuses existing UI
-- Cons: Admin is raw CRUD, not a great UX
-
-**Option A2: Inline Quick-Create** (4-6 hours)
-- Click "New Agent" → inline form in sidebar (name + system prompt)
-- Creates record, then opens in Admin for full editing
-- Pros: Faster workflow, discoverable
-- Cons: Limited space in sidebar
-
-**Option A3: Dedicated Builder Canvas** (2-3 days)
-- New tab type: "agent-builder" or "playbook-builder"
-- Full-page creation experience with tool linking, preview, testing
-- Pros: Best UX, aligns with "definition experience" vision
-- Cons: Significant development time
-
-**Recommendation:** A1 now (unblock the flow), A3 as a future milestone.
-**Question:** Which option?
-
 ### Proposal B: Case Canvas Enhancement
 
-**Current state:** Shows title, status, threads list, artifacts list.
+**Current state:** Shows title, status, threads list, artifacts list. Read-only.
 
 **Proposed additions:**
-1. PlaybookProgress component when case has a playbook
-2. "New Thread" button (creates thread linked to case + agent)
-3. Case notes/description field (editable)
+1. PlaybookProgress component when case has a playbook (ISSUE-010)
+2. "New Thread" button (ISSUE-008)
+3. Case notes field (editable `jw_notes` — field may need to be added to Dataverse)
 4. Activity timeline (recent tool executions, artifact changes)
-5. Quick actions: "Link existing thread", "Run playbook step"
 
-**Question:** Which additions are most valuable? Priority order?
+**Priority order:** 1 → 2 → 3 → 4
 
 ### Proposal C: Chat Improvements
 
-**C1: Attachment rendering**
-- Option: Render as collapsible `<AttachmentCard>` between user message and assistant response
+**C1: Attachment rendering (ISSUE-005)**
+- Render as collapsible `<AttachmentCard>` between user message and assistant response
 - Shows: filename, page count, table count, artifact link
 - Collapsed by default, expandable for preview text
 
-**C2: Inline artifact cards**
+**C2: Inline artifact cards (ISSUE-009)**
 - When agent calls save_artifact, show mini card in chat (below tool call card)
-- Click opens artifact in a new tab
+- Click opens artifact in new tab
 
-**C3: Streaming fix**
-- Module-level `Set<string>` tracks rendered message IDs
-- Only stream the LAST assistant message if it just appeared
-- Speed: 4ms per char (3x faster than current 12ms)
-
-**Question:** All good? Any priorities?
+**C3: Seed data empty state (ISSUE-007)**
+- Detect no agents on load → show banner: "No agents found. Run seed data to get started."
+- Banner links to SeedPanel
 
 ### Proposal D: First-Run Experience
-
-**Options:**
-1. Auto-detect no agents → show "Run Seed Data" banner
-2. Auto-run seed data on first visit (risky: what if user has custom data?)
-3. Show onboarding wizard with explanations
-
-**Recommendation:** Option 1.
-**Question:** Preference?
+- Auto-detect no agents → show "Run Seed Data" banner in empty workspace
+- Do NOT auto-run seed (risky: user may have partially set up custom data)
 
 ---
 
 ## 5. Roadmap
 
-### Phase 0: Critical Fixes (This Session)
-- [ ] Add `ask_user` + `get_artifact` to seed data + junction links
-- [ ] Wire sidebar case click → case-canvas tab
-- [ ] Fix streaming (module-level rendered set, faster speed)
-- [ ] Fix markdown spacing CSS
-- [ ] Sidebar "New Agent"/"New Playbook" → Admin redirect (Option A1)
+### Now: Chat Polish
 
-### Phase 1: Chat Polish (Next Session)
-- [ ] Separate file upload from user message (attachment card)
-- [ ] Inline artifact preview cards in chat
-- [ ] First-run seed data banner
-- [ ] Error retry button in chat
+- [x] **ISSUE-005** — Attachment card (separate from user message text) ✓ v0.14
+- [x] **ISSUE-006** — Markdown spacing CSS tighten ✓ v0.14
+- [ ] **ISSUE-007** — Empty state banner → seed data (deferred)
 
-### Phase 2: Case Canvas Enhancement
-- [ ] PlaybookProgress in CaseCanvas
-- [ ] "New Thread" button in CaseCanvas
-- [ ] Case notes field
-- [ ] Activity timeline
+### Next: Remaining Chat
 
-### Phase 3: Definition Experience
-- [ ] Agent Builder canvas (tab type)
-- [ ] Tool linker UI (drag-and-drop or checkbox)
-- [ ] Playbook Builder with instruction ordering
-- [ ] System prompt testing sandbox
+- [ ] **ISSUE-009** — Inline artifact preview cards in chat (mini card below tool call)
+- [ ] **IDEA** — AttachmentCard "Open" button → open artifact in tab (requires `tabsManager` prop threading)
 
-### Phase 4: Intelligence
-- [ ] Agentic Learning Loop (save_learning tool)
-- [ ] Bounded History with summarization
-- [ ] Cost Dashboard (token aggregation)
-- [ ] Conditional Auto-Approval rules
+### Phase 2: Playbook Execution
+
+- [ ] Make PlaybookProgress interactive (checkbox → calls `complete_instruction`)
+- [ ] "Start Playbook" action in CaseCanvas
+- [ ] Case notes field (`jw_notes`)
+- [ ] Activity timeline (tool executions, state transitions)
+
+### Phase 3: Intelligence
+
+- [ ] Agentic Learning Loop (`save_learning` tool → jw_instruction records)
+- [ ] Bounded History with summarization (token budget management)
+- [ ] Cost Dashboard (token aggregation per agent/case/user)
+- [ ] Conditional Auto-Approval (rules in jw_agenttool.jw_data)
+- [ ] Cross-Thread Context (search other threads for relevant knowledge)
 
 ---
 
 ## 6. Dead Code & Cleanup
 
-### Orphaned Components (safe to delete)
-| File | Lines | Reason |
-|------|-------|--------|
-| `src/components/layout/ActivitySidebar.tsx` | ~100 | Replaced by UnifiedSidebar, not imported in App.tsx |
-| `src/components/layout/activities/ChatActivity.tsx` | ~150 | Part of old ActivitySidebar |
-| `src/components/layout/activities/ConfigActivity.tsx` | ~100 | Part of old ActivitySidebar |
-| `src/components/layout/activities/ContextActivity.tsx` | ~100 | Part of old ActivitySidebar |
-| `src/components/layout/activities/DevToolsActivity.tsx` | ~50 | Part of old ActivitySidebar |
-| `src/components/layout/AppHeader.tsx` | ~31 | Replaced by sidebar header |
+### Orphaned Components (verify before deleting)
 
-**Total: ~530 lines of dead UI code.**
+| File | Likely Status | Reason |
+|------|--------------|--------|
+| `src/components/layout/ActivitySidebar.tsx` | Orphaned | Replaced by UnifiedSidebar |
+| `src/components/layout/activities/ChatActivity.tsx` | Orphaned | Part of old ActivitySidebar |
+| `src/components/layout/activities/ConfigActivity.tsx` | Orphaned | Part of old ActivitySidebar |
+| `src/components/layout/activities/ContextActivity.tsx` | Orphaned | Part of old ActivitySidebar |
+| `src/components/layout/activities/DevToolsActivity.tsx` | Orphaned | Part of old ActivitySidebar |
+| `src/components/layout/AppHeader.tsx` | Orphaned | Replaced by sidebar header |
 
-### Partially Wired Components (exist but need connection)
+**Action:** Grep for imports before deleting — verify no active references.
+
+### Partially Wired Components (need connection)
+
 | Component | What it does | What's missing |
 |-----------|-------------|----------------|
-| `ArtifactBrowser.tsx` | Browse case artifacts with type filter | Not in main UI (was in old ContextActivity) |
-| `CaseDashboard.tsx` | Case summary dashboard | Not referenced anywhere |
-| `SubAgentCard.tsx` | Sub-agent delegation display | Sub-agent feature not implemented |
+| `ArtifactBrowser.tsx` | Browse case artifacts with type filter | Not in main UI routing |
+| `CaseDashboard.tsx` | Case summary dashboard | Not referenced in active workspace |
+| `PlaybookProgress.tsx` | Playbook instruction checklist | Read-only; not in CaseCanvas |
 
-### Playbook Execution — Complete Gap Analysis
-The entire playbook execution flow is broken:
-1. **start_playbook tool** exists in builtinTools but user has no UI to trigger it
-2. **complete_instruction tool** exists but PlaybookProgress has no checkboxes to call it
-3. **PlaybookProgress** renders a checklist but it's read-only
-4. **Case.jw_contextdata** tracks `completedInstructions[]` but only via the tool, never from UI
+### Playbook Execution Gap
 
-**Fix plan:** Add "Start Playbook" action in CaseCanvas + make PlaybookProgress interactive.
+The full playbook execution flow has a gap:
+1. `start_playbook` tool exists → creates case + thread link ✓
+2. `complete_instruction` tool exists → marks steps done ✓
+3. **PlaybookProgress is read-only** → user can't click checkboxes to complete steps
+4. **No "Start Playbook" UI in CaseCanvas** → user must ask agent to start it via chat
 
----
-
-## Appendix: Why Progress Feels Slow
-
-### Pattern Identified
-1. Session starts → AI rebuilds mental model from scattered docs (20+ files)
-2. AI implements feature → misses 2-3 edge cases or UX details
-3. User reports issues → debugging + fix cycle (50% of session time)
-4. Next session → context lost, repeat
-
-### How to Break the Cycle
-1. **This document** — single design spec that every session reads first
-2. **Smaller, testable increments** — fix 3 issues per session, not redesign the sidebar
-3. **Question-first approach** — before implementing, list assumptions and get user validation
-4. **Issue tracker in this doc** — numbered issues with status, not scattered across conversations
-5. **Visual mockups** — describe UX flows in text with click-by-click detail
-
-### What NOT to Do Next Session
-- Don't redesign the layout again
-- Don't add new features before fixing ISSUE-001 through ISSUE-007
-- Don't implement anything without checking this document first
+**Fix plan:** Add "Start Playbook" action button + make PlaybookProgress checkboxes call `complete_instruction`.
