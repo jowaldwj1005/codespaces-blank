@@ -1,0 +1,20 @@
+* [33m553827b[m[33m ([m[1;36mHEAD[m[33m -> [m[1;32mclaude/dataverse-crud-mvp-XrJQk[m[33m, [m[1;31morigin/claude/dataverse-crud-mvp-XrJQk[m[33m)[m many things
+* [33mbf0750f[m load of stuff
+* [33me24bb0d[m[33m ([m[1;31mupstream/claude/dataverse-crud-mvp-XrJQk[m[33m)[m feat: definition experience — AgentCanvas, DefinitionBuilder, dead code cleanup
+* [33m962c178[m fix: critical tool registration, case nav, streaming, spacing + design doc
+* [33mb4c89da[m fix: chat mechanics — incremental persistence, loop-aware reload, robust response parsing
+* [33mf048dc0[m feat: "Lucid" sidebar redesign — unified navigation, no header, slim rail collapse
+* [33mcf6cc8a[m fix: bug sprint — purge temperature, richer file upload, admin counts race, SVG tab close
+* [33m74263aa[m docs: add folder structure audit from background agent
+* [33m1c93ce8[m fix: bug sprint — temperature removal, boolean seeds, doc upload peek, admin counts, tab close
+* [33m069b515[m feat: v0.12.0 — chat toolbar, interactive cards, agent loop registry, bidirectional artifacts
+* [33m3f19cb7[m feat: activity-based sidebar with AI config, fix thread status types
+* [33m9600b1e[m test: add Vitest setup + 41 regression tests, fix debug events for all tool types
+* [33mc3e1550[m feat: wire it together — inline charts, terminal display, citations, bug fixes (v0.11.0)
+* [33m94fb4aa[m feat: rework DataverseExplorer + ConnectorTester into proper panels
+* [33m46cc289[m feat: migrate to Azure OpenAI Responses API + bug fixes (v0.10.0)
+* [33m3c3298d[m added new custom connector for responses with sample payloads and responses 	renamed:    ContextFiles/customconnectorinfor     mation/azureopenai.txt -> ContextFiles/customconnectorinformation/azureopenai_legacy.txt 	new file:   ContextFiles/customconnectorinformation/azureopenai_responses.txt 	modified:   PlaybookAgent/.power/schemas/appschemas/dataSourcesInfo.ts     new file:   PlaybookAgent/.power/schemas/custcon-5fazureopenai-5fresponses-5fe435f80a6d4-fe0d0c18aa7a701d/custcon_5fazureopenai_5fresponses_5fe435f80a6d4_fe0d0c18aa7a701d.Schema.json 	modified:   PlaybookAgent/power.config.json 	modified:   PlaybookAgent/src/generated/index.ts 	new file:   PlaybookAgent/src/generated/models/CustCon_AzureOpenAI_ResponsesModel.ts 	new file:   PlaybookAgent/src/generated/services/CustCon_AzureOpenAI_ResponsesService.ts 	modified:   debug.log 	deleted:    docs/memory/error_logs/teams create.txt 	new file:   docs/memory/error_logs/vsterminal.txt
+* [33mb986dcc[m feat: Phase 1 — Case-centric tabbed workspace layout
+* [33m8a6add0[m docs: Design sprint — Tabbed Canvas Workspace architecture
+* [33m438f132[m fix: Monaco Editor loading stuck — use local bundle instead of CDN
+* [33m428a42c[m fix: Phase 0 bug fixes — temperature, XSS, timeout, memory leak, model-per-agent

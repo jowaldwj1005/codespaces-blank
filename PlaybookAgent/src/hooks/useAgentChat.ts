@@ -21,7 +21,7 @@ import type {
 import { runAgentLoop } from '../services/agentLoop';
 import { createToolExecutor } from '../services/toolExecutor';
 import type { ToolExecutionRecord } from '../services/toolExecutor';
-import { jwAgents, getAgentWithTools, createMessage, getThreadMessages, createToolExecution, jwDocuments } from '../services/dataverse';
+import { jwAgents, getAgentWithTools, createMessage, getThreadMessages, createToolExecution, jwDocuments, createArtifact } from '../services/dataverse';
 import { azureDocIntelligence } from '../services/connectors';
 import { BUILTIN_TOOLS, BUILTIN_TOOL_DEFINITIONS } from '../services/builtinTools';
 import { registerLoop, updateLoop, getLoop, acknowledgeLoop } from '../services/agentLoopRegistry';
@@ -314,7 +314,6 @@ export function useAgentChat(threadId: string | null) {
           // Artifact payload includes structured table data for tool consumption
           let artifactId: string | undefined;
           try {
-            const { createArtifact } = await import('../services/dataverse');
             const artResult = await createArtifact({
               type: 'Document',
               name: fileName,

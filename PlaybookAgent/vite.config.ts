@@ -7,10 +7,13 @@ import { powerApps } from "@microsoft/power-apps-vite/plugin"
 export default defineConfig({
   plugins: [react(), powerApps()],
   build: {
+    // Disable minification to stay within Codespace memory limits during build.
+    // Re-enable (remove this line) for production deploys on a machine with >4GB free.
+    minify: false,
     rollupOptions: {
+      maxParallelFileOps: 3,
       output: {
         manualChunks: {
-          'vendor-react': ['react', 'react-dom'],
           'vendor-monaco': ['monaco-editor', '@monaco-editor/react'],
           'vendor-three': ['three', '@react-three/fiber', '@react-three/drei'],
           'vendor-charts': ['recharts'],
