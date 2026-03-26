@@ -1,291 +1,330 @@
-import { useState, useEffect } from 'react';
-import { useDataverse } from '../hooks/useDataverse';
-import type { DataverseTable } from '../hooks/useDataverse';
-import { useCurrentUser } from '../hooks/useCurrentUser';
+/**
+ * DataverseExplorer — Mini model-driven app for browsing all Dataverse tables.
+ * Shows jw_ entities grouped by layer + system tables.
+ * Provides record grid, OData filtering, inline detail view with pretty JSON.
+ */
 
-const AVAILABLE_TABLES: { value: DataverseTable; label: string }[] = [
-  { value: 'systemusers', label: 'System Users' },
-  { value: 'teams', label: 'Teams' },
-  { value: 'businessunits', label: 'Business Units' },
+import React, { useState, useEffect, useCallback, useRef } from 'react';
+import { getAllEntities, type EntityDefinition } from './admin/EntityRegistry';
+import { getTableService } from '../services/dataverse';
+import { systemusers, teams, businessunits } from '../services/dataverse';
+import type { IGetAllOptions } from '../services/sdk';
+
+// System table definitions (not in EntityRegistry)
+const SYSTEM_TABLES: EntityDefinition[] = [
+  {
+    logicalName: 'systemuser', displayName: 'User', displayNamePlural: 'Users',
+    pluralApiName: 'systemusers', primaryKey: 'systemuserid', nameField: 'fullname',
+    icon: '\u{1F464}', color: '#64748b', layer: 'interaction' as const,
+    fields: [], listColumns: ['fullname', 'domainname', 'internalemailaddress'],
+  },
+  {
+    logicalName: 'team', displayName: 'Team', displayNamePlural: 'Teams',
+    pluralApiName: 'teams', primaryKey: 'teamid', nameField: 'name',
+    icon: '\u{1F465}', color: '#64748b', layer: 'interaction' as const,
+    fields: [], listColumns: ['name', 'description'],
+  },
+  {
+    logicalName: 'businessunit', displayName: 'Business Unit', displayNamePlural: 'Business Units',
+    pluralApiName: 'businessunits', primaryKey: 'businessunitid', nameField: 'name',
+    icon: '\u{1F3E2}', color: '#64748b', layer: 'interaction' as const,
+    fields: [], listColumns: ['name'],
+  },
 ];
 
+type ViewMode = 'grid' | 'detail';
+
 export function DataverseExplorer() {
-  const [selectedTable, setSelectedTable] = useState<DataverseTable>('systemusers');
-  const [topN, setTopN] = useState(5);
+  const jwEntities = getAllEntities();
+  const allEntities = [...jwEntities, ...SYSTEM_TABLES];
+
+  const [activeEntity, setActiveEntity] = useState<EntityDefinition>(allEntities[0]);
+  const [records, setRecords] = useState<Record<string, unknown>[]>([]);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
   const [filterStr, setFilterStr] = useState('');
-  const [recordId, setRecordId] = useState('');
-  const {
-    data, loading, error, lastAction,
-    fetchTable, fetchRecord, fetchMetadata,
-    doCreateTeam, doUpdateTeam, doDeleteRecord,
-  } = useDataverse();
+  const [topN, setTopN] = useState(50);
+  const [selectedRecord, setSelectedRecord] = useState<Record<string, unknown> | null>(null);
+  const [viewMode, setViewMode] = useState<ViewMode>('grid');
+  const loadingRef = useRef(false);
 
-  // ─── Current user for defaults ───
-  const { currentUser } = useCurrentUser();
+  // Load records
+  const loadRecords = useCallback(async () => {
+    if (loadingRef.current) return;
+    loadingRef.current = true;
+    setLoading(true);
+    setError(null);
+    try {
+      const opts: IGetAllOptions = { top: topN };
+      if (filterStr.trim()) {
+        (opts as Record<string, unknown>).filter = filterStr.trim();
+      }
 
-  // ─── CRUD form state ───
-  const [showCreateTeam, setShowCreateTeam] = useState(false);
-  const [teamName, setTeamName] = useState('');
-  const [teamDesc, setTeamDesc] = useState('');
-  const [buId, setBuId] = useState('');
-  const [adminId, setAdminId] = useState('');
+      // Use jw_ table service or system table service
+      const systemServices: Record<string, { getAll: (opts?: IGetAllOptions) => Promise<unknown> }> = { systemusers, teams, businessunits };
+      const service = getTableService(activeEntity.pluralApiName) ?? systemServices[activeEntity.pluralApiName];
 
-  // Auto-fill BU and Admin from current user when loaded
+      if (!service) throw new Error(`No service for ${activeEntity.pluralApiName}`);
+      const result = await service.getAll(opts) as { data?: unknown[] };
+      setRecords((result.data ?? []) as Record<string, unknown>[]);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : String(err));
+      setRecords([]);
+    } finally {
+      setLoading(false);
+      loadingRef.current = false;
+    }
+  }, [activeEntity, filterStr, topN]);
+
   useEffect(() => {
-    if (currentUser) {
-      if (!buId) setBuId(currentUser.businessunitid);
-      if (!adminId) setAdminId(currentUser.systemuserid);
-    }
-    // Only run when currentUser first loads, not on every buId/adminId change
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [currentUser]);
-  const [updateTeamId, setUpdateTeamId] = useState('');
-  const [updateField, setUpdateField] = useState('name');
-  const [updateValue, setUpdateValue] = useState('');
-  const [deleteId, setDeleteId] = useState('');
-  const [crudMessage, setCrudMessage] = useState<string | null>(null);
+    loadRecords();
+    setSelectedRecord(null);
+    setViewMode('grid');
+  }, [activeEntity, loadRecords]);
 
-  const handleFetchAll = () => {
-    setCrudMessage(null);
-    fetchTable(selectedTable, {
-      top: topN,
-      ...(filterStr ? { filter: filterStr } : {}),
-    });
-  };
+  // Detect columns from first record
+  const columns = records.length > 0
+    ? Object.keys(records[0]).filter(k => !k.startsWith('@') && !k.startsWith('_'))
+    : activeEntity.listColumns.length > 0 ? activeEntity.listColumns : [];
 
-  const handleFetchById = () => {
-    if (recordId.trim()) {
-      setCrudMessage(null);
-      fetchRecord(selectedTable, recordId.trim());
-    }
-  };
+  // Priority columns first
+  const priorityCols = [activeEntity.nameField, activeEntity.primaryKey, 'createdon', 'modifiedon'];
+  const sortedColumns = [
+    ...priorityCols.filter(c => columns.includes(c)),
+    ...columns.filter(c => !priorityCols.includes(c)),
+  ];
 
-  const handleFetchMeta = () => {
-    setCrudMessage(null);
-    fetchMetadata(selectedTable);
-  };
+  const displayColumns = sortedColumns.slice(0, 6); // Max 6 in grid
 
-  const handleCreateTeam = async () => {
-    if (!teamName.trim() || !buId.trim() || !adminId.trim()) return;
-    setCrudMessage(null);
-    const result = await doCreateTeam({
-      name: teamName.trim(),
-      description: teamDesc.trim() || undefined,
-      businessUnitId: buId.trim(),
-      administratorId: adminId.trim(),
-    });
-    if (result) {
-      setCrudMessage(`Team created: ${(result as unknown as Record<string, unknown>).name ?? 'OK'}`);
-      setTeamName('');
-      setTeamDesc('');
-    }
-  };
-
-  const handleUpdateTeam = async () => {
-    if (!updateTeamId.trim() || !updateValue.trim()) return;
-    setCrudMessage(null);
-    const result = await doUpdateTeam(updateTeamId.trim(), { [updateField]: updateValue.trim() });
-    if (result) {
-      setCrudMessage(`Team updated: ${updateField} = "${updateValue}"`);
-    }
-  };
-
-  const handleDelete = async () => {
-    if (!deleteId.trim()) return;
-    setCrudMessage(null);
-    const ok = await doDeleteRecord(selectedTable, deleteId.trim());
-    if (ok) {
-      setCrudMessage(`Record deleted: ${deleteId}`);
-      setDeleteId('');
-    }
-  };
+  // Layer grouping
+  const definitionEntities = jwEntities.filter(e => e.layer === 'definition');
+  const stateEntities = jwEntities.filter(e => e.layer === 'state');
+  const interactionEntities = jwEntities.filter(e => e.layer === 'interaction');
 
   return (
-    <div>
-      <h3>Dataverse Explorer</h3>
-
-      {/* Table Selector */}
-      <div style={{ display: 'flex', gap: 8, alignItems: 'center', marginBottom: 12, flexWrap: 'wrap' }}>
-        <label>
-          Table:{' '}
-          <select
-            value={selectedTable}
-            onChange={(e) => setSelectedTable(e.target.value as DataverseTable)}
-          >
-            {AVAILABLE_TABLES.map((t) => (
-              <option key={t.value} value={t.value}>
-                {t.label}
-              </option>
-            ))}
-          </select>
-        </label>
-
-        <label>
-          Top:{' '}
-          <input
-            type="number"
-            value={topN}
-            onChange={(e) => setTopN(Number(e.target.value) || 5)}
-            style={{ width: 50 }}
-            min={1}
-            max={100}
-          />
-        </label>
-
-        <label>
-          Filter:{' '}
-          <input
-            type="text"
-            value={filterStr}
-            onChange={(e) => setFilterStr(e.target.value)}
-            placeholder="e.g. firstname eq 'John'"
-            style={{ width: 200 }}
-          />
-        </label>
-      </div>
-
-      {/* Read Actions */}
-      <div style={{ display: 'flex', gap: 8, marginBottom: 12, flexWrap: 'wrap' }}>
-        <button onClick={handleFetchAll} disabled={loading}>
-          List Records
-        </button>
-        <button onClick={handleFetchMeta} disabled={loading}>
-          Get Metadata
-        </button>
-
-        <span style={{ borderLeft: '1px solid #ccc', margin: '0 4px' }} />
-
-        <input
-          type="text"
-          value={recordId}
-          onChange={(e) => setRecordId(e.target.value)}
-          placeholder="Record ID (GUID)"
-          style={{ width: 280 }}
-        />
-        <button onClick={handleFetchById} disabled={loading || !recordId.trim()}>
-          Get by ID
-        </button>
-      </div>
-
-      {/* CRUD Section */}
-      <div style={{ borderTop: '1px solid #e5e7eb', paddingTop: 12, marginTop: 8, marginBottom: 12 }}>
-        <div style={{ display: 'flex', gap: 8, marginBottom: 8 }}>
-          <button
-            onClick={() => setShowCreateTeam(!showCreateTeam)}
-            style={{ background: '#10b981', color: '#fff', border: 'none' }}
-          >
-            {showCreateTeam ? 'Hide Create Form' : 'Create Team'}
-          </button>
+    <div className="dv-explorer">
+      {/* Entity Selector */}
+      <div className="dv-explorer__nav">
+        <div className="dv-nav-group">
+          <div className="dv-nav-group__label">Definition</div>
+          {definitionEntities.map(ent => (
+            <button
+              key={ent.logicalName}
+              className={`dv-nav-item ${activeEntity.logicalName === ent.logicalName ? 'dv-nav-item--active' : ''}`}
+              onClick={() => setActiveEntity(ent)}
+              style={activeEntity.logicalName === ent.logicalName ? { borderColor: ent.color } : undefined}
+            >
+              <span className="dv-nav-item__icon">{ent.icon}</span>
+              <span className="dv-nav-item__name">{ent.displayNamePlural}</span>
+            </button>
+          ))}
         </div>
+        <div className="dv-nav-group">
+          <div className="dv-nav-group__label">State</div>
+          {stateEntities.map(ent => (
+            <button
+              key={ent.logicalName}
+              className={`dv-nav-item ${activeEntity.logicalName === ent.logicalName ? 'dv-nav-item--active' : ''}`}
+              onClick={() => setActiveEntity(ent)}
+              style={activeEntity.logicalName === ent.logicalName ? { borderColor: ent.color } : undefined}
+            >
+              <span className="dv-nav-item__icon">{ent.icon}</span>
+              <span className="dv-nav-item__name">{ent.displayNamePlural}</span>
+            </button>
+          ))}
+        </div>
+        <div className="dv-nav-group">
+          <div className="dv-nav-group__label">Interaction</div>
+          {interactionEntities.map(ent => (
+            <button
+              key={ent.logicalName}
+              className={`dv-nav-item ${activeEntity.logicalName === ent.logicalName ? 'dv-nav-item--active' : ''}`}
+              onClick={() => setActiveEntity(ent)}
+              style={activeEntity.logicalName === ent.logicalName ? { borderColor: ent.color } : undefined}
+            >
+              <span className="dv-nav-item__icon">{ent.icon}</span>
+              <span className="dv-nav-item__name">{ent.displayNamePlural}</span>
+            </button>
+          ))}
+        </div>
+        <div className="dv-nav-group">
+          <div className="dv-nav-group__label">System</div>
+          {SYSTEM_TABLES.map(ent => (
+            <button
+              key={ent.logicalName}
+              className={`dv-nav-item ${activeEntity.logicalName === ent.logicalName ? 'dv-nav-item--active' : ''}`}
+              onClick={() => setActiveEntity(ent)}
+            >
+              <span className="dv-nav-item__icon">{ent.icon}</span>
+              <span className="dv-nav-item__name">{ent.displayNamePlural}</span>
+            </button>
+          ))}
+        </div>
+      </div>
 
-        {/* Create Team Form */}
-        {showCreateTeam && (
-          <div style={{ padding: 8, border: '1px solid #d1fae5', borderRadius: 4, background: '#f0fdf4', marginBottom: 8 }}>
-            <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', marginBottom: 8 }}>
-              <input type="text" value={teamName} onChange={(e) => setTeamName(e.target.value)} placeholder="Team Name *" style={{ width: 180 }} />
-              <input type="text" value={teamDesc} onChange={(e) => setTeamDesc(e.target.value)} placeholder="Description" style={{ width: 200 }} />
-              <input type="text" value={buId} onChange={(e) => setBuId(e.target.value)}
-                placeholder={currentUser ? `BU: ${currentUser.businessunitid}` : 'Business Unit ID *'}
-                title={currentUser ? `Auto-filled from ${currentUser.fullname}` : ''}
-                style={{ width: 260 }} />
-              <input type="text" value={adminId} onChange={(e) => setAdminId(e.target.value)}
-                placeholder={currentUser ? `Admin: ${currentUser.fullname}` : 'Administrator User ID *'}
-                title={currentUser ? `Auto-filled: ${currentUser.systemuserid}` : ''}
-                style={{ width: 260 }} />
-            </div>
-            <button onClick={handleCreateTeam} disabled={loading || !teamName.trim() || !buId.trim() || !adminId.trim()}>
-              Create
+      {/* Main Content */}
+      <div className="dv-explorer__main">
+        {/* Toolbar */}
+        <div className="dv-toolbar">
+          <div className="dv-toolbar__title">
+            <span style={{ color: activeEntity.color }}>{activeEntity.icon}</span>
+            {' '}{activeEntity.displayNamePlural}
+            <span className="dv-toolbar__count">{records.length} records</span>
+          </div>
+          <div className="dv-toolbar__controls">
+            <input
+              type="text"
+              className="dv-filter-input"
+              value={filterStr}
+              onChange={e => setFilterStr(e.target.value)}
+              placeholder="OData filter (e.g. jw_name eq 'test')"
+              onKeyDown={e => e.key === 'Enter' && loadRecords()}
+            />
+            <select className="dv-top-select" value={topN} onChange={e => setTopN(Number(e.target.value))}>
+              <option value={10}>Top 10</option>
+              <option value={25}>Top 25</option>
+              <option value={50}>Top 50</option>
+              <option value={100}>Top 100</option>
+              <option value={250}>Top 250</option>
+            </select>
+            <button className="dv-btn" onClick={loadRecords} disabled={loading}>
+              {loading ? 'Loading...' : 'Refresh'}
             </button>
           </div>
-        )}
-
-        {/* Update Team */}
-        <div style={{ display: 'flex', gap: 8, alignItems: 'center', marginBottom: 8, flexWrap: 'wrap' }}>
-          <strong style={{ fontSize: 12 }}>Update Team:</strong>
-          <input type="text" value={updateTeamId} onChange={(e) => setUpdateTeamId(e.target.value)} placeholder="Team ID" style={{ width: 260 }} />
-          <select value={updateField} onChange={(e) => setUpdateField(e.target.value)}>
-            <option value="name">name</option>
-            <option value="description">description</option>
-            <option value="emailaddress">emailaddress</option>
-          </select>
-          <input type="text" value={updateValue} onChange={(e) => setUpdateValue(e.target.value)} placeholder="New Value" style={{ width: 180 }} />
-          <button onClick={handleUpdateTeam} disabled={loading || !updateTeamId.trim() || !updateValue.trim()}
-            style={{ background: '#f59e0b', color: '#fff', border: 'none' }}>
-            Update
-          </button>
         </div>
 
-        {/* Delete Record */}
-        <div style={{ display: 'flex', gap: 8, alignItems: 'center', flexWrap: 'wrap' }}>
-          <strong style={{ fontSize: 12 }}>Delete ({selectedTable}):</strong>
-          <input type="text" value={deleteId} onChange={(e) => setDeleteId(e.target.value)} placeholder="Record ID to delete" style={{ width: 260 }} />
-          <button onClick={handleDelete} disabled={loading || !deleteId.trim()}
-            style={{ background: '#ef4444', color: '#fff', border: 'none' }}>
-            Delete
-          </button>
+        {error && <div className="dv-error">{error}</div>}
+
+        {/* Split view: grid + detail */}
+        <div className={`dv-split ${viewMode === 'detail' ? 'dv-split--with-detail' : ''}`}>
+          {/* Record Grid */}
+          <div className="dv-grid-wrapper">
+            <table className="dv-grid">
+              <thead>
+                <tr>
+                  <th className="dv-grid__th dv-grid__th--index">#</th>
+                  {displayColumns.map(col => (
+                    <th key={col} className="dv-grid__th">{formatColumnName(col)}</th>
+                  ))}
+                </tr>
+              </thead>
+              <tbody>
+                {records.map((record, i) => {
+                  const id = record[activeEntity.primaryKey] as string;
+                  const isSelected = selectedRecord?.[activeEntity.primaryKey] === id;
+                  return (
+                    <tr
+                      key={id ?? i}
+                      className={`dv-grid__row ${isSelected ? 'dv-grid__row--selected' : ''}`}
+                      onClick={() => {
+                        setSelectedRecord(record);
+                        setViewMode('detail');
+                      }}
+                    >
+                      <td className="dv-grid__td dv-grid__td--index">{i + 1}</td>
+                      {displayColumns.map(col => (
+                        <td key={col} className="dv-grid__td">
+                          {formatCellValue(record[col])}
+                        </td>
+                      ))}
+                    </tr>
+                  );
+                })}
+                {records.length === 0 && !loading && (
+                  <tr>
+                    <td colSpan={displayColumns.length + 1} className="dv-grid__empty">
+                      No records found
+                    </td>
+                  </tr>
+                )}
+              </tbody>
+            </table>
+          </div>
+
+          {/* Detail Panel */}
+          {viewMode === 'detail' && selectedRecord && (
+            <div className="dv-detail">
+              <div className="dv-detail__header">
+                <span className="dv-detail__title">
+                  {String(selectedRecord[activeEntity.nameField] ?? selectedRecord[activeEntity.primaryKey] ?? 'Record')}
+                </span>
+                <button className="dv-detail__close" onClick={() => { setViewMode('grid'); setSelectedRecord(null); }}>
+                  x
+                </button>
+              </div>
+              <div className="dv-detail__body">
+                {Object.entries(selectedRecord)
+                  .filter(([k]) => !k.startsWith('@'))
+                  .map(([key, value]) => (
+                    <div key={key} className="dv-detail__field">
+                      <div className="dv-detail__field-name">{formatColumnName(key)}</div>
+                      <div className="dv-detail__field-value">
+                        {renderFieldValue(key, value)}
+                      </div>
+                    </div>
+                  ))}
+              </div>
+              <div className="dv-detail__footer">
+                <details>
+                  <summary className="dv-detail__raw-toggle">Raw JSON</summary>
+                  <pre className="dv-detail__raw">{JSON.stringify(selectedRecord, null, 2)}</pre>
+                </details>
+              </div>
+            </div>
+          )}
         </div>
       </div>
-
-      {/* CRUD Feedback */}
-      {crudMessage ? <div style={{ color: '#10b981', marginBottom: 8, fontWeight: 500 }}>{crudMessage}</div> : null}
-
-      {/* Status */}
-      {loading && <div style={{ color: '#f59e0b' }}>Loading... {lastAction ? `(${lastAction})` : ''}</div>}
-      {error ? <div style={{ color: '#ef4444' }}>Error: {error}</div> : null}
-
-      {/* Results */}
-      {data != null ? (
-        <div>
-          <div style={{ marginBottom: 4, color: '#666' }}>
-            {data.length} record(s) returned
-          </div>
-          <div style={{ maxHeight: 500, overflowY: 'auto' }}>
-            {data.map((record, i) => (
-              <details
-                key={i}
-                style={{
-                  marginBottom: 4,
-                  padding: 8,
-                  border: '1px solid #e5e7eb',
-                  borderRadius: 4,
-                  background: '#fff',
-                }}
-              >
-                <summary style={{ cursor: 'pointer', fontWeight: 500 }}>
-                  Record {i + 1}:{' '}
-                  {renderRecordSummary(record as Record<string, unknown>, selectedTable)}
-                </summary>
-                <pre
-                  style={{
-                    marginTop: 4,
-                    padding: 8,
-                    background: '#f9fafb',
-                    borderRadius: 4,
-                    fontSize: 11,
-                    overflow: 'auto',
-                    maxHeight: 300,
-                  }}
-                >
-                  {JSON.stringify(record, null, 2)}
-                </pre>
-              </details>
-            ))}
-          </div>
-        </div>
-      ) : null}
     </div>
   );
 }
 
-function renderRecordSummary(record: Record<string, unknown>, table: DataverseTable): string {
-  switch (table) {
-    case 'systemusers':
-      return String(record.fullname || record.domainname || record.systemuserid || '(unknown)');
-    case 'teams':
-      return String(record.name || record.teamid || '(unknown)');
-    case 'businessunits':
-      return String(record.name || record.businessunitid || '(unknown)');
-    default:
-      return '(record)';
+// ─── Helpers ──────────────────────────────────────────────────────────────────
+
+function formatColumnName(col: string): string {
+  return col
+    .replace(/^jw_/, '')
+    .replace(/^_jw_/, '')
+    .replace(/_value$/, '')
+    .replace(/_/g, ' ')
+    .replace(/\b\w/g, c => c.toUpperCase());
+}
+
+function formatCellValue(value: unknown): string {
+  if (value == null) return '-';
+  if (typeof value === 'boolean') return value ? 'Yes' : 'No';
+  if (typeof value === 'object') return JSON.stringify(value).slice(0, 60) + '...';
+  const str = String(value);
+  if (str.length > 80) return str.slice(0, 77) + '...';
+  return str;
+}
+
+function renderFieldValue(_key: string, value: unknown): React.ReactElement {
+  if (value == null) return <span className="dv-null">null</span>;
+  if (typeof value === 'boolean') {
+    return <span className={`dv-badge ${value ? 'dv-badge--green' : 'dv-badge--red'}`}>{value ? 'Yes' : 'No'}</span>;
   }
+  if (typeof value === 'object') {
+    return <pre className="dv-json">{JSON.stringify(value, null, 2)}</pre>;
+  }
+  const str = String(value);
+  // Try to detect JSON strings
+  if ((str.startsWith('{') || str.startsWith('[')) && str.length > 20) {
+    try {
+      const parsed = JSON.parse(str);
+      return <pre className="dv-json">{JSON.stringify(parsed, null, 2)}</pre>;
+    } catch { /* not JSON */ }
+  }
+  // Long text
+  if (str.length > 200) {
+    return <pre className="dv-longtext">{str}</pre>;
+  }
+  // GUID
+  if (/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(str)) {
+    return <code className="dv-guid">{str}</code>;
+  }
+  // Date
+  if (/^\d{4}-\d{2}-\d{2}T/.test(str)) {
+    return <span>{new Date(str).toLocaleString()}</span>;
+  }
+  return <span>{str}</span>;
 }
