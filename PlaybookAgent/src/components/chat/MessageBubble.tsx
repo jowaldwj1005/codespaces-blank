@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef, useMemo } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import type { ChatMessage } from '../../types/agent';
 
 // ─── Markdown Renderer ───────────────────────────────────────────────────────
@@ -77,37 +77,37 @@ function renderMarkdown(text: string): string {
 
 // ─── Streaming Simulator ─────────────────────────────────────────────────────
 
-/** Simulates streaming by revealing content progressively */
-function useStreamingText(text: string, isNew: boolean, speed = 12): { displayed: string; done: boolean } {
+/**
+ * Module-level set of message IDs that have already been streamed.
+ * Survives component unmount/remount (tab switches) so messages don't re-stream.
+ */
+const _streamedMessages = new Set<string>();
+
+/** Simulates streaming by revealing content progressively. Only for genuinely new messages. */
+function useStreamingText(text: string, isNew: boolean, speed = 4): { displayed: string; done: boolean } {
   const [charIndex, setCharIndex] = useState(isNew ? 0 : text.length);
-  const frameRef = useRef<number | null>(null);
 
   useEffect(() => {
     if (!isNew || charIndex >= text.length) return;
 
-    // Adaptive speed: faster for whitespace/punctuation, slower for content
+    // Fast adaptive speed: minimal delays for whitespace
     const nextChar = text[charIndex];
-    const delay = nextChar === '\n' ? 30 : nextChar === ' ' ? speed * 0.3 : speed;
+    const delay = nextChar === '\n' ? 8 : nextChar === ' ' ? speed * 0.2 : speed;
+
+    // Advance in bigger chunks for fast rendering
+    const chunkSize = text.length > 300 ? 5 : text.length > 100 ? 3 : 2;
 
     const timeout = setTimeout(() => {
-      // Advance by chunks for very long messages
-      const chunkSize = text.length > 500 ? 3 : 1;
       setCharIndex(prev => Math.min(prev + chunkSize, text.length));
     }, delay);
 
     return () => clearTimeout(timeout);
   }, [charIndex, text, isNew, speed]);
 
-  // Reset if text changes
+  // Reset if text changes (only for new messages)
   useEffect(() => {
     if (isNew) setCharIndex(0);
   }, [text, isNew]);
-
-  useEffect(() => {
-    return () => {
-      if (frameRef.current) cancelAnimationFrame(frameRef.current);
-    };
-  }, []);
 
   return {
     displayed: text.slice(0, charIndex),
@@ -138,9 +138,6 @@ function ReasoningBubble({ content }: { content: string }) {
 // ─── Message Bubble Component ────────────────────────────────────────────────
 
 export function MessageBubble({ message }: { message: ChatMessage }) {
-  // Track rendered messages in ref to avoid re-streaming on re-render (bounded to 200 entries)
-  const renderedRef = useRef<Set<string>>(new Set());
-
   if (message.role === 'system') {
     return (
       <div className="message message--system">
@@ -156,23 +153,24 @@ export function MessageBubble({ message }: { message: ChatMessage }) {
   const isUser = message.role === 'user';
   const isAssistant = message.role === 'assistant';
 
-  // Generate stable message ID for tracking
+  // Generate stable message ID for tracking — survives tab switches via module-level Set
   const msgId = useMemo(() => {
     const content = message.content ?? '';
     return `${message.role}-${content.slice(0, 50)}-${content.length}`;
   }, [message.role, message.content]);
 
-  // Only stream new assistant messages
-  const isNew = isAssistant && !renderedRef.current.has(msgId);
+  // Only stream genuinely new assistant messages (module-level set survives remount)
+  const isNew = isAssistant && !_streamedMessages.has(msgId);
   const { displayed, done } = useStreamingText(message.content ?? '', isNew);
 
   useEffect(() => {
     if (done && isAssistant) {
-      renderedRef.current.add(msgId);
+      _streamedMessages.add(msgId);
       // Bound the set to prevent unbounded growth
-      if (renderedRef.current.size > 200) {
-        const entries = Array.from(renderedRef.current);
-        renderedRef.current = new Set(entries.slice(-100));
+      if (_streamedMessages.size > 500) {
+        const entries = Array.from(_streamedMessages);
+        _streamedMessages.clear();
+        for (const e of entries.slice(-250)) _streamedMessages.add(e);
       }
     }
   }, [done, msgId, isAssistant]);

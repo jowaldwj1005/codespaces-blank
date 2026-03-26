@@ -432,6 +432,47 @@ export function getGeneralAssistantSeedData(): SeedRecord[] {
         }),
       },
     },
+    {
+      type: 'tool',
+      name: 'get_artifact',
+      data: {
+        jw_name: 'get_artifact',
+        jw_description: 'Retrieve the full content of an artifact by ID. Use when you received a preview (e.g. from a document upload) and need the complete content for analysis.',
+        jw_endpointtype: 100000002,
+        jw_requiresapproval: false,
+        jw_inputschema: JSON.stringify({
+          type: 'object',
+          required: ['artifactId'],
+          properties: {
+            artifactId: { type: 'string', description: 'GUID of the artifact to retrieve' },
+          },
+        }),
+      },
+    },
+    {
+      type: 'tool',
+      name: 'ask_user',
+      data: {
+        jw_name: 'ask_user',
+        jw_description: 'Present an interactive card to the user for structured input. Supports: choice (single/multi-select), confirm (yes/no), form (structured fields), rating (stars). Use instead of plain text questions when you need structured answers.',
+        jw_endpointtype: 100000002,
+        jw_requiresapproval: true,
+        jw_inputschema: JSON.stringify({
+          type: 'object',
+          required: ['type', 'prompt'],
+          properties: {
+            type: { type: 'string', enum: ['choice', 'confirm', 'form', 'rating'], description: 'Card type' },
+            prompt: { type: 'string', description: 'Question or instruction to display' },
+            options: { type: 'array', description: 'For choice cards: array of { label, value, description? }', items: { type: 'object', properties: { label: { type: 'string' }, value: { type: 'string' }, description: { type: 'string' } } } },
+            allowMultiple: { type: 'boolean', description: 'For choice cards: allow multiple selections' },
+            confirmLabel: { type: 'string', description: 'For confirm cards: custom confirm button label' },
+            cancelLabel: { type: 'string', description: 'For confirm cards: custom cancel button label' },
+            fields: { type: 'array', description: 'For form cards: array of { key, label, type, options?, required?, defaultValue? }', items: { type: 'object', properties: { key: { type: 'string' }, label: { type: 'string' }, type: { type: 'string' } } } },
+            max: { type: 'integer', description: 'For rating cards: maximum rating value (default 5)' },
+          },
+        }),
+      },
+    },
     // ─── Agent ────────────────────────────────────────────────────────
     {
       type: 'agent',
@@ -466,6 +507,8 @@ export function getGeneralAssistantSeedData(): SeedRecord[] {
     { type: 'agent_tool_link', name: 'General Assistant → save_artifact', data: {}, agentName: 'General Assistant', toolName: 'save_artifact' },
     { type: 'agent_tool_link', name: 'General Assistant → exit', data: {}, agentName: 'General Assistant', toolName: 'exit' },
     { type: 'agent_tool_link', name: 'General Assistant → delete_dataverse_record', data: {}, agentName: 'General Assistant', toolName: 'delete_dataverse_record' },
+    { type: 'agent_tool_link', name: 'General Assistant → get_artifact', data: {}, agentName: 'General Assistant', toolName: 'get_artifact' },
+    { type: 'agent_tool_link', name: 'General Assistant → ask_user', data: {}, agentName: 'General Assistant', toolName: 'ask_user' },
     // ─── Playbook + Instructions (sample) ─────────────────────────────
     {
       type: 'playbook',

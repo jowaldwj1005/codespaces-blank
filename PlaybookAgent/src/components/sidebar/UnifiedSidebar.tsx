@@ -274,6 +274,13 @@ export function UnifiedSidebar({ caseManager, tabs }: UnifiedSidebarProps) {
 
   const handleSelectCase = async (caseId: string) => {
     await selectCase(caseId);
+    // Open case canvas tab so user sees the case overview
+    const caseData = cases.find(c => c.id === caseId);
+    tabs.openTab({
+      type: 'case-canvas',
+      label: caseData?.title ?? 'Case',
+      referenceId: caseId,
+    });
   };
 
   const handleSelectThread = (threadId: string, threadTitle: string) => {
@@ -288,8 +295,9 @@ export function UnifiedSidebar({ caseManager, tabs }: UnifiedSidebarProps) {
     tabs.openTab({ type, label, referenceId: type, closable: true });
   };
 
-  const handleOpenAgentAdmin = () => {
-    tabs.openTab({ type: 'admin', label: 'Admin', referenceId: 'admin', closable: true });
+  const handleOpenAdmin = (entityHint?: string) => {
+    // Open admin tab — entityHint stored in referenceId for pre-selection
+    tabs.openTab({ type: 'admin', label: 'Admin', referenceId: entityHint ?? 'admin', closable: true });
   };
 
   // ─── Recent Threads ──────────────────────────────────────────────────────
@@ -500,7 +508,7 @@ export function UnifiedSidebar({ caseManager, tabs }: UnifiedSidebarProps) {
                 <button
                   key={a.id}
                   className="sidebar__item sidebar__item--define"
-                  onClick={handleOpenAgentAdmin}
+                  onClick={() => handleOpenAdmin('jw_agent')}
                 >
                   {icons.agent}
                   <span className="sidebar__item-label">{a.name}</span>
@@ -519,7 +527,7 @@ export function UnifiedSidebar({ caseManager, tabs }: UnifiedSidebarProps) {
                 <button
                   key={p.id}
                   className="sidebar__item sidebar__item--define"
-                  onClick={handleOpenAgentAdmin}
+                  onClick={() => handleOpenAdmin('jw_playbook')}
                 >
                   {icons.playbook}
                   <span className="sidebar__item-label">{p.name}</span>
@@ -535,10 +543,10 @@ export function UnifiedSidebar({ caseManager, tabs }: UnifiedSidebarProps) {
 
               {/* Create buttons */}
               <div className="sidebar__define-actions">
-                <button className="sidebar__small-btn" onClick={handleOpenAgentAdmin}>
+                <button className="sidebar__small-btn" onClick={() => handleOpenAdmin('jw_agent')}>
                   {icons.plus} Agent
                 </button>
-                <button className="sidebar__small-btn" onClick={handleOpenAgentAdmin}>
+                <button className="sidebar__small-btn" onClick={() => handleOpenAdmin('jw_playbook')}>
                   {icons.plus} Playbook
                 </button>
               </div>
