@@ -13,6 +13,9 @@ export type TabType =
   | 'artifact-view'
   | 'explore'
   | 'admin'
+  | 'agent-canvas'
+  | 'new-agent'
+  | 'new-playbook'
   | 'dataverse'
   | 'connectors'
   | 'viz'
@@ -41,6 +44,9 @@ const TAB_ICONS: Record<TabType, string> = {
   'artifact-view': '\u{1F4CA}',
   'explore': '\u{1F50D}',
   'admin': '\u{2699}\u{FE0F}',
+  'agent-canvas': '\u{1F916}',
+  'new-agent': '\u{2728}',
+  'new-playbook': '\u{2728}',
   'dataverse': '\u{1F4CA}',
   'connectors': '\u{1F50C}',
   'viz': '\u{1F4C8}',

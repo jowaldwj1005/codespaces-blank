@@ -18,6 +18,8 @@ import { useAgentChat } from '../../hooks/useAgentChat';
 import { onLoopChange } from '../../services/agentLoopRegistry';
 import { recordChange } from '../../services/artifactChangeAccumulator';
 import { SemanticRenderer } from '../semantic/SemanticRenderer';
+import { AgentCanvas } from '../define/AgentCanvas';
+import { DefinitionBuilder } from '../define/DefinitionBuilder';
 
 interface WorkspaceTabsProps {
   tabsManager: WorkspaceTabsReturn;
@@ -156,6 +158,12 @@ function TabContent({ tab, caseManager, tabsManager }: TabContentProps) {
       return <ArtifactViewTab artifactId={tab.referenceId} caseManager={caseManager} />;
     case 'admin':
       return <AdminWorkspace />;
+    case 'agent-canvas':
+      return <AgentCanvas agentId={tab.referenceId} tabs={tabsManager} />;
+    case 'new-agent':
+      return <DefinitionBuilder entityType="agent" tabs={tabsManager} />;
+    case 'new-playbook':
+      return <DefinitionBuilder entityType="playbook" tabs={tabsManager} />;
     case 'dataverse':
       return <div className="debug-view"><DataverseExplorer /></div>;
     case 'connectors':

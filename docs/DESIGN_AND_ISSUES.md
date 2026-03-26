@@ -350,6 +350,38 @@ Step 6 broken (get_artifact not in agent tools → ISSUE-001).
 
 ---
 
+## 6. Dead Code & Cleanup
+
+### Orphaned Components (safe to delete)
+| File | Lines | Reason |
+|------|-------|--------|
+| `src/components/layout/ActivitySidebar.tsx` | ~100 | Replaced by UnifiedSidebar, not imported in App.tsx |
+| `src/components/layout/activities/ChatActivity.tsx` | ~150 | Part of old ActivitySidebar |
+| `src/components/layout/activities/ConfigActivity.tsx` | ~100 | Part of old ActivitySidebar |
+| `src/components/layout/activities/ContextActivity.tsx` | ~100 | Part of old ActivitySidebar |
+| `src/components/layout/activities/DevToolsActivity.tsx` | ~50 | Part of old ActivitySidebar |
+| `src/components/layout/AppHeader.tsx` | ~31 | Replaced by sidebar header |
+
+**Total: ~530 lines of dead UI code.**
+
+### Partially Wired Components (exist but need connection)
+| Component | What it does | What's missing |
+|-----------|-------------|----------------|
+| `ArtifactBrowser.tsx` | Browse case artifacts with type filter | Not in main UI (was in old ContextActivity) |
+| `CaseDashboard.tsx` | Case summary dashboard | Not referenced anywhere |
+| `SubAgentCard.tsx` | Sub-agent delegation display | Sub-agent feature not implemented |
+
+### Playbook Execution — Complete Gap Analysis
+The entire playbook execution flow is broken:
+1. **start_playbook tool** exists in builtinTools but user has no UI to trigger it
+2. **complete_instruction tool** exists but PlaybookProgress has no checkboxes to call it
+3. **PlaybookProgress** renders a checklist but it's read-only
+4. **Case.jw_contextdata** tracks `completedInstructions[]` but only via the tool, never from UI
+
+**Fix plan:** Add "Start Playbook" action in CaseCanvas + make PlaybookProgress interactive.
+
+---
+
 ## Appendix: Why Progress Feels Slow
 
 ### Pattern Identified

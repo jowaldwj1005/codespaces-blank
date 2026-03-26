@@ -295,11 +295,6 @@ export function UnifiedSidebar({ caseManager, tabs }: UnifiedSidebarProps) {
     tabs.openTab({ type, label, referenceId: type, closable: true });
   };
 
-  const handleOpenAdmin = (entityHint?: string) => {
-    // Open admin tab — entityHint stored in referenceId for pre-selection
-    tabs.openTab({ type: 'admin', label: 'Admin', referenceId: entityHint ?? 'admin', closable: true });
-  };
-
   // ─── Recent Threads ──────────────────────────────────────────────────────
 
   // Collect recent threads from all open thread-chat tabs + case threads
@@ -508,7 +503,11 @@ export function UnifiedSidebar({ caseManager, tabs }: UnifiedSidebarProps) {
                 <button
                   key={a.id}
                   className="sidebar__item sidebar__item--define"
-                  onClick={() => handleOpenAdmin('jw_agent')}
+                  onClick={() => tabs.openTab({
+                    type: 'agent-canvas',
+                    label: a.name,
+                    referenceId: a.id,
+                  })}
                 >
                   {icons.agent}
                   <span className="sidebar__item-label">{a.name}</span>
@@ -527,7 +526,12 @@ export function UnifiedSidebar({ caseManager, tabs }: UnifiedSidebarProps) {
                 <button
                   key={p.id}
                   className="sidebar__item sidebar__item--define"
-                  onClick={() => handleOpenAdmin('jw_playbook')}
+                  onClick={() => tabs.openTab({
+                    type: 'admin',
+                    label: `Playbook: ${p.name}`,
+                    referenceId: 'jw_playbook',
+                    closable: true,
+                  })}
                 >
                   {icons.playbook}
                   <span className="sidebar__item-label">{p.name}</span>
@@ -543,10 +547,18 @@ export function UnifiedSidebar({ caseManager, tabs }: UnifiedSidebarProps) {
 
               {/* Create buttons */}
               <div className="sidebar__define-actions">
-                <button className="sidebar__small-btn" onClick={() => handleOpenAdmin('jw_agent')}>
+                <button className="sidebar__small-btn" onClick={() => tabs.openTab({
+                  type: 'new-agent',
+                  label: 'New Agent',
+                  referenceId: 'new-agent-' + Date.now(),
+                })}>
                   {icons.plus} Agent
                 </button>
-                <button className="sidebar__small-btn" onClick={() => handleOpenAdmin('jw_playbook')}>
+                <button className="sidebar__small-btn" onClick={() => tabs.openTab({
+                  type: 'new-playbook',
+                  label: 'New Playbook',
+                  referenceId: 'new-playbook-' + Date.now(),
+                })}>
                   {icons.plus} Playbook
                 </button>
               </div>
