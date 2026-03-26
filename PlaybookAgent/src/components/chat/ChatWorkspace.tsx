@@ -101,7 +101,7 @@ export function ChatWorkspace({ chat, threadId, agentId }: ChatWorkspaceProps) {
       )}
 
       <ChatInputBar
-        onSend={sendMessage}
+        onSend={(content, options) => sendMessage(content, options)}
         status={status as AgentStatus}
         disabled={!agent}
       />

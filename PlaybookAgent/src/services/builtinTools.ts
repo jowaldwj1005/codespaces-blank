@@ -38,6 +38,8 @@ export const BUILTIN_TOOLS: Record<string, ToolHandler> = {
   complete_instruction: handleCompleteInstruction,
   // Artifact tools
   save_artifact: handleSaveArtifact,
+  // Interactive tools
+  ask_user: handleAskUser,
 };
 
 // ─── Capability-Gated Tools ────────────────────────────────────────────────
@@ -772,6 +774,37 @@ async function handleSaveArtifact(args: Record<string, unknown>): Promise<unknow
   }
 }
 
+// ─── ask_user handler ────────────────────────────────────────────────────────
+// The ask_user tool returns the card specification as its result.
+// The actual user interaction is handled by the UI layer (InteractiveCard component).
+// The tool executor treats this tool specially: it sets requiresApproval = true,
+// which pauses the agent loop until the user responds via the approval resolver.
+// The user's response is then returned as the tool result.
+
+async function handleAskUser(args: Record<string, unknown>): Promise<unknown> {
+  // Validate card structure
+  const cardType = args.type as string;
+  if (!cardType || !['choice', 'confirm', 'form', 'rating'].includes(cardType)) {
+    return { error: 'Invalid card type. Must be one of: choice, confirm, form, rating' };
+  }
+  if (!args.prompt) {
+    return { error: 'Missing required field: prompt' };
+  }
+  if (cardType === 'choice' && (!Array.isArray(args.options) || args.options.length === 0)) {
+    return { error: 'Choice card requires non-empty options array' };
+  }
+  if (cardType === 'form' && (!Array.isArray(args.fields) || args.fields.length === 0)) {
+    return { error: 'Form card requires non-empty fields array' };
+  }
+
+  // Return the card specification — the tool executor will handle the pause
+  // This result will be displayed as an InteractiveCard in the chat UI
+  return {
+    _interactive_card: true,
+    card: args,
+  };
+}
+
 // ─── Built-in Tool Definitions (for agent config) ────────────────────────────
 
 export const BUILTIN_TOOL_DEFINITIONS: ToolDefinition[] = [
@@ -1059,6 +1092,55 @@ export const BUILTIN_TOOL_DEFINITIONS: ToolDefinition[] = [
       },
     },
     requiresApproval: false,
+    endpointType: 'InternalReact',
+  },
+  // ─── Interactive Tools ───────────────────────────────────────────────────────
+  {
+    id: 'builtin_ask_user',
+    name: 'ask_user',
+    description: 'Present an interactive card to the user for structured input. Supports multiple card types: choice (single/multi-select), confirm (yes/no), form (structured input fields), and rating (star rating). The agent loop pauses until the user responds. Use this instead of asking plain text questions when you need structured answers.',
+    inputSchema: {
+      type: 'object',
+      required: ['type', 'prompt'],
+      properties: {
+        type: { type: 'string', enum: ['choice', 'confirm', 'form', 'rating'], description: 'Card type' },
+        prompt: { type: 'string', description: 'Question or instruction to display' },
+        options: {
+          type: 'array',
+          description: 'For choice cards: array of options',
+          items: {
+            type: 'object',
+            required: ['label', 'value'],
+            properties: {
+              label: { type: 'string' },
+              value: { type: 'string' },
+              description: { type: 'string' },
+            },
+          },
+        },
+        allowMultiple: { type: 'boolean', description: 'For choice cards: allow multiple selections' },
+        confirmLabel: { type: 'string', description: 'For confirm cards: custom confirm button label' },
+        cancelLabel: { type: 'string', description: 'For confirm cards: custom cancel button label' },
+        fields: {
+          type: 'array',
+          description: 'For form cards: array of form fields',
+          items: {
+            type: 'object',
+            required: ['key', 'label', 'type'],
+            properties: {
+              key: { type: 'string' },
+              label: { type: 'string' },
+              type: { type: 'string', enum: ['text', 'number', 'select', 'boolean'] },
+              options: { type: 'array', items: { type: 'string' } },
+              required: { type: 'boolean' },
+              defaultValue: {},
+            },
+          },
+        },
+        max: { type: 'integer', description: 'For rating cards: maximum rating value (default 5)' },
+      },
+    },
+    requiresApproval: true,
     endpointType: 'InternalReact',
   },
 ];

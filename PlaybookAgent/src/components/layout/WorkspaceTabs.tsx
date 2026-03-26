@@ -3,7 +3,7 @@
  * Renders the tab strip and dispatches to the correct content component.
  */
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import type { WorkspaceTabsReturn } from '../../hooks/useWorkspaceTabs';
 import type { CaseManagerReturn } from '../../hooks/useCaseManager';
 import { ChatWorkspace } from '../chat/ChatWorkspace';
@@ -15,6 +15,9 @@ import { VisualizationPanel } from '../VisualizationPanel';
 import { McpExplorer } from '../McpExplorer';
 import { DebugPanel } from '../DebugPanel';
 import { useAgentChat } from '../../hooks/useAgentChat';
+import { onLoopChange } from '../../services/agentLoopRegistry';
+import { recordChange } from '../../services/artifactChangeAccumulator';
+import { SemanticRenderer } from '../semantic/SemanticRenderer';
 
 interface WorkspaceTabsProps {
   tabsManager: WorkspaceTabsReturn;
@@ -22,9 +25,24 @@ interface WorkspaceTabsProps {
 }
 
 export function WorkspaceTabs({ tabsManager, caseManager }: WorkspaceTabsProps) {
-  const { tabs, activeTabId, activeTab, openTab, closeTab, switchTab, closeOtherTabs, closeAllTabs } = tabsManager;
+  const { tabs, activeTabId, activeTab, openTab, closeTab, switchTab, closeOtherTabs, closeAllTabs, updateTab } = tabsManager;
   const [contextMenuTabId, setContextMenuTabId] = useState<string | null>(null);
   const [contextMenuPos, setContextMenuPos] = useState({ x: 0, y: 0 });
+
+  // Subscribe to agent loop registry for tab notifications
+  useEffect(() => {
+    const unsubscribe = onLoopChange((threadId, entry) => {
+      // Find the tab for this thread
+      const tab = tabs.find(t => t.type === 'thread-chat' && t.referenceId === threadId);
+      if (!tab) return;
+
+      // Only notify if the tab is NOT active and the loop just completed/errored
+      if (tab.id !== activeTabId && (entry.status === 'completed' || entry.status === 'error') && !entry.acknowledged) {
+        updateTab(tab.id, { hasUnsavedChanges: true });
+      }
+    });
+    return unsubscribe;
+  }, [tabs, activeTabId, updateTab]);
 
   const handleContextMenu = (e: React.MouseEvent, tabId: string) => {
     e.preventDefault();
@@ -42,7 +60,13 @@ export function WorkspaceTabs({ tabsManager, caseManager }: WorkspaceTabsProps) 
           <button
             key={tab.id}
             className={`workspace-tab ${tab.id === activeTabId ? 'workspace-tab--active' : ''}`}
-            onClick={() => switchTab(tab.id)}
+            onClick={() => {
+              switchTab(tab.id);
+              // Clear notification when switching to a tab
+              if (tab.hasUnsavedChanges && tab.type === 'thread-chat') {
+                updateTab(tab.id, { hasUnsavedChanges: false });
+              }
+            }}
             onContextMenu={(e) => handleContextMenu(e, tab.id)}
             title={tab.label}
           >
@@ -186,24 +210,29 @@ function ArtifactViewTab({ artifactId, caseManager }: { artifactId: string; case
     return <div className="placeholder-panel">Artifact not found</div>;
   }
 
-  let payload: unknown = null;
-  try {
-    payload = artifact.payload ? JSON.parse(artifact.payload) : null;
-  } catch {
-    payload = artifact.payload;
-  }
+  // Map ArtifactSummary → ArtifactData (SemanticRenderer expects payload as required string)
+  const artifactData = {
+    id: artifact.id,
+    name: artifact.name,
+    type: artifact.type,
+    payload: artifact.payload ?? '{}',
+    referenceKey: artifact.referenceKey,
+  };
+
+  const handlePayloadChange = (artId: string, newPayload: unknown) => {
+    // Record change in accumulator for agent awareness
+    const summary = typeof newPayload === 'object' && newPayload
+      ? `Fields modified`
+      : `Content updated`;
+    recordChange(artId, artifact.type, summary, artifact.name);
+  };
 
   return (
     <div className="artifact-full-view">
-      <div className="artifact-full-view__header">
-        <h2>{artifact.name}</h2>
-        <span className="artifact-full-view__type">{artifact.type}</span>
-      </div>
-      <div className="artifact-full-view__body">
-        <pre className="artifact-full-view__payload">
-          {typeof payload === 'string' ? payload : JSON.stringify(payload, null, 2)}
-        </pre>
-      </div>
+      <SemanticRenderer
+        artifact={artifactData}
+        onPayloadChange={handlePayloadChange}
+      />
     </div>
   );
 }

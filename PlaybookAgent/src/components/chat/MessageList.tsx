@@ -1,8 +1,9 @@
 import { useEffect, useRef, useState } from 'react';
-import type { ChatMessage, AgentStatus, PendingToolCall } from '../../types/agent';
+import type { ChatMessage, AgentStatus, PendingToolCall, InteractiveCard as ICard } from '../../types/agent';
 import { MessageBubble } from './MessageBubble';
 import { ToolCallCard } from './ToolCallCard';
 import { ApprovalForm } from './ApprovalForm';
+import { InteractiveCard } from './InteractiveCard';
 
 interface MessageListProps {
   messages: ChatMessage[];
@@ -97,15 +98,31 @@ export function MessageList({ messages, status, pendingApprovals, onApprove, onR
         return <MessageBubble key={i} message={msg} />;
       })}
 
-      {/* Pending approvals */}
-      {pendingApprovals.map(tc => (
-        <ApprovalForm
-          key={tc.callId}
-          toolCall={tc}
-          onApprove={onApprove}
-          onReject={onReject}
-        />
-      ))}
+      {/* Pending approvals & interactive cards */}
+      {pendingApprovals.map(tc => {
+        // Detect ask_user interactive cards
+        if (tc.toolName === 'ask_user') {
+          const card = tc.arguments as unknown as ICard;
+          return (
+            <InteractiveCard
+              key={tc.callId}
+              card={card}
+              onRespond={(response) => {
+                // Pass user response back as edited args with the response data
+                onApprove(tc.callId, { _user_response: response });
+              }}
+            />
+          );
+        }
+        return (
+          <ApprovalForm
+            key={tc.callId}
+            toolCall={tc}
+            onApprove={onApprove}
+            onReject={onReject}
+          />
+        );
+      })}
 
       {/* Thinking indicator */}
       {(status === 'thinking' || status === 'tool_calling') && (

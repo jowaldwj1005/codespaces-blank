@@ -6,7 +6,7 @@ Austausch-Dokument zwischen Dir und Claude. Ideen werden hier gesammelt, du bewe
 
 ---
 
-## Implementation Status Matrix (v0.11.0)
+## Implementation Status Matrix (v0.12.0)
 
 | # | Feature | Status | Details |
 |---|---------|--------|---------|
@@ -14,28 +14,35 @@ Austausch-Dokument zwischen Dir und Claude. Ideen werden hier gesammelt, du bewe
 | - | **Inline Visualizations** | DONE (v0.11) | create_visual → VisualizationCard, 9 chart types |
 | - | **Terminal Code Display** | DONE (v0.11) | run_data_code terminal UI |
 | - | **Citation Rendering** | DONE (v0.11) | Web search citation pills |
+| - | **Interactive Cards** | DONE (v0.12) | ask_user tool — choice, confirm, form, rating cards inline in chat |
+| - | **Chat Input Toolbar** | DONE (v0.12) | Reasoning effort, web search toggle, file upload per message |
+| - | **Agent Loop Registry** | DONE (v0.12) | Background agent tracking + tab notification badges |
+| - | **Bidirectional Artifacts** | DONE (v0.12) | Change accumulator, SemanticRenderer in artifact view |
+| - | **Streaming Markdown Fix** | DONE (v0.12) | Plain text during stream, full markdown after |
+| - | **Activity Sidebar** | DONE (v0.11) | VS Code-style icon rail + collapsible panel |
+| - | **AI-Assisted Config** | DONE (v0.11) | Config entity tree + AI chat for record creation |
 | - | **DataverseExplorer** | DONE (v0.10) | Mini model-driven app, 12+ entities |
 | - | **ConnectorTester** | DONE (v0.10) | 3 panels: OpenAI, DocInt, SAP |
 | - | **Debug Console** | DONE | debugEventBus, DebugPanel with raw I/O |
 | - | **MCP Tools** | DONE | search_dataverse, get_table_schema, execute_dataverse_query |
 | - | **Seed Data System** | DONE | Idempotent seeder with all tools + agents |
-| - | **SemanticRenderer** | PARTIAL | 12 types registered, but artifact pipeline incomplete |
+| - | **SemanticRenderer** | IMPROVED (v0.12) | Bidirectional wiring, artifact view uses it now |
 | - | **CaseDashboard** | PARTIAL | Renders, but artifact display limited |
 | - | **PlaybookProgress** | PARTIAL | Checklist works, but auto-refresh limited |
 | 1 | Agentic Learning Loop | NOT STARTED | User approved, needs save_learning tool + autonomy settings |
 | 2 | Agent Handoff | NOT STARTED | User: "cool but complex, needs use cases" |
 | 3 | Agent Persona Playground | NOT STARTED | User wants replay of past cases too |
-| 4 | Instruction Auto-Tagging | NOT STARTED | User wants AI help for all entity creation |
+| 4 | Instruction Auto-Tagging | PARTIAL (v0.11) | AI-assisted config sidebar added, entity creation guidance |
 | 5 | Bounded History | NOT STARTED | User wants manual trigger + visibility |
 | 6 | Cross-Thread Context | NOT STARTED | User wants global system prompts |
 | 7 | Case Context Snapshots | NOT STARTED | User: "wenn möglich gerne" |
 | 8 | Artifact Version History | NOT STARTED | User approved |
-| 9 | Live Artifact Binding | NOT STARTED | User: "ja gut" |
-| 10 | NL Queries on Artifacts | NOT STARTED | User wants bidirectional |
+| 9 | Live Artifact Binding | PARTIAL (v0.12) | Change accumulator pattern, not full real-time sync |
+| 10 | NL Queries on Artifacts | IN PROGRESS | Bidirectional wiring laid foundation |
 | 11 | Artifact Templates | NOT STARTED | User suggests knowledge instructions |
 | 12 | Dashboard-Zusammenstellung | NOT STARTED | User wants agent-driven case updates |
 | 13 | Playbook Auto-Generation | DEPRIORITIZED | User: "nicht der erwartete Grenznutzen" |
-| 14 | Conditional Auto-Approval | NOT STARTED | Hard vs soft HitL distinction needed |
+| 14 | Conditional Auto-Approval | NOT STARTED | Hard vs soft HitL — ask_user tool enables soft HitL |
 | 15 | Tool Chains | NOT STARTED | User wants markdown-defined flows |
 | 16 | Scheduled Agent Tasks | DEFERRED | Azure Function future vision |
 | 17 | Cost Dashboard | NOT STARTED | User approved |
@@ -51,9 +58,10 @@ Austausch-Dokument zwischen Dir und Claude. Ideen werden hier gesammelt, du bewe
 
 **Next recommended priorities (high impact, builds on existing code):**
 1. Agentic Learning Loop (#1) — `save_learning` tool, autonomy settings, knowledge versioning
-2. Bounded History (#5) — token budget management, manual trigger, summary visibility
+2. Expand interactive artifact types — charts, tables, dashboards with edit capability
 3. Cost Dashboard (#17) — token data already tracked, just needs aggregation UI
-4. Conditional Auto-Approval (#14) — agent-tool JSON config, hard/soft HitL gate
+4. Bounded History (#5) — token budget management, manual trigger, summary visibility
+5. Conditional Auto-Approval (#14) — rules in jw_agenttool.jw_data, hard vs soft HitL using ask_user
 
 ---
 

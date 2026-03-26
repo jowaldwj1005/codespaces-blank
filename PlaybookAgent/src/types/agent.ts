@@ -162,6 +162,23 @@ export interface ThreadSummary {
   modifiedOn: string;
 }
 
+// ─── Interactive Cards (ask_user tool) ────────────────────────────────────────
+
+export type InteractiveCard =
+  | { type: 'choice'; prompt: string; options: Array<{ label: string; value: string; description?: string }>; allowMultiple?: boolean }
+  | { type: 'confirm'; prompt: string; confirmLabel?: string; cancelLabel?: string }
+  | { type: 'form'; prompt: string; fields: CardField[] }
+  | { type: 'rating'; prompt: string; max?: number };
+
+export interface CardField {
+  key: string;
+  label: string;
+  type: 'text' | 'number' | 'select' | 'boolean';
+  options?: string[];
+  required?: boolean;
+  defaultValue?: unknown;
+}
+
 // ─── Azure OpenAI Responses API Tool Format ─────────────────────────────────
 
 import type { ResponseTool } from '../services/connectors';

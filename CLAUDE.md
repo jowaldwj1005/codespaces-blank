@@ -1,7 +1,7 @@
 # CLAUDE.md - Playbook Agent
 
-**App Version:** 0.11.0
-**Phase:** Wire It Together — Inline visualizations, terminal code display, citations, datatype fixes
+**App Version:** 0.12.0
+**Phase:** UX Polish & Interaction — Chat toolbar, interactive cards, agent loop registry, bidirectional artifacts
 
 ## Quick Context
 

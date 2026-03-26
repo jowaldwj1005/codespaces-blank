@@ -22,6 +22,9 @@ import { createToolExecutor } from '../services/toolExecutor';
 import type { ToolExecutionRecord } from '../services/toolExecutor';
 import { jwAgents, getAgentWithTools, createMessage, getThreadMessages, createToolExecution } from '../services/dataverse';
 import { BUILTIN_TOOLS, BUILTIN_TOOL_DEFINITIONS } from '../services/builtinTools';
+import { registerLoop, updateLoop, getLoop, acknowledgeLoop } from '../services/agentLoopRegistry';
+import { drainChangeSummary } from '../services/artifactChangeAccumulator';
+import type { ChatMessageOptions } from '../components/chat/ChatInputBar';
 
 interface AgentChatState {
   messages: ChatMessage[];
@@ -162,8 +165,14 @@ export function useAgentChat(threadId: string | null) {
     }
   }, []);
 
-  /** Load existing messages from Dataverse for the thread. */
+  /** Load existing messages from Dataverse for the thread. Also acknowledges any completed loop. */
   const loadMessages = useCallback(async (tid: string) => {
+    // Acknowledge any completed loop for this thread (user is viewing it)
+    const loop = getLoop(tid);
+    if (loop && (loop.status === 'completed' || loop.status === 'error')) {
+      acknowledgeLoop(tid);
+    }
+
     try {
       const result = await getThreadMessages(tid);
       const records = result.data ?? [];
@@ -243,27 +252,43 @@ export function useAgentChat(threadId: string | null) {
     }
   }, []);
 
-  /** Send a user message and run the agent loop. */
-  const sendMessage = useCallback(async (content: string) => {
+  /** Send a user message and run the agent loop. Options override agent config per-message. */
+  const sendMessage = useCallback(async (content: string, options?: ChatMessageOptions) => {
     if (!threadId || !agent) return;
 
+    // Check if a loop is already running for this thread
+    const existingLoop = getLoop(threadId);
+    if (existingLoop?.status === 'running') return;
+
+    // Prepend artifact change summaries if any exist
+    const changeSummary = drainChangeSummary();
+    const changeMsg: ChatMessage | null = changeSummary
+      ? { role: 'user', content: changeSummary }
+      : null;
+
     const userMsg: ChatMessage = { role: 'user', content };
+    const outboundMessages = changeMsg ? [changeMsg, userMsg] : [userMsg];
+
     setState(prev => ({
       ...prev,
-      messages: [...prev.messages, userMsg],
+      messages: [...prev.messages, ...outboundMessages],
       status: 'thinking',
       error: undefined,
     }));
 
-    // Persist user message to Dataverse
+    // Persist messages to Dataverse
     try {
+      if (changeMsg) {
+        await createMessage({ threadId, role: 'user', content: changeSummary! });
+      }
       await createMessage({ threadId, role: 'user', content });
     } catch {
       // Non-critical — continue even if persistence fails
     }
 
-    // Create abort controller
+    // Create abort controller and register in global registry
     abortRef.current = new AbortController();
+    registerLoop(threadId, abortRef.current);
 
     // Collect tool execution records for post-loop audit
     const toolExecutionRecords: ToolExecutionRecord[] = [];
@@ -282,7 +307,7 @@ export function useAgentChat(threadId: string | null) {
     });
 
     try {
-      const allMessages = [...state.messages, userMsg];
+      const allMessages = [...state.messages, ...outboundMessages];
       // Track cumulative token usage for persistence
       let finalTokenUsage: { inputTokens: number; outputTokens: number } | undefined;
       const tokenTrackingHandler = (event: AgentEvent) => {
@@ -290,10 +315,28 @@ export function useAgentChat(threadId: string | null) {
         if (event.type === 'token_update') {
           finalTokenUsage = { inputTokens: event.usage.inputTokens, outputTokens: event.usage.outputTokens };
         }
+        // Update registry status
+        if (threadId) {
+          if (event.type === 'status_change' && event.status === 'awaiting_approval') {
+            updateLoop(threadId, { status: 'awaiting_approval' });
+          }
+        }
       };
 
+      // Apply per-message option overrides to agent config
+      const effectiveAgent = options
+        ? {
+            ...agent,
+            modelConfig: {
+              ...agent.modelConfig,
+              ...(options.reasoning_effort !== undefined ? { reasoning_effort: options.reasoning_effort } : {}),
+              ...(options.web_search !== undefined ? { web_search: options.web_search } : {}),
+            },
+          }
+        : agent;
+
       const resultMessages = await runAgentLoop({
-        agent,
+        agent: effectiveAgent,
         messages: allMessages,
         onEvent: tokenTrackingHandler,
         executeToolCall: executor,
@@ -359,9 +402,16 @@ export function useAgentChat(threadId: string | null) {
           // Non-critical — audit record creation should not break the chat
         }
       }
+      // Mark loop as completed in registry
+      if (threadId) {
+        updateLoop(threadId, { status: 'completed', completedAt: Date.now() });
+      }
     } catch (err) {
       const errorMsg = err instanceof Error ? err.message : String(err);
       setState(prev => ({ ...prev, error: errorMsg, status: 'error' }));
+      if (threadId) {
+        updateLoop(threadId, { status: 'error', error: errorMsg, completedAt: Date.now() });
+      }
     }
   }, [threadId, agent, state.messages, handleEvent]);
 

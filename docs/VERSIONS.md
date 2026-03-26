@@ -5,6 +5,54 @@
 
 ---
 
+## v0.12.0 — UX Polish, Chat Persistence & Interactive Cards (2026-03-26)
+
+### What Was Done
+
+**UX improvements, new interaction patterns, and critical bug fixes.**
+
+**Chat Input Toolbar:**
+- Reasoning effort selector (cycles off → low → med → high) with brain icon
+- Web search toggle with globe icon
+- File upload button (reads text files, appends to message)
+- Per-message options override the agent's default config
+
+**Interactive Cards (ask_user tool):**
+- Agent can present structured questions inline in chat
+- 4 card types: choice (single/multi-select), confirm (yes/no), form (text/number/select/boolean fields), rating (stars)
+- Uses existing HitL approval-resolver pattern — agent loop pauses until user responds
+- Fully styled cards with hover states, selection feedback
+
+**Agent Loop Registry:**
+- Global singleton tracks running agent loops across tab switches
+- Tab notification badges (pulsing dot) when background agent completes
+- Acknowledged automatically when user switches to the tab
+
+**Bidirectional Artifact Interaction:**
+- Change accumulator tracks user edits to interactive artifacts (Table, SAP_Order, Form, Invoice)
+- Before next user message, accumulated changes prepended as compact summaries
+- Agent sees what changed without full payload bloat
+- ArtifactViewTab now uses SemanticRenderer (was raw JSON dump)
+
+**Bug Fixes:**
+- Streaming markdown: deferred `renderMarkdown()` to post-streaming. Plain text during stream, full markdown after. No more "message thinking went crazy" layout thrashing.
+- Config entity counts: parallel fetches with per-entity state updates. Each count appears independently as data loads.
+
+### How to Test
+1. Open chat → toolbar appears above textarea → click brain icon to cycle reasoning effort
+2. Toggle web search → globe icon highlights → send message → agent uses web search
+3. Ask agent to call `ask_user` tool → interactive card appears inline → respond → agent continues
+4. Start a chat → agent begins tool calls → switch to another tab → pulsing dot appears when done
+5. Open an artifact (SAP Order) → edit fields → send next message → agent sees "[Artifact Update]" prefix
+6. Send a message that produces markdown → streams as plain text → renders with markdown after done
+
+### Questions for User
+- Interactive cards: choice/confirm/form/rating sufficient? Or need more card types?
+- File upload: currently reads text files and appends to message. Want full binary upload via Doc Intelligence?
+- Agent loop registry: want to show a "running" indicator on tabs while agent is active?
+
+---
+
 ## v0.11.0 — Wire It Together (2026-03-26)
 
 ### What Was Done

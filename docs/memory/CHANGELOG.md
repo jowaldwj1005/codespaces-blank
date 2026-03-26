@@ -1,5 +1,33 @@
 # Changelog - Playbook Agent
 
+## v0.12.0 (2026-03-26)
+### UX Polish, Chat Persistence & Interactive Cards
+- **Chat Input Toolbar**: Added toolbar with reasoning effort cycle (off/low/med/high), web search toggle, and file upload button. Per-message options override agent config.
+- **Interactive Cards (ask_user tool)**: New builtin tool for structured user input — choice (single/multi), confirm, form, and rating cards inline in chat. Uses existing HitL approval-resolver pattern.
+- **Agent Loop Registry**: Global singleton (`agentLoopRegistry.ts`) tracks running agent loops by threadId. Enables chat persistence across tab switches and background completion notifications.
+- **Tab Notification Badges**: When an agent completes on a background tab, a pulsing dot appears on the tab. Cleared on tab switch.
+- **Bidirectional Artifact Interaction**: Change accumulator pattern — user edits to interactive artifacts (Table, SAP_Order, Form, Invoice) are tracked and prepended as compact summaries before the next user message.
+- **Streaming Markdown Fix**: `renderMarkdown()` now deferred to post-streaming completion. During streaming, plain text with `pre-wrap` styling. No more layout thrashing.
+- **Config Entity Counts Fix**: Changed from sequential batch update to `Promise.all` with per-entity functional state updates. Each count appears independently.
+- **Artifact View**: ArtifactViewTab now uses SemanticRenderer (was raw `<pre>` dump).
+
+### New Files
+- `src/services/agentLoopRegistry.ts` — Global agent loop tracker singleton
+- `src/services/artifactChangeAccumulator.ts` — Tracks artifact edits between messages
+- `src/components/chat/InteractiveCard.tsx` — Inline interactive card renderer (choice, confirm, form, rating)
+
+### Updated
+- `ChatInputBar.tsx` — Toolbar row + ChatMessageOptions type
+- `ChatWorkspace.tsx` — Passes message options through to sendMessage
+- `useAgentChat.ts` — Registry integration, per-message options, change accumulator drain
+- `WorkspaceTabs.tsx` — Registry subscription for tab badges, SemanticRenderer for artifacts
+- `useWorkspaceTabs.ts` — updateTab used for notification badges
+- `MessageList.tsx` — InteractiveCard rendering for ask_user tool calls
+- `MessageBubble.tsx` — Streaming fix (plain text during stream, markdown after)
+- `builtinTools.ts` — ask_user handler + tool definition
+- `App.css` — Toolbar, interactive card, notification badge, streaming text styles
+- `AppHeader.tsx` — Version bumped to 0.12.0
+
 ## v0.11.0 (2026-03-26)
 ### Wired — Feature Connections
 - **Inline Visualizations**: `create_visual` tool now renders charts directly in chat via `VisualizationCard` (bar, line, pie, area, scatter, radar, treemap, table)

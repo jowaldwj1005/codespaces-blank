@@ -1,7 +1,7 @@
 import { useState } from 'react';
 
-export const APP_VERSION = '0.11.0';
-const VERSION_SUMMARY = 'Activity sidebar, AI-assisted config, wiring & bug fixes.';
+export const APP_VERSION = '0.12.0';
+const VERSION_SUMMARY = 'Chat toolbar, interactive cards, agent loop registry, bidirectional artifacts.';
 
 export function AppHeader() {
   const [showTooltip, setShowTooltip] = useState(false);

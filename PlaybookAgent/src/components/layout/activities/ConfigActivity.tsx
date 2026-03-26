@@ -37,36 +37,45 @@ export function ConfigActivity({ tabs }: ConfigActivityProps) {
   const [configPrompt, setConfigPrompt] = useState('');
   const loadedRef = useRef(false);
 
-  // Load summary counts for all config entities
+  // Load summary counts for all config entities — parallel, per-entity state updates
   const loadEntities = useCallback(async () => {
-    const result: Record<string, EntitySummary> = {};
-
+    // Set all to loading
+    const initial: Record<string, EntitySummary> = {};
     for (const key of CONFIG_ENTITIES) {
-      result[key] = { key, records: [], loading: true };
+      initial[key] = { key, records: [], loading: true };
     }
-    setEntities({ ...result });
+    setEntities(initial);
 
-    for (const key of CONFIG_ENTITIES) {
+    // Fetch all in parallel, update each independently
+    await Promise.all(CONFIG_ENTITIES.map(async (key) => {
       const entity = ENTITY_REGISTRY[key];
-      if (!entity) continue;
+      if (!entity) {
+        setEntities(prev => ({ ...prev, [key]: { key, records: [], loading: false } }));
+        return;
+      }
       try {
         const service = getTableService(entity.pluralApiName);
-        if (!service) continue;
+        if (!service) {
+          setEntities(prev => ({ ...prev, [key]: { key, records: [], loading: false } }));
+          return;
+        }
         const res = await service.getAll({ top: 100 } as IGetAllOptions);
         const data = (res.data ?? []) as Record<string, unknown>[];
-        result[key] = {
-          key,
-          records: data.map(r => ({
-            id: r[entity.primaryKey] as string,
-            name: (r[entity.nameField] ?? 'Untitled') as string,
-          })),
-          loading: false,
-        };
+        setEntities(prev => ({
+          ...prev,
+          [key]: {
+            key,
+            records: data.map(r => ({
+              id: r[entity.primaryKey] as string,
+              name: (r[entity.nameField] ?? 'Untitled') as string,
+            })),
+            loading: false,
+          },
+        }));
       } catch {
-        result[key] = { key, records: [], loading: false };
+        setEntities(prev => ({ ...prev, [key]: { key, records: [], loading: false } }));
       }
-    }
-    setEntities({ ...result });
+    }));
   }, []);
 
   useEffect(() => {

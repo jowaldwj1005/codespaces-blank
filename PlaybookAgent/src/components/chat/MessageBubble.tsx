@@ -177,16 +177,16 @@ export function MessageBubble({ message }: { message: ChatMessage }) {
     }
   }, [done, msgId, isAssistant]);
 
-  const textToRender = isAssistant ? displayed : (message.content ?? '');
 
-  // Parse markdown for assistant messages
+  // Parse markdown only AFTER streaming completes — partial markdown creates broken HTML
+  const isStreaming = isNew && !done;
   const renderedHtml = useMemo(() => {
-    if (!isAssistant) return null;
-    return renderMarkdown(textToRender);
-  }, [textToRender, isAssistant]);
+    if (!isAssistant || isStreaming) return null;
+    return renderMarkdown(message.content ?? '');
+  }, [message.content, isAssistant, isStreaming]);
 
   return (
-    <div className={`message message--${message.role} ${isNew && !done ? 'message--streaming' : ''}`}>
+    <div className={`message message--${message.role} ${isStreaming ? 'message--streaming' : ''}`}>
       <div className={`message__avatar message__avatar--${message.role}`}>
         {isUser ? 'U' : 'A'}
       </div>
@@ -196,7 +196,12 @@ export function MessageBubble({ message }: { message: ChatMessage }) {
           <ReasoningBubble content={message.reasoning_content} />
         )}
 
-        {isAssistant && renderedHtml ? (
+        {/* During streaming: plain text. After done: full markdown. */}
+        {isAssistant && isStreaming ? (
+          <div className="message__content message__content--streaming">
+            {displayed}
+          </div>
+        ) : isAssistant && renderedHtml ? (
           <div
             className="message__content message__content--markdown"
             dangerouslySetInnerHTML={{ __html: renderedHtml }}

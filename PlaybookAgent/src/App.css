@@ -552,6 +552,259 @@
   cursor: not-allowed;
 }
 
+/* ─── Chat Input Toolbar ─────────────────────────────────────────────────── */
+
+.chat-input-toolbar {
+  display: flex;
+  gap: 4px;
+  margin-bottom: 6px;
+}
+
+.chat-toolbar-btn {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  padding: 4px 8px;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  background: var(--color-surface);
+  color: var(--color-text-secondary);
+  font-size: 12px;
+  cursor: pointer;
+  transition: all var(--transition-fast);
+}
+
+.chat-toolbar-btn:hover:not(:disabled) {
+  background: var(--color-surface-hover);
+  border-color: var(--color-primary-light);
+  color: var(--color-primary);
+}
+
+.chat-toolbar-btn--active {
+  background: var(--color-primary-bg);
+  border-color: var(--color-primary);
+  color: var(--color-primary);
+}
+
+.chat-toolbar-btn:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+.chat-toolbar-btn__icon {
+  font-size: 14px;
+  line-height: 1;
+}
+
+.chat-toolbar-btn__label {
+  font-size: 11px;
+  font-weight: 600;
+  text-transform: uppercase;
+}
+
+/* ─── Interactive Cards ──────────────────────────────────────────────────── */
+
+.interactive-card {
+  margin: 8px 0 8px 44px;
+  padding: 16px;
+  background: var(--color-surface);
+  border: 1px solid var(--color-primary-light);
+  border-radius: var(--radius-lg);
+  box-shadow: 0 2px 8px rgba(99, 102, 241, 0.08);
+}
+
+.interactive-card--responded {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 12px;
+  opacity: 0.6;
+  border-color: var(--color-border);
+  box-shadow: none;
+}
+
+.interactive-card__check { font-size: 16px; }
+.interactive-card__done-label { font-size: 12px; color: var(--color-text-secondary); }
+
+.interactive-card__prompt {
+  font-size: 14px;
+  font-weight: 500;
+  color: var(--color-text);
+  margin-bottom: 12px;
+  line-height: 1.5;
+}
+
+.interactive-card__options {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.interactive-card__option {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  padding: 10px 14px;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  background: white;
+  cursor: pointer;
+  transition: all var(--transition-fast);
+  text-align: left;
+}
+
+.interactive-card__option:hover {
+  border-color: var(--color-primary);
+  background: var(--color-primary-bg);
+}
+
+.interactive-card__option--selected {
+  border-color: var(--color-primary);
+  background: var(--color-primary-bg);
+  box-shadow: 0 0 0 1px var(--color-primary);
+}
+
+.interactive-card__option-label {
+  font-size: 14px;
+  font-weight: 500;
+  color: var(--color-text);
+}
+
+.interactive-card__option-desc {
+  font-size: 12px;
+  color: var(--color-text-secondary);
+  margin-top: 2px;
+}
+
+.interactive-card__actions {
+  display: flex;
+  gap: 8px;
+}
+
+.interactive-card__btn {
+  padding: 8px 20px;
+  border-radius: var(--radius-md);
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all var(--transition-fast);
+  border: 1px solid;
+}
+
+.interactive-card__btn--confirm {
+  background: var(--color-primary);
+  color: white;
+  border-color: var(--color-primary);
+}
+
+.interactive-card__btn--confirm:hover {
+  background: var(--color-primary-dark);
+}
+
+.interactive-card__btn--cancel {
+  background: white;
+  color: var(--color-text-secondary);
+  border-color: var(--color-border);
+}
+
+.interactive-card__btn--cancel:hover {
+  background: var(--color-surface-hover);
+}
+
+.interactive-card__submit {
+  margin-top: 12px;
+  padding: 8px 20px;
+  background: var(--color-primary);
+  color: white;
+  border: none;
+  border-radius: var(--radius-md);
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all var(--transition-fast);
+}
+
+.interactive-card__submit:hover:not(:disabled) {
+  background: var(--color-primary-dark);
+}
+
+.interactive-card__submit:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+
+.interactive-card__fields {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.interactive-card__field {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.interactive-card__field--checkbox {
+  flex-direction: row;
+  align-items: center;
+  gap: 8px;
+}
+
+.interactive-card__field-label {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--color-text-secondary);
+}
+
+.interactive-card__field-input {
+  padding: 8px 12px;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-sm);
+  font-size: 14px;
+  transition: border-color var(--transition-fast);
+}
+
+.interactive-card__field-input:focus {
+  border-color: var(--color-primary);
+  outline: none;
+  box-shadow: 0 0 0 2px var(--color-primary-bg);
+}
+
+.interactive-card__stars {
+  display: flex;
+  gap: 4px;
+}
+
+.interactive-card__star {
+  font-size: 24px;
+  background: none;
+  border: none;
+  cursor: pointer;
+  filter: grayscale(1);
+  transition: filter 0.15s;
+}
+
+.interactive-card__star--active {
+  filter: grayscale(0);
+}
+
+/* ─── Tab Notification Badge ─────────────────────────────────────────────── */
+
+.workspace-tab__unsaved {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--color-primary);
+  flex-shrink: 0;
+  animation: pulse-badge 1.5s ease-in-out infinite;
+}
+
+@keyframes pulse-badge {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.4; }
+}
+
 /* ─── Message Bubble ─────────────────────────────────────────────────────── */
 
 .message {
@@ -1414,6 +1667,18 @@
 }
 
 /* ─── Streaming Animation ────────────────────────────────────────────────── */
+
+.message__content--streaming {
+  white-space: pre-wrap;
+  word-break: break-word;
+  font-size: 14px;
+  line-height: 1.65;
+  color: var(--color-text);
+  background: var(--color-surface);
+  border: 1px solid var(--color-primary-light);
+  border-bottom-left-radius: var(--radius-sm);
+  box-shadow: 0 0 0 1px var(--color-primary-bg);
+}
 
 .message--streaming .message__content--markdown {
   border-color: var(--color-primary-light);
