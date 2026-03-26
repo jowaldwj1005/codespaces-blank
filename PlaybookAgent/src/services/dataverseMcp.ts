@@ -378,7 +378,7 @@ const STATIC_SCHEMAS: Record<string, McpColumnInfo[]> = {
   jw_agent: [
     { logicalName: 'jw_name', type: 'String', description: 'Display name', required: true },
     { logicalName: 'jw_systemprompt', type: 'Memo', description: 'Base system prompt (instructions for the LLM)' },
-    { logicalName: 'jw_modelconfig', type: 'Memo', description: 'JSON: LLM parameters (temperature, max_completion_tokens, tool_choice)' },
+    { logicalName: 'jw_modelconfig', type: 'Memo', description: 'JSON: LLM parameters (model, max_output_tokens, tool_choice, reasoning_effort, web_search)' },
     { logicalName: 'jw_allowmcp', type: 'Boolean', description: 'Enable MCP discovery tools (search/schema/query)', choices: { 0: 'No', 1: 'Yes' } },
     { logicalName: 'statecode', type: 'Choice', description: 'Record state', choices: { 0: 'Active', 1: 'Inactive' } },
   ],

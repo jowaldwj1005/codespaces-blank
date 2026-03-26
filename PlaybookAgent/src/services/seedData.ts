@@ -442,10 +442,10 @@ export function getGeneralAssistantSeedData(): SeedRecord[] {
         jw_allowmcp: true,
         jw_modelconfig: JSON.stringify({
           model: 'gpt-5.2',
-          temperature: 0.7,
           max_output_tokens: 4096,
           tool_choice: 'auto',
           web_search: true,
+          reasoning_effort: 'medium',
         }),
       },
     },

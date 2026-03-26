@@ -36,7 +36,7 @@ export function AgentConfig({ agentId, onTestInChat }: AgentConfigProps) {
   const [formData, setFormData] = useState({
     jw_name: '',
     jw_systemprompt: '',
-    jw_modelconfig: '{\n  "temperature": 0.7,\n  "max_completion_tokens": 2000,\n  "tool_choice": "auto"\n}',
+    jw_modelconfig: '{\n  "model": "gpt-5.2",\n  "max_output_tokens": 4096,\n  "tool_choice": "auto",\n  "web_search": true,\n  "reasoning_effort": "medium"\n}',
     jw_allowmcp: false,
   });
   const [tools, setTools] = useState<ToolBinding[]>([]);
@@ -212,7 +212,7 @@ export function AgentConfig({ agentId, onTestInChat }: AgentConfigProps) {
 
               <div className="form-field">
                 <label className="form-field__label">Model Configuration</label>
-                <span className="form-field__hint">temperature, max_completion_tokens, tool_choice</span>
+                <span className="form-field__hint">model, max_output_tokens, tool_choice, reasoning_effort, web_search</span>
                 <div className="form-field__monaco-wrap">
                   <Editor
                     height="140px"

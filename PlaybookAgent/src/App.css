@@ -3792,15 +3792,17 @@
 }
 
 .workspace-tab__close {
-  font-size: 14px;
-  line-height: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
   opacity: 0;
-  transition: opacity 0.1s;
+  transition: opacity 0.1s, background 0.1s;
   cursor: pointer;
-  padding: 0 2px;
+  padding: 2px;
+  border-radius: 3px;
 }
 .workspace-tab:hover .workspace-tab__close { opacity: 0.6; }
-.workspace-tab__close:hover { opacity: 1 !important; }
+.workspace-tab__close:hover { opacity: 1 !important; background: rgba(255, 255, 255, 0.1); }
 
 .workspace-tabs__content {
   flex: 1;

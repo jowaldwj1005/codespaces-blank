@@ -25,6 +25,9 @@ export function AdminWorkspace() {
   const [formMode, setFormMode] = useState<FormMode>('none');
   const [saving, setSaving] = useState(false);
   const loadingRef = useRef(false);
+  // Track which entities have had their count set by the active-entity loader
+  // to avoid bulk-load overwriting a fresher count
+  const freshCountsRef = useRef<Set<string>>(new Set());
 
   const entity = ENTITY_REGISTRY[activeEntity];
 
@@ -39,6 +42,8 @@ export function AdminWorkspace() {
       const result = await service.getAll({ top: 250 } as IGetAllOptions);
       const data = (result.data ?? []) as Record<string, unknown>[];
       setRecords(data);
+      // Mark this entity as having a fresh count from active load
+      freshCountsRef.current.add(activeEntity);
       setEntityCounts(prev => ({ ...prev, [activeEntity]: data.length }));
     } catch (err) {
       toast.error(`Failed to load ${entity.displayNamePlural}: ${err instanceof Error ? err.message : String(err)}`);
@@ -47,7 +52,7 @@ export function AdminWorkspace() {
       setLoading(false);
       loadingRef.current = false;
     }
-  }, [entity]);
+  }, [entity, activeEntity]);
 
   useEffect(() => {
     loadRecords();
@@ -59,6 +64,8 @@ export function AdminWorkspace() {
   // Load counts for all entities on mount
   useEffect(() => {
     ADMIN_ENTITIES.forEach(async (entityName) => {
+      // Skip if this entity already has a fresh count from active-entity load
+      if (freshCountsRef.current.has(entityName)) return;
       const ent = ENTITY_REGISTRY[entityName];
       if (!ent) return;
       try {
@@ -66,7 +73,10 @@ export function AdminWorkspace() {
         if (!service) return;
         const result = await service.getAll({ top: 250 } as IGetAllOptions);
         const count = (result.data ?? []).length;
-        setEntityCounts(prev => ({ ...prev, [entityName]: count }));
+        // Only update if the active-entity loader hasn't set a fresher count
+        if (!freshCountsRef.current.has(entityName)) {
+          setEntityCounts(prev => ({ ...prev, [entityName]: count }));
+        }
       } catch {
         // Silent — counts are non-critical
       }

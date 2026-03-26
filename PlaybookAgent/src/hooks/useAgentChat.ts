@@ -296,6 +296,7 @@ export function useAgentChat(threadId: string | null) {
           const tableCount = Array.isArray(tables) ? tables.length : undefined;
 
           // Save full analysis as artifact for later retrieval
+          // Artifact payload includes structured table data for tool consumption
           let artifactId: string | undefined;
           try {
             const { createArtifact } = await import('../services/dataverse');
@@ -309,6 +310,7 @@ export function useAgentChat(threadId: string | null) {
                 content: fullContent,
                 pageCount,
                 tableCount,
+                tables: Array.isArray(tables) ? tables : undefined,
               }),
               referenceKey: documentId,
             });
@@ -317,22 +319,26 @@ export function useAgentChat(threadId: string | null) {
             // Non-critical
           }
 
-          // Build meta-summary for agent peek (NOT the full content)
-          const PEEK_CHARS = 500;
-          const peek = fullContent.length > PEEK_CHARS
-            ? fullContent.slice(0, PEEK_CHARS) + '...'
-            : fullContent;
-          const metaParts = [
-            `[Document Uploaded: ${fileName}]`,
-            `Type: ${mimeType}`,
-            pageCount ? `Pages: ${pageCount}` : null,
-            tableCount ? `Tables: ${tableCount}` : null,
-            `Characters: ${fullContent.length}`,
-            artifactId ? `Artifact ID: ${artifactId}` : null,
-            documentId ? `Document ID: ${documentId}` : null,
-            `\nPreview:\n${peek}`,
+          // Build code-interpreter-style meta-summary for agent
+          // Agent DECIDES: read full doc via get_artifact, do more analysis, or pass artifact ID to tools
+          const PREVIEW_CHARS = 800;
+          const preview = fullContent.slice(0, PREVIEW_CHARS);
+          const metaSummary = [
+            `[Document Analyzed: ${fileName}]`,
+            `MIME: ${mimeType} | Pages: ${pageCount ?? '?'} | Tables: ${tableCount ?? '?'} | Characters: ${fullContent.length}`,
+            artifactId ? `Artifact ID: ${artifactId} (use get_artifact to retrieve full content)` : null,
+            documentId ? `Document Record: ${documentId}` : null,
+            '',
+            'Content Preview:',
+            preview,
+            fullContent.length > PREVIEW_CHARS ? `\n... (${fullContent.length - PREVIEW_CHARS} more characters — use get_artifact for full text)` : '',
+            '',
+            'Available actions:',
+            '- get_artifact(artifactId) → full document text with structured tables',
+            '- Pass artifact ID to other tools for structured processing',
+            '- Ask user for specific extraction needs',
           ].filter(Boolean);
-          attachmentContext = `\n\n${metaParts.join('\n')}`;
+          attachmentContext = `\n\n${metaSummary.join('\n')}`;
         } else if (analysisResult.status === 'failed') {
           attachmentContext = `\n\n[Document Analysis Failed: ${fileName}]`;
         }

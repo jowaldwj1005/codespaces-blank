@@ -55,7 +55,7 @@ export const ENTITY_REGISTRY: Record<string, EntityDefinition> = {
     fields: [
       { logicalName: 'jw_name', displayName: 'Name', type: 'string', required: true, description: 'Agent display name', placeholder: 'e.g. SAP Invoice Agent' },
       { logicalName: 'jw_systemprompt', displayName: 'System Prompt', type: 'memo', description: 'Base instructions for the LLM', monacoLanguage: 'markdown', placeholder: 'You are a helpful agent that...' },
-      { logicalName: 'jw_modelconfig', displayName: 'Model Config', type: 'json', description: 'JSON: { temperature, max_completion_tokens, tool_choice }', monacoLanguage: 'json' },
+      { logicalName: 'jw_modelconfig', displayName: 'Model Config', type: 'json', description: 'JSON: { model, max_output_tokens, tool_choice, reasoning_effort, web_search }', monacoLanguage: 'json' },
       { logicalName: 'jw_allowmcp', displayName: 'Allow MCP', type: 'boolean', description: 'Auto-append Dataverse MCP tools (search, schema, query)', choices: { 0: 'No', 1: 'Yes' } },
     ],
     listColumns: ['jw_name', 'jw_allowmcp', 'createdon'],
