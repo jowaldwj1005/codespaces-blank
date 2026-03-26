@@ -83,6 +83,15 @@ export function createToolExecutor(config: ToolExecutorConfig) {
     // Route to handler based on endpoint type
     let response: unknown;
     let error: string | undefined;
+    const evtId = generateEventId();
+    emitDebugEvent({
+      id: evtId,
+      timestamp: Date.now(),
+      operation: `ToolExecutor.${tool.name} [${tool.endpointType}]`,
+      source: tool.endpointType === 'InternalReact' ? 'agent-loop' : 'connector',
+      status: 'pending',
+      input: args,
+    });
     try {
       switch (tool.endpointType) {
         case 'InternalReact':
@@ -101,6 +110,18 @@ export function createToolExecutor(config: ToolExecutorConfig) {
       error = err instanceof Error ? err.message : String(err);
       response = { error };
     }
+
+    // Emit debug completion event
+    emitDebugEvent({
+      id: evtId,
+      timestamp: Date.now(),
+      operation: `ToolExecutor.${tool.name} [${tool.endpointType}]`,
+      source: tool.endpointType === 'InternalReact' ? 'agent-loop' : 'connector',
+      status: error ? 'error' : 'success',
+      input: args,
+      normalizedResult: error ? undefined : response,
+      error,
+    });
 
     // Emit visual_created event for create_visual tool
     if (tool.name === 'create_visual' && response && typeof response === 'object' && 'visualId' in (response as Record<string, unknown>)) {
