@@ -4,7 +4,7 @@
  */
 
 import { useState } from 'react';
-import { useMcp } from '../hooks/useMcp';
+import { useMcp } from '../../hooks/useMcp';
 
 type McpTool = 'search' | 'schema' | 'query';
 

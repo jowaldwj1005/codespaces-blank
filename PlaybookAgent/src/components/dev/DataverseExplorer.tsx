@@ -5,10 +5,10 @@
  */
 
 import React, { useState, useEffect, useCallback, useRef } from 'react';
-import { getAllEntities, type EntityDefinition } from './admin/EntityRegistry';
-import { getTableService } from '../services/dataverse';
-import { systemusers, teams, businessunits } from '../services/dataverse';
-import type { IGetAllOptions } from '../services/sdk';
+import { getAllEntities, type EntityDefinition } from '../admin/EntityRegistry';
+import { getTableService } from '../../services/dataverse';
+import { systemusers, teams, businessunits } from '../../services/dataverse';
+import type { IGetAllOptions } from '../../services/sdk';
 
 // System table definitions (not in EntityRegistry)
 const SYSTEM_TABLES: EntityDefinition[] = [

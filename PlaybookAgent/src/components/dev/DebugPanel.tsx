@@ -4,8 +4,8 @@
  */
 
 import { useState, useMemo } from 'react';
-import { useDebugLog } from '../hooks/useDebugLog';
-import type { DebugEvent } from '../services/debugEventBus';
+import { useDebugLog } from '../../hooks/useDebugLog';
+import type { DebugEvent } from '../../services/debugEventBus';
 
 type SourceFilter = 'all' | 'dataverse' | 'connector' | 'agent-loop';
 type StatusFilter = 'all' | 'success' | 'error' | 'pending';

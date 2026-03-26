@@ -6,9 +6,9 @@
  */
 
 import { useState } from 'react';
-import { OPENAI_DEFAULTS } from '../services/connectors';
-import { azureOpenAI, azureDocIntelligence, sapOData } from '../services/connectors';
-import type { ResponsesApiRequest, ResponsesApiResponse, SapODataRequest, AnalyzeDocumentRequest } from '../services/connectors';
+import { OPENAI_DEFAULTS } from '../../services/connectors';
+import { azureOpenAI, azureDocIntelligence, sapOData } from '../../services/connectors';
+import type { ResponsesApiRequest, ResponsesApiResponse, SapODataRequest, AnalyzeDocumentRequest } from '../../services/connectors';
 
 interface DocIntResult {
   status?: string;
