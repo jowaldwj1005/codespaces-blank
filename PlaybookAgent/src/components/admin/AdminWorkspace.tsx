@@ -18,6 +18,7 @@ type FormMode = 'none' | 'view' | 'edit' | 'create';
 export function AdminWorkspace() {
   const [activeEntity, setActiveEntity] = useState<string>(ADMIN_ENTITIES[0]);
   const [records, setRecords] = useState<Record<string, unknown>[]>([]);
+  const [entityCounts, setEntityCounts] = useState<Record<string, number>>({});
   const [loading, setLoading] = useState(false);
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [selectedRecord, setSelectedRecord] = useState<Record<string, unknown> | null>(null);
@@ -38,6 +39,7 @@ export function AdminWorkspace() {
       const result = await service.getAll({ top: 250 } as IGetAllOptions);
       const data = (result.data ?? []) as Record<string, unknown>[];
       setRecords(data);
+      setEntityCounts(prev => ({ ...prev, [activeEntity]: data.length }));
     } catch (err) {
       toast.error(`Failed to load ${entity.displayNamePlural}: ${err instanceof Error ? err.message : String(err)}`);
       setRecords([]);
@@ -53,6 +55,23 @@ export function AdminWorkspace() {
     setSelectedRecord(null);
     setFormMode('none');
   }, [activeEntity, loadRecords]);
+
+  // Load counts for all entities on mount
+  useEffect(() => {
+    ADMIN_ENTITIES.forEach(async (entityName) => {
+      const ent = ENTITY_REGISTRY[entityName];
+      if (!ent) return;
+      try {
+        const service = getTableService(ent.pluralApiName);
+        if (!service) return;
+        const result = await service.getAll({ top: 250 } as IGetAllOptions);
+        const count = (result.data ?? []).length;
+        setEntityCounts(prev => ({ ...prev, [entityName]: count }));
+      } catch {
+        // Silent — counts are non-critical
+      }
+    });
+  }, []);
 
   // Load single record when selected
   useEffect(() => {
@@ -203,7 +222,7 @@ export function AdminWorkspace() {
             >
               <span className="admin-tab__icon">{ent.icon}</span>
               <span className="admin-tab__label">{ent.displayNamePlural}</span>
-              <span className="admin-tab__count">{records.length}</span>
+              <span className="admin-tab__count">{entityCounts[entityName] ?? '-'}</span>
             </motion.button>
           );
         })}

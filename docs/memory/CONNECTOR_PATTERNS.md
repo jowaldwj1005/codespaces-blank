@@ -37,12 +37,12 @@ The Responses API is a **completely different format** from Chat Completions:
     { type: 'message', role: 'user', content: [{ type: 'input_text', text: '...' }] }
   ],
   tools: [
-    { type: 'web_search', search_context_size: 'medium' },
+    { type: 'web_search' },
     { type: 'function', name: '...', description: '...', parameters: {...} }
   ],
   reasoning: { effort: 'medium', summary: 'auto' },
   max_output_tokens: 4096,
-  temperature: 0.7,
+  // NOTE: Do NOT send temperature — Responses API defaults to 1 internally
   previous_response_id: '...',  // multi-turn continuation
   store: true,
 }
@@ -62,7 +62,10 @@ Send tool results back as `function_call_output` input items:
 ```
 
 ### Web Search
-Add `{ type: 'web_search', search_context_size: 'medium' }` to tools array. Toggle via `ModelConfig.web_search`.
+Add `{ type: 'web_search' }` to tools array. Toggle via `ModelConfig.web_search`. Do NOT include `search_context_size` — the API defaults to `medium`.
+
+### CRITICAL: Do NOT send temperature
+The Responses API does NOT accept a `temperature` parameter in the request. The API defaults to `temperature: 1` internally. Sending temperature will cause errors.
 
 ### Central Defaults
 Managed in `OPENAI_DEFAULTS` in `connectors.ts`:

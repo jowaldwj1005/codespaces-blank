@@ -38,6 +38,7 @@ export const BUILTIN_TOOLS: Record<string, ToolHandler> = {
   complete_instruction: handleCompleteInstruction,
   // Artifact tools
   save_artifact: handleSaveArtifact,
+  get_artifact: handleGetArtifact,
   // Interactive tools
   ask_user: handleAskUser,
 };
@@ -774,6 +775,39 @@ async function handleSaveArtifact(args: Record<string, unknown>): Promise<unknow
   }
 }
 
+// ─── get_artifact handler ────────────────────────────────────────────────────
+// Retrieve full artifact content by ID. Useful when agent received only a preview
+// (e.g. from document upload) and needs the full content for analysis.
+
+async function handleGetArtifact(args: Record<string, unknown>): Promise<unknown> {
+  const artifactId = args.artifactId as string;
+  if (!artifactId) return { error: 'Missing required field: artifactId' };
+
+  try {
+    const result = await dv.jwArtifacts.get(artifactId);
+    const record = result.data as unknown as Record<string, unknown>;
+    if (!record) return { error: 'Artifact not found' };
+
+    const payload = record.jw_payload as string | undefined;
+    let parsed: unknown;
+    try {
+      parsed = payload ? JSON.parse(payload) : null;
+    } catch {
+      parsed = payload;
+    }
+
+    return {
+      id: record.jw_artifactid,
+      name: record.jw_name,
+      type: record.jw_type,
+      payload: parsed,
+      referenceKey: record.jw_referencekey,
+    };
+  } catch (err) {
+    return { error: err instanceof Error ? err.message : String(err) };
+  }
+}
+
 // ─── ask_user handler ────────────────────────────────────────────────────────
 // The ask_user tool returns the card specification as its result.
 // The actual user interaction is handled by the UI layer (InteractiveCard component).
@@ -1089,6 +1123,20 @@ export const BUILTIN_TOOL_DEFINITIONS: ToolDefinition[] = [
         caseId: { type: 'string', description: 'Optional: link to a jw_case' },
         parentArtifactId: { type: 'string', description: 'Optional: parent artifact (for versioning)' },
         referenceKey: { type: 'string', description: 'Optional: external reference key' },
+      },
+    },
+    requiresApproval: false,
+    endpointType: 'InternalReact',
+  },
+  {
+    id: 'builtin_get_artifact',
+    name: 'get_artifact',
+    description: 'Retrieve the full content of an artifact by ID. Use when you received a preview (e.g. from a document upload) and need the complete content for analysis. Returns the artifact payload, name, type, and reference key.',
+    inputSchema: {
+      type: 'object',
+      required: ['artifactId'],
+      properties: {
+        artifactId: { type: 'string', description: 'The artifact ID to retrieve' },
       },
     },
     requiresApproval: false,

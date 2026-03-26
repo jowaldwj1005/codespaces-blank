@@ -83,7 +83,6 @@ export const OPENAI_DEFAULTS = {
   apiVersion: '2025-04-01-preview',
   model: 'gpt-5.2',
   max_output_tokens: 4096,
-  temperature: 0.7,
   /** Reasoning effort — undefined means no reasoning (GPT models). Set per-agent for o-series. */
   reasoningEffort: undefined as ReasoningEffort | undefined,
   /** Reasoning summary — 'auto' | 'detailed' | 'none'. Only used when reasoning is active. */
@@ -122,7 +121,7 @@ export interface ResponsesApiRequest {
     summary?: 'auto' | 'detailed' | 'none';
   };
   max_output_tokens?: number;
-  temperature?: number;
+  // NOTE: temperature removed — Responses API doesn't accept it
   store?: boolean;
   stream?: boolean;
   background?: boolean;
@@ -251,10 +250,9 @@ export const azureOpenAI = {
       body.max_output_tokens = request.max_output_tokens;
     }
 
-    // Temperature
-    if (request.temperature !== undefined) {
-      body.temperature = request.temperature;
-    }
+    // NOTE: Temperature is NOT sent for the Responses API.
+    // The API defaults to temperature=1 internally.
+    // Sending temperature can cause errors or unexpected behavior.
 
     // Multi-turn continuation
     if (request.previous_response_id) {

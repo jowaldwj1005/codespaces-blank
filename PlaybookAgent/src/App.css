@@ -602,6 +602,40 @@
   text-transform: uppercase;
 }
 
+.chat-toolbar-attachment {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 10px;
+  background: var(--color-primary-bg);
+  border: 1px solid var(--color-primary-light);
+  border-radius: var(--radius-md);
+  font-size: 12px;
+  color: var(--color-primary);
+}
+
+.chat-toolbar-attachment__name {
+  max-width: 200px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-weight: 500;
+}
+
+.chat-toolbar-attachment__remove {
+  background: none;
+  border: none;
+  color: var(--color-text-secondary);
+  cursor: pointer;
+  font-size: 14px;
+  line-height: 1;
+  padding: 0 2px;
+}
+
+.chat-toolbar-attachment__remove:hover {
+  color: var(--color-error);
+}
+
 /* ─── Interactive Cards ──────────────────────────────────────────────────── */
 
 .interactive-card {

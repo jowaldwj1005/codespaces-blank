@@ -42,7 +42,7 @@ export interface ToolDefinition {
 export interface ModelConfig {
   /** Model deployment name (e.g. 'gpt-5.2', 'o4-mini'). Passed in body for Responses API. */
   model?: string;
-  temperature?: number;
+  // NOTE: temperature removed — Responses API defaults to 1 internally, not configurable
   max_output_tokens?: number;
   /** @deprecated Use max_output_tokens instead (Responses API naming) */
   max_completion_tokens?: number;
@@ -190,7 +190,7 @@ export function toResponseTools(tools: ToolDefinition[], webSearch = false): Res
 
   // Add built-in web_search if enabled
   if (webSearch) {
-    result.push({ type: 'web_search', search_context_size: 'medium' });
+    result.push({ type: 'web_search' });
   }
 
   // Add function tools

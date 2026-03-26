@@ -80,7 +80,7 @@ export function WorkspaceTabs({ tabsManager, caseManager }: WorkspaceTabsProps) 
                 className="workspace-tab__close"
                 onClick={(e) => { e.stopPropagation(); closeTab(tab.id); }}
               >
-                \u00D7
+                {'\u00D7'}
               </span>
             )}
           </button>

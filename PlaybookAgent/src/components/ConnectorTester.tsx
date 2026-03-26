@@ -60,7 +60,6 @@ function OpenAIPanel() {
   const [instructions, setInstructions] = useState('You are a helpful assistant. Use Markdown formatting in your response.');
   const [model, setModel] = useState<string>(OPENAI_DEFAULTS.model);
   const [maxTokens, setMaxTokens] = useState<number>(OPENAI_DEFAULTS.max_output_tokens);
-  const [temperature, setTemperature] = useState<number>(OPENAI_DEFAULTS.temperature);
   const [webSearch, setWebSearch] = useState(false);
   const [reasoningEffort, setReasoningEffort] = useState<string>('');
   const [showToolDef, setShowToolDef] = useState(false);
@@ -84,7 +83,6 @@ function OpenAIPanel() {
         { type: 'message', role: 'user', content: [{ type: 'input_text', text: message }] },
       ],
       max_output_tokens: maxTokens,
-      temperature,
       store: true,
     };
 
@@ -142,10 +140,6 @@ function OpenAIPanel() {
           <label className="ct-label">
             Max Tokens
             <input className="ct-input ct-input--sm" type="number" value={maxTokens} onChange={e => setMaxTokens(Number(e.target.value))} min={1} max={16000} />
-          </label>
-          <label className="ct-label">
-            Temperature
-            <input className="ct-input ct-input--sm" type="number" value={temperature} onChange={e => setTemperature(Number(e.target.value))} min={0} max={2} step={0.1} />
           </label>
           <label className="ct-label">
             Reasoning

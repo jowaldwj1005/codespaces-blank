@@ -93,11 +93,19 @@ export async function runAgentLoop(config: AgentLoopConfig): Promise<ChatMessage
         max_output_tokens: agent.modelConfig.max_output_tokens
           ?? agent.modelConfig.max_completion_tokens
           ?? OPENAI_DEFAULTS.max_output_tokens,
-        temperature: agent.modelConfig.temperature,
+        // NOTE: temperature is NOT sent — Responses API defaults to 1 internally
         previous_response_id: previousResponseId,
         store: true,
       });
       response = result.normalized;
+
+      // Defensive: check that we got a valid response with output array
+      if (!response || !Array.isArray(response.output)) {
+        const rawStr = JSON.stringify(result.raw).slice(0, 500);
+        onEvent({ type: 'error', error: `Invalid response structure (no output array). Raw: ${rawStr}` });
+        onEvent({ type: 'status_change', status: 'error' });
+        break;
+      }
     } catch (err) {
       const errorMsg = err instanceof Error ? err.message : String(err);
       onEvent({ type: 'error', error: errorMsg });

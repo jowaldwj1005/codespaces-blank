@@ -20,7 +20,8 @@ import type {
 import { runAgentLoop } from '../services/agentLoop';
 import { createToolExecutor } from '../services/toolExecutor';
 import type { ToolExecutionRecord } from '../services/toolExecutor';
-import { jwAgents, getAgentWithTools, createMessage, getThreadMessages, createToolExecution } from '../services/dataverse';
+import { jwAgents, getAgentWithTools, createMessage, getThreadMessages, createToolExecution, jwDocuments } from '../services/dataverse';
+import { azureDocIntelligence } from '../services/connectors';
 import { BUILTIN_TOOLS, BUILTIN_TOOL_DEFINITIONS } from '../services/builtinTools';
 import { registerLoop, updateLoop, getLoop, acknowledgeLoop } from '../services/agentLoopRegistry';
 import { drainChangeSummary } from '../services/artifactChangeAccumulator';
@@ -260,13 +261,94 @@ export function useAgentChat(threadId: string | null) {
     const existingLoop = getLoop(threadId);
     if (existingLoop?.status === 'running') return;
 
+    // Process file attachment via Doc Intelligence if present
+    // Pattern: analyze doc → save as artifact → give agent a peek (summary + first N chars + artifact ID)
+    // Agent decides what to do: read full doc, code interpreter, or pass artifact ID to tools
+    let attachmentContext = '';
+    if (options?.attachment) {
+      const { fileName, mimeType, base64 } = options.attachment;
+      try {
+        setState(prev => ({ ...prev, status: 'tool_calling' }));
+
+        // Create jw_document record in Dataverse
+        const docRecord: Record<string, unknown> = {
+          jw_name: fileName,
+          jw_mimetype: mimeType,
+        };
+        let documentId: string | undefined;
+        try {
+          const docResult = await jwDocuments.create(docRecord as Parameters<typeof jwDocuments.create>[0]);
+          documentId = (docResult.data as unknown as Record<string, unknown>)?.jw_documentid as string;
+        } catch {
+          // Non-critical — continue even if document record creation fails
+        }
+
+        // Analyze with Doc Intelligence
+        const analysisResult = await azureDocIntelligence.analyzeAndWait({
+          base64Source: base64,
+        });
+
+        if (analysisResult.content) {
+          const fullContent = analysisResult.content;
+          const pages = (analysisResult.analyzeResult as Record<string, unknown>)?.pages;
+          const pageCount = Array.isArray(pages) ? pages.length : undefined;
+          const tables = (analysisResult.analyzeResult as Record<string, unknown>)?.tables;
+          const tableCount = Array.isArray(tables) ? tables.length : undefined;
+
+          // Save full analysis as artifact for later retrieval
+          let artifactId: string | undefined;
+          try {
+            const { createArtifact } = await import('../services/dataverse');
+            const artResult = await createArtifact({
+              type: 'Document',
+              name: fileName,
+              payload: JSON.stringify({
+                fileName,
+                mimeType,
+                documentId,
+                content: fullContent,
+                pageCount,
+                tableCount,
+              }),
+              referenceKey: documentId,
+            });
+            artifactId = (artResult.data as unknown as Record<string, unknown>)?.jw_artifactid as string;
+          } catch {
+            // Non-critical
+          }
+
+          // Build meta-summary for agent peek (NOT the full content)
+          const PEEK_CHARS = 500;
+          const peek = fullContent.length > PEEK_CHARS
+            ? fullContent.slice(0, PEEK_CHARS) + '...'
+            : fullContent;
+          const metaParts = [
+            `[Document Uploaded: ${fileName}]`,
+            `Type: ${mimeType}`,
+            pageCount ? `Pages: ${pageCount}` : null,
+            tableCount ? `Tables: ${tableCount}` : null,
+            `Characters: ${fullContent.length}`,
+            artifactId ? `Artifact ID: ${artifactId}` : null,
+            documentId ? `Document ID: ${documentId}` : null,
+            `\nPreview:\n${peek}`,
+          ].filter(Boolean);
+          attachmentContext = `\n\n${metaParts.join('\n')}`;
+        } else if (analysisResult.status === 'failed') {
+          attachmentContext = `\n\n[Document Analysis Failed: ${fileName}]`;
+        }
+      } catch (err) {
+        const msg = err instanceof Error ? err.message : String(err);
+        attachmentContext = `\n\n[Document upload error: ${msg}]`;
+      }
+    }
+
     // Prepend artifact change summaries if any exist
     const changeSummary = drainChangeSummary();
     const changeMsg: ChatMessage | null = changeSummary
       ? { role: 'user', content: changeSummary }
       : null;
 
-    const userMsg: ChatMessage = { role: 'user', content };
+    const userMsg: ChatMessage = { role: 'user', content: content + attachmentContext };
     const outboundMessages = changeMsg ? [changeMsg, userMsg] : [userMsg];
 
     setState(prev => ({

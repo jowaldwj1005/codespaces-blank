@@ -4,6 +4,12 @@ import type { AgentStatus } from '../../types/agent';
 export interface ChatMessageOptions {
   reasoning_effort?: 'low' | 'medium' | 'high';
   web_search?: boolean;
+  /** Attached file for Doc Intelligence analysis */
+  attachment?: {
+    fileName: string;
+    mimeType: string;
+    base64: string;
+  };
 }
 
 interface ChatInputBarProps {
@@ -23,6 +29,7 @@ export function ChatInputBar({ onSend, status, disabled }: ChatInputBarProps) {
   const [input, setInput] = useState('');
   const [webSearch, setWebSearch] = useState(false);
   const [reasoningEffort, setReasoningEffort] = useState<'low' | 'medium' | 'high' | undefined>(undefined);
+  const [attachment, setAttachment] = useState<ChatMessageOptions['attachment'] | null>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
@@ -35,13 +42,15 @@ export function ChatInputBar({ onSend, status, disabled }: ChatInputBarProps) {
     const options: ChatMessageOptions = {};
     if (reasoningEffort) options.reasoning_effort = reasoningEffort;
     if (webSearch) options.web_search = true;
+    if (attachment) options.attachment = attachment;
 
     onSend(trimmed, Object.keys(options).length > 0 ? options : undefined);
     setInput('');
+    setAttachment(null);
     if (textareaRef.current) {
       textareaRef.current.style.height = 'auto';
     }
-  }, [input, isBusy, disabled, onSend, reasoningEffort, webSearch]);
+  }, [input, isBusy, disabled, onSend, reasoningEffort, webSearch, attachment]);
 
   const handleKeyDown = (e: React.KeyboardEvent) => {
     if (e.key === 'Enter' && !e.shiftKey) {
@@ -72,16 +81,25 @@ export function ChatInputBar({ onSend, status, disabled }: ChatInputBarProps) {
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = e.target.files;
     if (!files || files.length === 0) return;
-    // For now, read file content and append to message
     const file = files[0];
+
+    // Read as base64 for Doc Intelligence analysis
     const reader = new FileReader();
     reader.onload = () => {
-      const text = reader.result as string;
-      const preview = text.length > 2000 ? text.slice(0, 2000) + '\n...(truncated)' : text;
-      setInput(prev => prev + (prev ? '\n\n' : '') + `[File: ${file.name}]\n${preview}`);
+      const dataUrl = reader.result as string;
+      // Strip the data:xxx;base64, prefix to get raw base64
+      const base64 = dataUrl.split(',')[1] ?? dataUrl;
+      setAttachment({
+        fileName: file.name,
+        mimeType: file.type || 'application/octet-stream',
+        base64,
+      });
+      // Pre-fill message if empty
+      if (!input.trim()) {
+        setInput(`Analyze the attached document: ${file.name}`);
+      }
     };
-    reader.readAsText(file);
-    // Reset so same file can be re-selected
+    reader.readAsDataURL(file);
     e.target.value = '';
   };
 
@@ -126,8 +144,22 @@ export function ChatInputBar({ onSend, status, disabled }: ChatInputBarProps) {
           type="file"
           style={{ display: 'none' }}
           onChange={handleFileChange}
-          accept=".txt,.csv,.json,.md,.xml,.yaml,.yml,.log,.pdf,.docx"
+          accept=".pdf,.png,.jpg,.jpeg,.tiff,.bmp,.heif,.docx,.xlsx,.pptx,.html"
         />
+
+        {/* Attachment indicator */}
+        {attachment && (
+          <div className="chat-toolbar-attachment">
+            <span className="chat-toolbar-attachment__name">{attachment.fileName}</span>
+            <button
+              className="chat-toolbar-attachment__remove"
+              onClick={() => setAttachment(null)}
+              title="Remove attachment"
+            >
+              {'\u00D7'}
+            </button>
+          </div>
+        )}
       </div>
 
       {/* Input row */}
