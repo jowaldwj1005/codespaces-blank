@@ -18,6 +18,11 @@ import type { IOperationResult } from '@microsoft/power-apps/data';
  */
 export function normalizeConnectorResponse(raw: unknown): unknown {
   if (raw == null) return null;
+
+  // Handle string responses — connectors may return raw JSON strings
+  if (typeof raw === 'string') {
+    try { return JSON.parse(raw); } catch { return raw; }
+  }
   if (typeof raw !== 'object') return raw;
 
   const obj = raw as Record<string, unknown>;
@@ -27,15 +32,23 @@ export function normalizeConnectorResponse(raw: unknown): unknown {
     const rawObj = obj.raw as Record<string, unknown>;
     if (rawObj.success && typeof rawObj.success === 'object') {
       const successObj = rawObj.success as Record<string, unknown>;
-      if (successObj.data !== undefined) return successObj.data;
+      if (successObj.data !== undefined) return tryParseJson(successObj.data);
     }
-    if (rawObj.data !== undefined) return rawObj.data;
+    if (rawObj.data !== undefined) return tryParseJson(rawObj.data);
   }
-  if (obj.result !== undefined) return obj.result;
-  if (obj.data !== undefined) return obj.data;
-  if (obj.body !== undefined) return obj.body;
+  if (obj.result !== undefined) return tryParseJson(obj.result);
+  if (obj.data !== undefined) return tryParseJson(obj.data);
+  if (obj.body !== undefined) return tryParseJson(obj.body);
 
   return raw;
+}
+
+/** If value is a JSON string, parse it. Otherwise return as-is. */
+function tryParseJson(value: unknown): unknown {
+  if (typeof value === 'string') {
+    try { return JSON.parse(value); } catch { return value; }
+  }
+  return value;
 }
 
 /**

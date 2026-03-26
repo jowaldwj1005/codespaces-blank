@@ -169,7 +169,7 @@ export function UnifiedSidebar({ caseManager, tabs }: UnifiedSidebarProps) {
       const agentToolService = getTableService(ENTITY_REGISTRY['jw_agenttool'].pluralApiName);
       const playbookService = getTableService(ENTITY_REGISTRY['jw_playbook'].pluralApiName);
 
-      const [agentRes, toolRes, instrRes, agentToolRes, playbookRes] = await Promise.all([
+      const [agentRes, , instrRes, agentToolRes, playbookRes] = await Promise.all([
         agentService?.getAll({ top: 100 } as IGetAllOptions),
         toolService?.getAll({ top: 200 } as IGetAllOptions),
         instrService?.getAll({ top: 200 } as IGetAllOptions),
@@ -410,7 +410,7 @@ export function UnifiedSidebar({ caseManager, tabs }: UnifiedSidebarProps) {
         <SidebarSection
           icon={icons.clock}
           label="Recent"
-          collapsed={collapsed}
+
           isExpanded={isExpanded}
           open={!sections.recent}
           onToggle={() => toggleSection('recent')}
@@ -436,7 +436,7 @@ export function UnifiedSidebar({ caseManager, tabs }: UnifiedSidebarProps) {
           icon={icons.cases}
           label={`Cases`}
           count={cases.length}
-          collapsed={collapsed}
+
           isExpanded={isExpanded}
           open={!sections.cases}
           onToggle={() => toggleSection('cases')}
@@ -486,7 +486,7 @@ export function UnifiedSidebar({ caseManager, tabs }: UnifiedSidebarProps) {
         <SidebarSection
           icon={icons.define}
           label="Define"
-          collapsed={collapsed}
+
           isExpanded={isExpanded}
           open={!sections.define}
           onToggle={() => toggleSection('define')}
@@ -550,7 +550,7 @@ export function UnifiedSidebar({ caseManager, tabs }: UnifiedSidebarProps) {
         <SidebarSection
           icon={icons.devtools}
           label="Dev Tools"
-          collapsed={collapsed}
+
           isExpanded={isExpanded}
           open={!sections.devtools}
           onToggle={() => toggleSection('devtools')}
@@ -578,14 +578,13 @@ interface SidebarSectionProps {
   icon: React.ReactNode;
   label: string;
   count?: number;
-  collapsed: boolean;
   isExpanded: boolean;
   open: boolean;
   onToggle: () => void;
   children: React.ReactNode;
 }
 
-function SidebarSection({ icon, label, count, collapsed, isExpanded, open, onToggle, children }: SidebarSectionProps) {
+function SidebarSection({ icon, label, count, isExpanded, open, onToggle, children }: SidebarSectionProps) {
   if (!isExpanded) {
     // Slim rail — just show section icon
     return (

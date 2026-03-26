@@ -174,6 +174,14 @@ export function useAgentChat(threadId: string | null) {
       acknowledgeLoop(tid);
     }
 
+    // If a loop is actively running for this thread, show running status but don't
+    // overwrite state — the loop's event handler is still pushing updates.
+    // Instead, set status so user sees the loop is in progress.
+    if (loop?.status === 'running' || loop?.status === 'awaiting_approval') {
+      setState(prev => ({ ...prev, status: loop.status === 'awaiting_approval' ? 'awaiting_approval' : 'thinking' }));
+      // Still load persisted messages (they include incrementally saved ones)
+    }
+
     try {
       const result = await getThreadMessages(tid);
       const records = result.data ?? [];
@@ -398,6 +406,12 @@ export function useAgentChat(threadId: string | null) {
       const allMessages = [...state.messages, ...outboundMessages];
       // Track cumulative token usage for persistence
       let finalTokenUsage: { inputTokens: number; outputTokens: number } | undefined;
+
+      // Incremental persistence: persist each message as it arrives so tab switches don't lose them.
+      // Maps call_id → persisted message ID for tool execution audit records.
+      const persistedCallIdToMsgId = new Map<string, string>();
+      let messageIndex = 0;
+
       const tokenTrackingHandler = (event: AgentEvent) => {
         handleEvent(event);
         if (event.type === 'token_update') {
@@ -407,6 +421,33 @@ export function useAgentChat(threadId: string | null) {
         if (threadId) {
           if (event.type === 'status_change' && event.status === 'awaiting_approval') {
             updateLoop(threadId, { status: 'awaiting_approval' });
+          }
+        }
+        // Persist messages incrementally — don't wait for loop to finish
+        if (event.type === 'message_added' && threadId) {
+          const msg = event.message;
+          if (msg.role === 'assistant' || msg.role === 'tool') {
+            const idx = messageIndex++;
+            createMessage({
+              threadId,
+              role: msg.role,
+              content: msg.content ?? undefined,
+              toolCalls: msg.tool_calls ? JSON.stringify(msg.tool_calls) : undefined,
+              toolCallId: msg.tool_call_id,
+              name: msg.name,
+            }).then(result => {
+              const msgId = (result.data as unknown as Record<string, unknown>)?.jw_messageid as string;
+              // Track assistant messages by their tool call IDs for audit linking
+              if (msgId && msg.role === 'assistant' && msg.tool_calls) {
+                for (const tc of msg.tool_calls) {
+                  persistedCallIdToMsgId.set(tc.id, msgId);
+                }
+              }
+              // Attach token usage to the final assistant message (best-effort update)
+              if (msgId && msg.role === 'assistant' && finalTokenUsage && idx === messageIndex - 1) {
+                // Token usage will be attached in the post-loop update below
+              }
+            }).catch(() => { /* non-critical */ });
           }
         }
       };
@@ -423,7 +464,7 @@ export function useAgentChat(threadId: string | null) {
           }
         : agent;
 
-      const resultMessages = await runAgentLoop({
+      await runAgentLoop({
         agent: effectiveAgent,
         messages: allMessages,
         onEvent: tokenTrackingHandler,
@@ -431,49 +472,13 @@ export function useAgentChat(threadId: string | null) {
         signal: abortRef.current.signal,
       });
 
-      // Persist new messages and create tool execution audit records
-      const newMessages = resultMessages.slice(allMessages.length);
-      const persistedMessageIds: Map<number, string> = new Map(); // index → messageId
+      // Post-loop: create tool execution audit records using incrementally persisted message IDs
+      // Small delay to let in-flight persistence promises settle
+      await new Promise(r => setTimeout(r, 200));
 
-      // Find the last assistant message to attach token data
-      const lastAssistantIdx = newMessages.reduce((acc, msg, i) => msg.role === 'assistant' ? i : acc, -1);
-
-      for (let i = 0; i < newMessages.length; i++) {
-        const msg = newMessages[i];
-        if (msg.role === 'assistant' || msg.role === 'tool') {
-          const isLastAssistant = i === lastAssistantIdx && finalTokenUsage;
-          try {
-            const msgResult = await createMessage({
-              threadId,
-              role: msg.role,
-              content: msg.content ?? undefined,
-              toolCalls: msg.tool_calls ? JSON.stringify(msg.tool_calls) : undefined,
-              toolCallId: msg.tool_call_id,
-              name: msg.name,
-              ...(isLastAssistant ? { tokenPrompt: finalTokenUsage!.inputTokens, tokenCompletion: finalTokenUsage!.outputTokens } : {}),
-            });
-            const msgId = (msgResult.data as unknown as Record<string, unknown>)?.jw_messageid as string;
-            if (msgId) persistedMessageIds.set(i, msgId);
-          } catch {
-            // Non-critical
-          }
-        }
-      }
-
-      // Create tool execution audit records (post-loop linkage)
-      // Link each tool execution to the assistant message that triggered it
       for (const execRecord of toolExecutionRecords) {
         try {
-          // Find the assistant message that contains this tool call
-          let messageId: string | undefined;
-          for (let i = 0; i < newMessages.length; i++) {
-            const msg = newMessages[i];
-            if (msg.role === 'assistant' && msg.tool_calls?.some(tc => tc.id === execRecord.callId)) {
-              messageId = persistedMessageIds.get(i);
-              break;
-            }
-          }
-
+          const messageId = persistedCallIdToMsgId.get(execRecord.callId);
           if (messageId) {
             await createToolExecution({
               messageId,
